@@ -1,26 +1,24 @@
 /**
  * sheets.js
- * Google Sheets storage adapter — lets Google Sheets act as the live database.
+ * Google storage adapter — Google Apps Script (GAS) or the Sheets API —
+ * lets a Google Sheet act as the live database.
  *
  * How it works
  * ------------
  * 1. On startup the whole spreadsheet is read into an in-memory cache (fast
  *    synchronous reads, so the Express routes stay sync like the SQLite path).
  * 2. Every mutation updates the cache immediately AND schedules the matching
- *    cell/row write back to the sheet (serialized to avoid out-of-order writes).
+ *    row write back to the sheet (serialized to avoid out-of-order writes).
  * 3. A poller re-reads the spreadsheet on an interval and, if someone edited
  *    it in Google directly, reloads the cache and fires `onChange` so the
  *    server can broadcast a reload to every connected client.
  *
  * Environment (see backend/.env.example):
- *   SHEETS_SPREADSHEET_ID          -> the spreadsheet id from its URL
- *   GOOGLE_SERVICE_ACCOUNT_JSON    -> full service-account JSON (or set
- *   GOOGLE_APPLICATION_CREDENTIALS -> path to the JSON key file)
- *   SHEETS_POLL_MS                 -> external-change poll interval (default 30s)
- *
- * Drive behavior:
- *   - `STORAGE_DRIVER=sheets` (or setting SHEETS_SPREADSHEET_ID) enables this.
- *   - storage.js falls back to SQLite when credentials are missing.
+ *   GAS_WEBAPP_URL  -> Apps Script web-app URL (GAS mode; preferred)
+ *   GAS_KEY         -> the CONFIG.key inside that Apps Script
+ *   SHEETS_SPREADSHEET_ID -> spreadsheet id (Sheets-API mode)
+ *   GOOGLE_SERVICE_ACCOUNT_JSON / GOOGLE_APPLICATION_CREDENTIALS
+ *   SHEETS_POLL_MS  -> external-change poll interval (default 30s)
  */
 
 const { google } = require('googleapis');
@@ -50,46 +48,44 @@ async function gasRpc(action, extra = {}) {
   return data;
 }
 
-// Serialized write helpers that write a batch of rows starting at `startRow`
-// (1-based) — used for seeding and settings. transport-agnostic.
-async function bulkRows(tab, startRow, values) {
-  if (MODE === 'gas') {
-    for (let r = 0; r < values.length; r++) {
-      await gasRpc('updateRowByIndex', { table: tab, rowIndex: startRow + r, values: values[r] });
-    }
-    return;
-  }
-  await sheets.spreadsheets.values.update({
-    spreadsheetId: SPREADSHEET_ID,
-    range: `${tab}!A${startRow}:${lastCol(tab)}${startRow + values.length - 1}`,
-    valueInputOption: 'RAW',
-    requestBody: { values }
-  });
-}
-
-// Sheet layouts: tab name -> column headers (index = column - 1)
+// Sheet layouts: tab name -> column headers (index = column - 1). Must match
+// the Apps Script CONFIG.tables exactly.
 const TABS = {
   Stores: ['id', 'store_name', 'created_at'],
-  Laptops: ['id', 'brand_model', 'serial_number', 'current_store_id', 'status', 'updated_at'],
+  Brands: ['id', 'name', 'serial_prefix', 'created_at'],
+  Laptops: ['id', 'brand', 'brand_model', 'processor_type', 'generation', 'storage_type',
+    'purchased_from', 'graphics', 'graphics_type', 'graphics_model', 'purchase_rate',
+    'extra_charges', 'serial_number', 'current_store_id', 'status', 'created_at', 'updated_at'],
   TransferLogs: ['id', 'laptop_id', 'from_store_id', 'to_store_id', 'changed_at'],
+  Sales: ['id', 'laptop_id', 'serial_number', 'brand_model', 'store_id', 'sale_price',
+    'cost_price', 'profit', 'sold_at', 'sold_by'],
   Users: ['id', 'username', 'password_hash', 'display_name', 'role', 'created_at'],
-  Settings: ['key', 'value']
+  Settings: ['key', 'value'],
+  LoginLogs: ['id', 'user_id', 'username', 'ip', 'user_agent', 'logged_in']
 };
 
+const ROLES = ['superadmin', 'admin', 'manager', 'staff'];
 const VALID_STATUSES = ['In Stock', 'In Transit', 'Sold'];
+
 const STORE_SEEDS = [
   'Store 1: Main Flagship', 'Store 2: North Hub', 'Store 3: South Branch',
   'Store 4: East Outlet', 'Store 5: West Showroom', 'Store 6: Downtown Express',
   'Store 7: Central Warehouse'
 ];
+const BRAND_SEEDS = [
+  ['HP', 'HP010'],
+  ['Asus', 'AS010'],
+  ['Dell', 'DL010']
+];
+// [brand, model, processor, generation, storage, vendor, graphics, gfx_type, gfx_model, prefix]
 const LAPTOP_SEEDS = [
-  ['Apple MacBook Pro 14', 'SN-001000', 'In Stock'],
-  ['Apple MacBook Air M3', 'SN-001037', 'In Stock'],
-  ['Dell XPS 15', 'SN-001074', 'In Transit'],
-  ['Lenovo ThinkPad X1', 'SN-001111', 'Sold'],
-  ['HP Spectre x360', 'SN-001148', 'In Stock'],
-  ['Asus ZenBook 16', 'SN-001185', 'In Stock'],
-  ['Microsoft Surface Laptop', 'SN-001222', 'In Transit']
+  ['Apple', 'MacBook Pro 14', 'M3 Pro', '14"', 'SSD', 'Apple Store', 'yes', 'integrated', 'Apple GPU', 'HP010'],
+  ['Apple', 'MacBook Air M3', 'M3', '13"', 'SSD', 'Apple Store', 'yes', 'integrated', 'Apple GPU', 'AS010'],
+  ['Dell', 'XPS 15', 'Core i7-13700H', '13th', 'SSD', 'Dell Direct', 'yes', 'dedicated', 'RTX 4060', 'DL010'],
+  ['Lenovo', 'ThinkPad X1', 'Core i5-1345U', '13th', 'SSD', 'Lenovo Direct', 'yes', 'integrated', 'Intel Iris', 'HP010'],
+  ['HP', 'Spectre x360', 'Core i7-1255U', '12th', 'SSD', 'HP Online', 'yes', 'integrated', 'Intel Iris Xe', 'AS010'],
+  ['Asus', 'ZenBook 16', 'Ryzen 7 7840H', 'AMD', 'SSD', 'Asus Store', 'yes', 'dedicated', 'RTX 3050', 'DL010'],
+  ['Microsoft', 'Surface Laptop', 'Core i5-1235U', '12th', 'SSD', 'Microsoft Store', 'no', '', '', 'HP010']
 ];
 const DEFAULT_SETTINGS = {
   appTitle: 'Laptop Inventory Tracker',
@@ -117,7 +113,10 @@ const DEFAULT_SETTINGS = {
   transferHistorySubtitle: 'Audit trail of every location change',
   addLaptopTitle: 'Add Laptop to Inventory',
   editLaptopTitle: 'Edit Laptop',
-  noLaptops: 'No laptops match the current filters.'
+  noLaptops: 'No laptops match the current filters.',
+  quantityLabel: 'Quantity',
+  salesTitle: 'Sales',
+  salesSubtitle: 'Track sales, profit and totals'
 };
 
 // ---------------------------------------------------------------------------
@@ -125,12 +124,15 @@ const DEFAULT_SETTINGS = {
 // ---------------------------------------------------------------------------
 let state = {
   stores: [],
+  brands: [],
   laptops: [],
   logs: [],
+  sales: [],
   users: [],
-  settings: {}
+  settings: {},
+  logins: []
 };
-// tab -> { id: sheetRowIndex }  (row indexes are 1-based, header is row 1)
+// tab -> { id: sheetRowIndex } (row indexes are 1-based, header is row 1)
 let rowIndex = {};
 // tab -> next free row (append cursor)
 let nextRow = {};
@@ -138,7 +140,6 @@ let onChange = null;
 let sheets = null;
 let writeQueue = Promise.resolve();
 
-// Serialized background writes keep writes ordered and don't block requests.
 function schedule(fn) {
   writeQueue = writeQueue.then(fn).catch((e) => {
     console.error('[sheets] background write failed:', e.message);
@@ -149,7 +150,7 @@ function schedule(fn) {
 const now = () => new Date().toISOString().replace('T', ' ').slice(0, 19);
 
 // ---------------------------------------------------------------------------
-// Auth + generic Sheets helpers
+// Auth + generic sheet helpers
 // ---------------------------------------------------------------------------
 function buildAuth() {
   const json = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
@@ -162,7 +163,7 @@ function buildAuth() {
   throw new Error('No Google credentials. Set GOOGLE_SERVICE_ACCOUNT_JSON or GOOGLE_APPLICATION_CREDENTIALS.');
 }
 
-const col = (tab, name) => TABS[tab].indexOf(name) + 1; // 1-based column letter index
+const col = (tab, name) => TABS[tab].indexOf(name) + 1;
 function colLetter(i) {
   let s = '';
   while (i > 0) { const r = (i - 1) % 26; s = String.fromCharCode(65 + r) + s; i = Math.floor((i - 1) / 26); }
@@ -176,55 +177,44 @@ async function readTab(tab) {
     const d = await gasRpc('readTable', { table: tab });
     values = [d.table.headers, ...d.table.rows];
   } else {
-    const res = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: `${tab}!A1:${lastCol(tab)}100000`
-    });
+    const res = await sheets.spreadsheets.values.get({ spreadsheetId: SPREADSHEET_ID, range: `${tab}!A1:${lastCol(tab)}100000` });
     values = res.data.values || [];
   }
   return values.filter((row) => row.some((c) => c != null && c !== ''));
 }
 
 async function writeRow(tab, row, values) {
-  if (MODE === 'gas') {
-    await gasRpc('updateRowByIndex', { table: tab, rowIndex: row, values });
-    return;
-  }
-  await sheets.spreadsheets.values.update({
-    spreadsheetId: SPREADSHEET_ID,
-    range: `${tab}!A${row}:${lastCol(tab)}${row}`,
-    valueInputOption: 'RAW',
-    requestBody: { values: [values] }
-  });
+  if (MODE === 'gas') { await gasRpc('updateRowByIndex', { table: tab, rowIndex: row, values }); return; }
+  await sheets.spreadsheets.values.update({ spreadsheetId: SPREADSHEET_ID, range: `${tab}!A${row}:${lastCol(tab)}${row}`, valueInputOption: 'RAW', requestBody: { values: [values] } });
 }
 
 async function appendRow(tab, values) {
-  if (MODE === 'gas') {
-    await gasRpc('appendRow', { table: tab, values });
-    return;
-  }
-  await sheets.spreadsheets.values.append({
-    spreadsheetId: SPREADSHEET_ID,
-    range: `${tab}!A1`,
-    valueInputOption: 'RAW',
-    requestBody: { values: [values] }
-  });
+  if (MODE === 'gas') { await gasRpc('appendRow', { table: tab, values }); return; }
+  await sheets.spreadsheets.values.append({ spreadsheetId: SPREADSHEET_ID, range: `${tab}!A1`, valueInputOption: 'RAW', requestBody: { values: [values] } });
 }
 
 async function clearRow(tab, row) {
+  if (MODE === 'gas') { await gasRpc('clearRowByIndex', { table: tab, rowIndex: row }); return; }
+  await sheets.spreadsheets.values.clear({ spreadsheetId: SPREADSHEET_ID, range: `${tab}!A${row}:${lastCol(tab)}${row}` });
+}
+
+async function bulkRows(tab, startRow, values) {
   if (MODE === 'gas') {
-    await gasRpc('clearRowByIndex', { table: tab, rowIndex: row });
+    // Rewrite the whole table in ONE call instead of one call per row
+    // (fast: seeding + settings saves drop from ~35 round-trips to 1).
+    const withHeader = startRow === 1;
+    await gasRpc('replaceTable', {
+      table: tab,
+      headers: withHeader ? values[0] : TABS[tab],
+      rows: withHeader ? values.slice(1) : values
+    });
     return;
   }
-  await sheets.spreadsheets.values.clear({
-    spreadsheetId: SPREADSHEET_ID,
-    range: `${tab}!A${row}:${lastCol(tab)}${row}`
-  });
+  await sheets.spreadsheets.values.update({ spreadsheetId: SPREADSHEET_ID, range: `${tab}!A${startRow}:${lastCol(tab)}${startRow + values.length - 1}`, valueInputOption: 'RAW', requestBody: { values } });
 }
 
 async function ensureSheetsExist() {
   if (MODE === 'gas') {
-    // The Apps Script auto-creates tabs + headers on every call.
     for (const tab of Object.keys(TABS)) {
       const rows = await readTab(tab);
       if (rows.length === 0) await writeRow(tab, 1, TABS[tab]);
@@ -235,14 +225,11 @@ async function ensureSheetsExist() {
   const existing = new Set((info.data.sheets || []).map((s) => s.properties.title));
   const missing = Object.keys(TABS).filter((t) => !existing.has(t));
   if (missing.length) {
-    await sheets.spreadsheets.batchUpdate({
-      spreadsheetId: SPREADSHEET_ID,
-      requestBody: { requests: missing.map((t) => ({ addSheet: { properties: { title: t } } })) }
-    });
+    await sheets.spreadsheets.batchUpdate({ spreadsheetId: SPREADSHEET_ID, requestBody: { requests: missing.map((t) => ({ addSheet: { properties: { title: t } } })) } });
   }
   for (const tab of Object.keys(TABS)) {
     const rows = await readTab(tab);
-    if (rows.length === 0) await writeRow(tab, 1, TABS[tab]); // header row
+    if (rows.length === 0) await writeRow(tab, 1, TABS[tab]);
   }
 }
 
@@ -250,6 +237,7 @@ async function ensureSheetsExist() {
 // Loading + indexing
 // ---------------------------------------------------------------------------
 function toNumber(v) {
+  if (v == null || v === '') return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
 }
@@ -261,7 +249,7 @@ function parseRows(tab) {
       const obj = {};
       headers.forEach((h, i) => {
         const raw = row[i] == null ? null : String(row[i]).trim();
-        obj[h] = h === 'id' || h.endsWith('_id') ? toNumber(raw) : raw;
+        obj[h] = /(^id$|_id$|_rate$|_charges$|_price$|cost_price$|^profit$)/.test(h) ? toNumber(raw) : raw;
       });
       return obj;
     });
@@ -269,17 +257,20 @@ function parseRows(tab) {
 }
 
 async function refreshFromSheets() {
-  if (!sheets) return null;
-  const [stores, laptops, logs, users, settingValues] = await Promise.all([
+  if (!sheets && MODE === 'sheets') return null;
+  const [stores, brands, laptops, logs, sales, users, settingValues, logins] = await Promise.all([
     parseRows('Stores'),
+    parseRows('Brands'),
     parseRows('Laptops'),
     parseRows('TransferLogs'),
+    parseRows('Sales'),
     parseRows('Users'),
-    readTab('Settings')
+    readTab('Settings'),
+    parseRows('LoginLogs')
   ]);
   const settings = { ...DEFAULT_SETTINGS };
   settingValues.slice(1).forEach(([k, v]) => { if (k) settings[k] = String(v ?? ''); });
-  return { stores, laptops, logs, users, settings };
+  return { stores, brands, laptops, logs, sales, users, settings, logins };
 }
 
 async function fullReload() {
@@ -292,17 +283,22 @@ async function fullReload() {
 function rebuildIndexes() {
   rowIndex = {};
   nextRow = {};
-  for (const tab of Object.keys(TABS)) {
-    rowIndex[tab] = {};
-    nextRow[tab] = 2; // data starts at row 2
-  }
+  for (const tab of Object.keys(TABS)) { rowIndex[tab] = {}; nextRow[tab] = 2; }
   const map = (tab, rows) => {
-    rows.forEach((r, i) => { rowIndex[tab][r.id] = i + 2; nextRow[tab] = i + 3; });
+    rows.forEach((r, i) => { if (r && r.id != null) { rowIndex[tab][r.id] = i + 2; nextRow[tab] = i + 3; } });
   };
   map('Stores', state.stores);
+  map('Brands', state.brands);
   map('Laptops', state.laptops);
   map('TransferLogs', state.logs);
+  map('Sales', state.sales);
   map('Users', state.users);
+  map('LoginLogs', state.logins);
+}
+
+function nextId(tab) {
+  const rows = tab === 'Stores' ? state.stores : tab === 'Brands' ? state.brands : tab === 'Laptops' ? state.laptops : tab === 'TransferLogs' ? state.logs : tab === 'Sales' ? state.sales : state.users;
+  return rows.reduce((m, r) => Math.max(m, Number(r.id) || 0), 0) + 1;
 }
 
 // ---------------------------------------------------------------------------
@@ -319,23 +315,102 @@ function getStore(id) {
 
 const storeName = (id) => (getStore(id) || {}).store_name;
 
+// --- Brands -----------------------------------------------------------------
+function getBrands() {
+  return state.brands.map((b) => ({ id: b.id, name: b.name, serial_prefix: b.serial_prefix }));
+}
+
+function getBrand(id) {
+  const b = state.brands.find((x) => x.id === id);
+  return b ? { id: b.id, name: b.name, serial_prefix: b.serial_prefix } : undefined;
+}
+
+function addBrand({ name, serial_prefix }) {
+  const brandName = (name || '').trim();
+  const prefix = (serial_prefix || '').trim();
+  if (!brandName) return { error: 'name is required' };
+  if (!prefix) return { error: 'serial_prefix is required' };
+  if (state.brands.some((b) => b.name === brandName)) return { error: 'A brand with that name already exists' };
+  const id = nextId('Brands');
+  state.brands.push({ id, name: brandName, serial_prefix: prefix, created_at: now() });
+  rowIndex.Brands[id] = nextRow.Brands;
+  nextRow.Brands++;
+  schedule(() => appendRow('Brands', [id, brandName, prefix, now()]));
+  return { brand: getBrand(id) };
+}
+
+function updateBrand(id, { name, serial_prefix }) {
+  const brand = state.brands.find((x) => x.id === id);
+  if (!brand) return { error: 'Brand not found' };
+  const brandName = name != null ? (name || '').trim() : brand.name;
+  const prefix = serial_prefix != null ? (serial_prefix || '').trim() : brand.serial_prefix;
+  if (!brandName) return { error: 'name cannot be empty' };
+  if (!prefix) return { error: 'serial_prefix cannot be empty' };
+  if (state.brands.some((b) => b.name === brandName && b.id !== id)) return { error: 'A brand with that name already exists' };
+  brand.name = brandName;
+  brand.serial_prefix = prefix;
+  schedule(() => writeRow('Brands', rowIndex.Brands[id], [brand.id, brandName, prefix, brand.created_at]));
+  return { brand: getBrand(id) };
+}
+
+function deleteBrand(id) {
+  const brand = getBrand(id);
+  if (!brand) return { error: 'Brand not found' };
+  const used = state.laptops.filter((l) => l.brand === brand.name).length;
+  if (used > 0) return { error: 'Cannot remove: laptops exist with this brand. Move/delete them first.' };
+  state.brands = state.brands.filter((x) => x.id !== id);
+  delete rowIndex.Brands[id];
+  schedule(() => clearRow('Brands', rowIndex.Brands[id] || nextRow.Brands));
+  return { ok: true, id };
+}
+
+function generateSerial(prefix) {
+  const prefixUpper = (prefix || '').toUpperCase();
+  let max = 0;
+  state.laptops.forEach((l) => {
+    if (l.serial_number && l.serial_number.startsWith(prefixUpper)) {
+      const n = parseInt(l.serial_number.slice(prefixUpper.length), 10);
+      if (Number.isFinite(n)) max = Math.max(max, n);
+    }
+  });
+  return prefixUpper + String(max + 1).padStart(3, '0');
+}
+
+// --- Laptops ----------------------------------------------------------------
+function laptopRow(l) {
+  if (!l) return undefined;
+  return {
+    id: l.id,
+    brand: l.brand,
+    brand_model: l.brand_model,
+    processor_type: l.processor_type,
+    generation: l.generation,
+    storage_type: l.storage_type,
+    purchased_from: l.purchased_from,
+    graphics: l.graphics,
+    graphics_type: l.graphics_type,
+    graphics_model: l.graphics_model,
+    purchase_rate: l.purchase_rate,
+    extra_charges: l.extra_charges,
+    serial_number: l.serial_number,
+    current_store_id: l.current_store_id,
+    status: l.status,
+    created_at: l.created_at,
+    updated_at: l.updated_at,
+    current_store_name: storeName(l.current_store_id)
+  };
+}
+
 function getLaptops(filters = {}) {
   return state.laptops
-    .map((l) => ({
-      id: l.id,
-      brand_model: l.brand_model,
-      serial_number: l.serial_number,
-      current_store_id: l.current_store_id,
-      status: l.status,
-      updated_at: l.updated_at,
-      current_store_name: storeName(l.current_store_id)
-    }))
+    .map(laptopRow)
     .filter((l) => {
       if (filters.status && l.status !== filters.status) return false;
       if (filters.storeId && l.current_store_id !== Number(filters.storeId)) return false;
+      if (filters.brand && l.brand !== filters.brand) return false;
       if (filters.search) {
         const q = String(filters.search).toLowerCase();
-        if (!(String(l.brand_model).toLowerCase().includes(q) || String(l.serial_number).toLowerCase().includes(q))) return false;
+        if (!(String(l.brand).toLowerCase().includes(q) || String(l.brand_model).toLowerCase().includes(q) || String(l.serial_number).toLowerCase().includes(q))) return false;
       }
       return true;
     })
@@ -343,17 +418,99 @@ function getLaptops(filters = {}) {
 }
 
 function getLaptop(id) {
-  const l = state.laptops.find((x) => x.id === id);
-  if (!l) return undefined;
+  return laptopRow(state.laptops.find((x) => x.id === id));
+}
+
+function normalizeLaptop(data, partial = {}) {
+  const brand = data.brand != null ? String(data.brand).trim() : partial.brand;
   return {
-    id: l.id,
-    brand_model: l.brand_model,
-    serial_number: l.serial_number,
-    current_store_id: l.current_store_id,
-    status: l.status,
-    updated_at: l.updated_at,
-    current_store_name: storeName(l.current_store_id)
+    brand: brand || '',
+    brand_model: (data.brand_model != null ? String(data.brand_model).trim() : partial.brand_model) || (brand || '') + (data.model || ''),
+    processor_type: data.processor_type != null ? String(data.processor_type).trim() : partial.processor_type,
+    generation: data.generation != null ? String(data.generation).trim() : partial.generation,
+    storage_type: data.storage_type != null ? String(data.storage_type).trim() : partial.storage_type,
+    purchased_from: data.purchased_from != null ? String(data.purchased_from).trim() : partial.purchased_from,
+    graphics: data.graphics != null ? String(data.graphics).trim() : partial.graphics,
+    graphics_type: data.graphics_type != null ? String(data.graphics_type).trim() : partial.graphics_type,
+    graphics_model: data.graphics_model != null ? String(data.graphics_model).trim() : partial.graphics_model,
+    purchase_rate: data.purchase_rate != null && data.purchase_rate !== '' ? Number(data.purchase_rate) : (partial.purchase_rate ?? null),
+    extra_charges: data.extra_charges != null && data.extra_charges !== '' ? Number(data.extra_charges) : (partial.extra_charges ?? null),
+    status: data.status || partial.status || 'In Stock',
+    current_store_id: data.current_store_id != null && data.current_store_id !== '' ? Number(data.current_store_id) : (partial.current_store_id ?? null)
   };
+}
+
+const laptopToRow = (l) => [
+  l.id, l.brand, l.brand_model, l.processor_type, l.generation, l.storage_type,
+  l.purchased_from, l.graphics, l.graphics_type, l.graphics_model, l.purchase_rate,
+  l.extra_charges, l.serial_number, l.current_store_id, l.status, l.created_at, l.updated_at
+];
+
+function createLaptop(data) {
+  const serial = (data.serial_number || '').trim();
+  const l = normalizeLaptop(data);
+  if (!l.brand) return { error: 'brand is required' };
+  if (!l.brand_model) return { error: 'brand_model is required' };
+  if (!VALID_STATUSES.includes(l.status)) return { error: 'Invalid status' };
+  if (l.current_store_id != null && !getStore(l.current_store_id)) return { error: 'Store not found' };
+  if (!serial) return { error: 'serial_number is required' };
+  if (state.laptops.some((x) => x.serial_number === serial)) return { error: `Serial ${serial} already exists` };
+
+  const id = nextId('Laptops');
+  const laptop = { ...l, id, serial_number: serial, created_at: now(), updated_at: now() };
+  state.laptops.unshift(laptop);
+  rowIndex.Laptops[id] = nextRow.Laptops;
+  nextRow.Laptops++;
+  schedule(() => appendRow('Laptops', laptopToRow(laptop)));
+  return { laptop: getLaptop(id) };
+}
+
+function createLaptopsBulk(data, quantity) {
+  const qty = Number(quantity);
+  if (!Number.isInteger(qty) || qty < 1 || qty > 1000) return { error: 'quantity must be an integer between 1 and 1000' };
+  const brandRow = getBrands().find((b) => b.name.toLowerCase() === String(data.brand || '').trim().toLowerCase());
+  const prefix = (data.serial_prefix || (brandRow && brandRow.serial_prefix) || '').trim();
+  if (!prefix) return { error: 'Could not determine serial prefix. Add this brand first or provide a prefix.' };
+
+  const probe = normalizeLaptop(data);
+  if (!probe.brand) return { error: 'brand is required' };
+  if (!probe.brand_model) return { error: 'brand_model is required' };
+
+  const laptops = [];
+  let lastError = null;
+  for (let i = 0; i < qty; i++) {
+    const serial = generateSerial(prefix);
+    const r = createLaptop({ ...data, serial_number: serial });
+    if (r.error) { lastError = r.error; break; }
+    laptops.push(r.laptop);
+  }
+  if (lastError) return { error: lastError, created: laptops.length };
+  return { laptops };
+}
+
+function updateLaptop(laptopId, data) {
+  const laptop = state.laptops.find((x) => x.id === laptopId);
+  if (!laptop) return { error: 'Laptop not found' };
+  const l = normalizeLaptop(data, laptop);
+  if (!l.brand) return { error: 'brand is required' };
+  if (!l.brand_model) return { error: 'brand_model is required' };
+  if (!VALID_STATUSES.includes(l.status)) return { error: 'Invalid status' };
+  if (l.current_store_id != null && !getStore(l.current_store_id)) return { error: 'Store not found' };
+
+  Object.assign(laptop, l, { updated_at: now() });
+  schedule(() => writeRow('Laptops', rowIndex.Laptops[laptopId], laptopToRow(laptop)));
+  return { laptop: getLaptop(laptopId) };
+}
+
+function deleteLaptop(laptopId) {
+  const laptop = state.laptops.find((x) => x.id === laptopId);
+  if (!laptop) return { error: 'Laptop not found' };
+  const logRow = rowIndex.Laptops[laptopId];
+  state.laptops = state.laptops.filter((x) => x.id !== laptopId);
+  state.sales = state.sales.filter((s) => s.laptop_id !== laptopId);
+  delete rowIndex.Laptops[laptopId];
+  schedule(() => clearRow('Laptops', logRow));
+  return { ok: true, id: laptopId };
 }
 
 function transferLaptop(laptopId, toStoreId) {
@@ -364,28 +521,17 @@ function transferLaptop(laptopId, toStoreId) {
   const from = getStore(laptop.current_store_id);
   const fromId = laptop.current_store_id ?? null;
 
-  // update cache
   laptop.current_store_id = toStoreId;
   laptop.updated_at = now();
 
-  // audit log entry
   const logId = nextId('TransferLogs');
   state.logs.unshift({ id: logId, laptop_id: laptopId, from_store_id: fromId, to_store_id: toStoreId, changed_at: now() });
   rowIndex.TransferLogs[logId] = nextRow.TransferLogs;
   nextRow.TransferLogs++;
 
-  // persist to the sheet
-  const row = rowIndex.Laptops[laptopId];
-  schedule(() => writeRow('Laptops', row, [laptop.id, laptop.brand_model, laptop.serial_number, laptop.current_store_id, laptop.status, laptop.updated_at]));
-  const logRow = [logId, laptopId, fromId, toStoreId, now()];
-  schedule(() => appendRow('TransferLogs', logRow));
-
+  schedule(() => writeRow('Laptops', rowIndex.Laptops[laptopId], laptopToRow(laptop)));
+  schedule(() => appendRow('TransferLogs', [logId, laptopId, fromId, toStoreId, now()]));
   return { ok: true, laptop: getLaptop(laptopId), from, to };
-}
-
-function nextId(tab) {
-  const rows = tab === 'Stores' ? state.stores : tab === 'Laptops' ? state.laptops : tab === 'TransferLogs' ? state.logs : state.users;
-  return rows.reduce((m, r) => Math.max(m, Number(r.id) || 0), 0) + 1;
 }
 
 function getTransferLogs(limit = 100) {
@@ -405,101 +551,52 @@ function getTransferLogs(limit = 100) {
     .slice(0, limit);
 }
 
-function createLaptop(data) {
-  const brand = (data.brand_model || '').trim();
-  const serial = (data.serial_number || '').trim();
-  const status = data.status || 'In Stock';
-  const storeId = data.current_store_id ? Number(data.current_store_id) : null;
-
-  if (!brand) return { error: 'brand_model is required' };
-  if (!serial) return { error: 'serial_number is required' };
-  if (!VALID_STATUSES.includes(status)) return { error: 'Invalid status' };
-  if (storeId != null && !getStore(storeId)) return { error: 'Store not found' };
-  if (state.laptops.some((l) => l.serial_number === serial)) return { error: `Serial ${serial} already exists` };
-
-  const id = nextId('Laptops');
-  const laptop = { id, brand_model: brand, serial_number: serial, current_store_id: storeId, status, updated_at: now() };
-  state.laptops.unshift(laptop);
-  rowIndex.Laptops[id] = nextRow.Laptops;
-  nextRow.Laptops++;
-
-  schedule(() => appendRow('Laptops', [id, brand, serial, storeId, status, laptop.updated_at]));
-  return { laptop: getLaptop(id) };
+// --- Sales ------------------------------------------------------------------
+function saleRow(s) {
+  if (!s) return undefined;
+  return {
+    id: s.id,
+    laptop_id: s.laptop_id,
+    serial_number: s.serial_number,
+    brand_model: s.brand_model,
+    store_id: s.store_id,
+    store_name: storeName(s.store_id),
+    sale_price: s.sale_price,
+    cost_price: s.cost_price,
+    profit: s.profit,
+    sold_at: s.sold_at,
+    sold_by: s.sold_by
+  };
 }
 
-function updateLaptop(laptopId, data) {
-  const laptop = state.laptops.find((x) => x.id === laptopId);
+function sellLaptop(laptopId, salePrice, soldBy) {
+  const laptop = getLaptop(laptopId);
   if (!laptop) return { error: 'Laptop not found' };
+  if (laptop.status === 'Sold') return { error: 'Laptop is already sold' };
+  const price = Number(salePrice);
+  if (!Number.isFinite(price) || price < 0) return { error: 'sale_price is required' };
+  const cost = (laptop.purchase_rate || 0) + (laptop.extra_charges || 0);
+  const profit = price - cost;
 
-  const brand = data.brand_model != null ? (data.brand_model || '').trim() : laptop.brand_model;
-  const status = data.status != null ? data.status : laptop.status;
-  const storeId = data.current_store_id != null ? Number(data.current_store_id) : laptop.current_store_id;
+  const id = nextId('Sales');
+  state.sales.unshift({ id, laptop_id: laptopId, serial_number: laptop.serial_number, brand_model: laptop.brand_model, store_id: laptop.current_store_id, sale_price: price, cost_price: cost, profit, sold_at: now(), sold_by: soldBy || null });
+  rowIndex.Sales[id] = nextRow.Sales;
+  nextRow.Sales++;
 
-  if (!brand) return { error: 'brand_model cannot be empty' };
-  if (!VALID_STATUSES.includes(status)) return { error: 'Invalid status' };
-  if (storeId != null && !getStore(storeId)) return { error: 'Store not found' };
-
-  laptop.brand_model = brand;
-  laptop.status = status;
-  laptop.current_store_id = storeId;
-  laptop.updated_at = now();
-
-  const row = rowIndex.Laptops[laptopId];
-  schedule(() => writeRow('Laptops', row, [laptop.id, brand, serialNo(laptop), storeId, status, laptop.updated_at]));
-  return { laptop: getLaptop(laptopId) };
+  updateLaptop(laptopId, { status: 'Sold' });
+  schedule(() => appendRow('Sales', [id, laptopId, laptop.serial_number, laptop.brand_model, laptop.current_store_id, price, cost, profit, now(), soldBy || null]));
+  return { sale: saleRow(state.sales.find((s) => s.id === id)) };
 }
 
-const serialNo = (l) => l.serial_number;
-
-function deleteLaptop(laptopId) {
-  const laptop = state.laptops.find((x) => x.id === laptopId);
-  if (!laptop) return { error: 'Laptop not found' };
-  const row = rowIndex.Laptops[laptopId];
-  state.laptops = state.laptops.filter((x) => x.id !== laptopId);
-  delete rowIndex.Laptops[laptopId];
-  // Note: transfer history is kept (it is an audit trail) even if the laptop is removed.
-  schedule(() => clearRow('Laptops', row));
-  return { ok: true, id: laptopId };
+function getSales() {
+  return state.sales.map(saleRow).sort((a, b) => (b.sold_at || '').localeCompare(a.sold_at || ''));
 }
 
-// --- Stores -----------------------------------------------------------------
-function addStore(storeName) {
-  const name = (storeName || '').trim();
-  if (!name) return { error: 'store_name is required' };
-  if (state.stores.some((s) => s.store_name === name)) return { error: 'A store with that name already exists' };
-  const id = nextId('Stores');
-  state.stores.push({ id, store_name: name, created_at: now() });
-  rowIndex.Stores[id] = nextRow.Stores;
-  nextRow.Stores++;
-  schedule(() => appendRow('Stores', [id, name, now()]));
-  return { store: getStore(id) };
-}
-
-function renameStore(storeId, storeName) {
-  const store = state.stores.find((x) => x.id === storeId);
-  if (!store) return { error: 'Store not found' };
-  const name = (storeName || '').trim();
-  if (!name) return { error: 'store_name cannot be empty' };
-  if (state.stores.some((s) => s.store_name === name && s.id !== storeId)) return { error: 'A store with that name already exists' };
-  store.store_name = name;
-  const row = rowIndex.Stores[storeId];
-  schedule(() => writeRow('Stores', row, [store.id, store.store_name, store.created_at]));
-  return { store: getStore(storeId) };
-}
-
-function deleteStore(storeId) {
-  const store = state.stores.find((x) => x.id === storeId);
-  if (!store) return { error: 'Store not found' };
-  if (state.stores.length <= 1) return { error: 'Cannot remove the last store' };
-  const assigned = state.laptops.filter((l) => l.current_store_id === storeId).length;
-  if (assigned > 0) return { error: `Cannot remove: ${assigned} laptop(s) still assigned. Move them first.` };
-  const logs = state.logs.some((l) => l.from_store_id === storeId || l.to_store_id === storeId);
-  if (logs) return { error: 'Cannot remove: store appears in transfer history.' };
-  const row = rowIndex.Stores[storeId];
-  state.stores = state.stores.filter((x) => x.id !== storeId);
-  delete rowIndex.Stores[storeId];
-  schedule(() => clearRow('Stores', row));
-  return { ok: true, id: storeId };
+function getSalesSummary() {
+  return state.sales.reduce(
+    (acc, s) => ({ count: acc.count + 1, total_sales: acc.total_sales + (s.sale_price || 0), total_profit: acc.total_profit + (s.profit || 0), total_cost: acc.total_cost + (s.cost_price || 0) }),
+    { count: 0, total_sales: 0, total_profit: 0, total_cost: 0 }
+  );
 }
 
 // --- Settings ---------------------------------------------------------------
@@ -525,7 +622,7 @@ function createUser({ username, password, display_name, role = 'staff' }) {
   if (!name) return { error: 'username is required' };
   if (!/^[a-z0-9._-]{3,32}$/.test(name)) return { error: 'Username must be 3-32 chars: letters, numbers, . _ -' };
   if (!password || String(password).length < 6) return { error: 'Password must be at least 6 characters' };
-  if (!['admin', 'manager', 'staff'].includes(role)) return { error: 'Invalid role' };
+  if (!ROLES.includes(role)) return { error: 'Invalid role' };
   if (state.users.some((u) => u.username === name)) return { error: 'Username already taken' };
 
   const id = nextId('Users');
@@ -550,6 +647,23 @@ function verifyPassword(user, password) {
   return user && bcrypt.compareSync(String(password || ''), user.password_hash);
 }
 
+const loginCounter = { n: 100 };
+
+function recordLogin(userId, username, ip, userAgent) {
+  const id = (loginCounter.n = loginCounter.n + 1);
+  state.logins.unshift({ id, user_id: userId, username, ip, user_agent: userAgent || null, logged_in: now() });
+  rowIndex.LoginLogs[id] = nextRow.LoginLogs;
+  nextRow.LoginLogs++;
+  schedule(() => appendRow('LoginLogs', [id, userId, username, ip, userAgent || null, now()]));
+}
+
+function getLoginLogs(limit = 200) {
+  return state.logins
+    .map((l) => ({ id: l.id, user_id: l.user_id, username: l.username, ip: l.ip, user_agent: l.user_agent, logged_in: l.logged_in }))
+    .sort((a, b) => (b.logged_in || '').localeCompare(a.logged_in || ''))
+    .slice(0, limit);
+}
+
 function getUsers() {
   return state.users.map(publicUser);
 }
@@ -560,7 +674,7 @@ function updateUser(userId, { username, password, display_name, role } = {}) {
 
   const name = username != null ? String(username).trim().toLowerCase() : user.username;
   if (!/^[a-z0-9._-]{3,32}$/.test(name)) return { error: 'Username must be 3-32 chars: letters, numbers, . _ -' };
-  if (role != null && !['admin', 'manager', 'staff'].includes(role)) return { error: 'Invalid role' };
+  if (role != null && !ROLES.includes(role)) return { error: 'Invalid role' };
   if (password != null && String(password) !== '' && String(password).length < 6) return { error: 'Password must be at least 6 characters' };
   if (state.users.some((u) => u.username === name && u.id !== userId)) return { error: 'Username already taken' };
 
@@ -573,8 +687,7 @@ function updateUser(userId, { username, password, display_name, role } = {}) {
   user.role = finalRole;
   user.password_hash = hash;
 
-  const row = rowIndex.Users[userId];
-  schedule(() => writeRow('Users', row, [user.id, name, hash, display || name, finalRole, user.created_at]));
+  schedule(() => writeRow('Users', rowIndex.Users[userId], [user.id, name, hash, display || name, finalRole, user.created_at]));
   return { user: publicUser(user) };
 }
 
@@ -588,6 +701,45 @@ function deleteUser(userId) {
   return { ok: true, id: userId };
 }
 
+// --- Stores -----------------------------------------------------------------
+function addStore(storeName) {
+  const name = (storeName || '').trim();
+  if (!name) return { error: 'store_name is required' };
+  if (state.stores.some((s) => s.store_name === name)) return { error: 'A store with that name already exists' };
+  const id = nextId('Stores');
+  state.stores.push({ id, store_name: name, created_at: now() });
+  rowIndex.Stores[id] = nextRow.Stores;
+  nextRow.Stores++;
+  schedule(() => appendRow('Stores', [id, name, now()]));
+  return { store: getStore(id) };
+}
+
+function renameStore(storeId, storeName) {
+  const store = state.stores.find((x) => x.id === storeId);
+  if (!store) return { error: 'Store not found' };
+  const name = (storeName || '').trim();
+  if (!name) return { error: 'store_name cannot be empty' };
+  if (state.stores.some((s) => s.store_name === name && s.id !== storeId)) return { error: 'A store with that name already exists' };
+  store.store_name = name;
+  schedule(() => writeRow('Stores', rowIndex.Stores[storeId], [store.id, store.store_name, store.created_at]));
+  return { store: getStore(storeId) };
+}
+
+function deleteStore(storeId) {
+  const store = state.stores.find((x) => x.id === storeId);
+  if (!store) return { error: 'Store not found' };
+  if (state.stores.length <= 1) return { error: 'Cannot remove the last store' };
+  const assigned = state.laptops.filter((l) => l.current_store_id === storeId).length;
+  if (assigned > 0) return { error: `Cannot remove: ${assigned} laptop(s) still assigned. Move them first.` };
+  const logs = state.logs.some((l) => l.from_store_id === storeId || l.to_store_id === storeId);
+  if (logs) return { error: 'Cannot remove: store appears in transfer history.' };
+  const row = rowIndex.Stores[storeId];
+  state.stores = state.stores.filter((x) => x.id !== storeId);
+  delete rowIndex.Stores[storeId];
+  schedule(() => clearRow('Stores', row));
+  return { ok: true, id: storeId };
+}
+
 // ---------------------------------------------------------------------------
 // Seeding + init + polling
 // ---------------------------------------------------------------------------
@@ -597,19 +749,27 @@ async function seedIfEmpty() {
     const rows = STORE_SEEDS.map((n, i) => [i + 1, n, now()]);
     await bulkRows('Stores', 2, rows);
   }
+  const brandValues = await readTab('Brands');
+  if (brandValues.length === 1) {
+    const rows = BRAND_SEEDS.map(([n, p], i) => [i + 1, n, p, now()]);
+    await bulkRows('Brands', 2, rows);
+  }
+  const laptopValues = await readTab('Laptops');
+  if (laptopValues.length === 1) {
+    const rows = LAPTOP_SEEDS.map((r, i) => [i + 1, r[0], `${r[0]} ${r[1]}`, r[2], r[3], r[4], r[5], r[6], r[7], r[8], null, null, `${r[9]}${String(i + 1).padStart(3, '0')}`, (i % 7) + 1, ['In Stock', 'In Stock', 'In Transit', 'Sold'][i % 4], now(), now()]);
+    await bulkRows('Laptops', 2, rows);
+  }
   const settingValues = await readTab('Settings');
   if (settingValues.length === 1) {
     const rows = Object.entries(DEFAULT_SETTINGS).map(([k, v]) => [k, v]);
     await bulkRows('Settings', 2, rows);
   }
-  const laptopValues = await readTab('Laptops');
-  if (laptopValues.length === 1) {
-    const rows = LAPTOP_SEEDS.map(([brand, serial, status], i) => [i + 1, brand, serial, (i % 7) + 1, status, now()]);
-    await bulkRows('Laptops', 2, rows);
-  }
   const userValues = await readTab('Users');
   if (userValues.length === 1) {
-    await bulkRows('Users', 2, [[1, 'admin', bcrypt.hashSync('admin123', 10), 'System Administrator', 'admin', now()]]);
+    await bulkRows('Users', 2, [
+      [1, 'superadmin', bcrypt.hashSync('superadmin123', 10), 'Super Administrator', 'superadmin', now()],
+      [2, 'admin', bcrypt.hashSync('admin123', 10), 'System Administrator', 'admin', now()]
+    ]);
   }
 }
 
@@ -622,7 +782,6 @@ async function init() {
     return;
   }
   if (!SPREADSHEET_ID) throw new Error('SHEETS_SPREADSHEET_ID is not set');
-  // allow a fake API to be injected (unit tests); otherwise build the real client
   if (!sheets) sheets = google.sheets({ version: 'v4', auth: buildAuth() });
   await ensureSheetsExist();
   await seedIfEmpty();
@@ -655,26 +814,37 @@ module.exports = {
   driver: MODE === 'gas' ? 'gas' : 'sheets',
   init,
   startPolling,
-  // Test-only hook to inject a fake Sheets API client.
   _inject: (api) => { sheets = api || null; },
   getStores,
   getStore,
-  getLaptops,
-  getLaptop,
-  transferLaptop,
-  getTransferLogs,
-  createLaptop,
-  updateLaptop,
-  deleteLaptop,
   addStore,
   renameStore,
   deleteStore,
+  getBrands,
+  getBrand,
+  addBrand,
+  updateBrand,
+  deleteBrand,
+  generateSerial,
+  getLaptops,
+  getLaptop,
+  createLaptop,
+  createLaptopsBulk,
+  updateLaptop,
+  deleteLaptop,
+  transferLaptop,
+  getTransferLogs,
+  getSales,
+  getSalesSummary,
+  sellLaptop,
   getSettings,
   setSettings,
   createUser,
   getUserById,
   getUserByUsername,
   verifyPassword,
+  recordLogin,
+  getLoginLogs,
   getUsers,
   updateUser,
   deleteUser

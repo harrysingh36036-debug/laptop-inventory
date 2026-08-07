@@ -3,16 +3,17 @@
  * Picks the active storage driver:
  *   - "gas"     when GAS_WEBAPP_URL is set (Google Apps Script web app)
  *   - "sheets"  when STORAGE_DRIVER=sheets  OR  SHEETS_SPREADSHEET_ID is set
- *   - "sqlite"  otherwise (default, no configuration needed)
+ *   - "sqlite"  when STORAGE_DRIVER=sqlite, or by default (no configuration)
  *
- * Both remote drivers expose the same API, so server.js is agnostic. If a
- * remote driver is requested but missing configuration, we fall back to SQLite
- * with a warning so the app always boots.
+ * STORAGE_DRIVER=sqlite explicitly overrides GAS/Sheets so a deployment can
+ * always force the reliable built-in SQLite store even when a remote driver's
+ * env vars are present.
  */
 
-const gasRequested = !!process.env.GAS_WEBAPP_URL;
+const forced = (process.env.STORAGE_DRIVER || '').toLowerCase();
+const gasRequested = !forced && !!process.env.GAS_WEBAPP_URL;
 const sheetsRequested =
-  (process.env.STORAGE_DRIVER || '').toLowerCase() === 'sheets' || !!process.env.SHEETS_SPREADSHEET_ID;
+  !forced && ((process.env.STORAGE_DRIVER || '').toLowerCase() === 'sheets' || !!process.env.SHEETS_SPREADSHEET_ID);
 const requested = gasRequested || sheetsRequested;
 
 let impl;

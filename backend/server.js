@@ -10,18 +10,28 @@ const http = require('http');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const { Server } = require('socket.io');
-require('dotenv').config();
+// Load backend/.env no matter which directory the server is started from.
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 
 const storage = require('./storage');
 
 const {
   getStores,
   getLaptops,
+  getLaptop,
   transferLaptop,
   getTransferLogs,
   createLaptop,
+  createLaptopsBulk,
   updateLaptop,
   deleteLaptop,
+  getBrands,
+  addBrand,
+  updateBrand,
+  deleteBrand,
+  getSales,
+  getSalesSummary,
+  sellLaptop,
   addStore,
   renameStore,
   deleteStore,
@@ -31,6 +41,8 @@ const {
   getUserById,
   getUserByUsername,
   verifyPassword,
+  recordLogin,
+  getLoginLogs,
   getUsers,
   updateUser,
   deleteUser
@@ -88,7 +100,7 @@ function authenticate(req, res, next) {
   }
 }
 
-// Require a specific role. Role hierarchy: admin > manager > staff.
+// Require a specific role. Role hierarchy: superadmin > admin > manager > staff.
 function requireRole(...roles) {
   return (req, res, next) => {
     if (!req.user) return res.status(401).json({ error: 'Authentication required' });
@@ -99,8 +111,55 @@ function requireRole(...roles) {
   };
 }
 
-const isAdmin = requireRole('admin');
-const isManagerOrHigher = requireRole('admin', 'manager');
+const ROLES = ['superadmin', 'admin', 'manager', 'staff'];
+const isAdmin = requireRole('admin', 'superadmin');
+const isSuperAdmin = requireRole('superadmin');
+const isAdminOrManager = requireRole('admin', 'superadmin', 'manager');
+
+// ---------------------------------------------------------------------------
+// Role permissions (admin-configurable)
+// - admin / superadmin can always do everything (bypasses the map)
+// - manager / staff permissions are stored in Settings and editable by admin
+// ---------------------------------------------------------------------------
+const DEFAULT_ROLE_PERMISSIONS = {
+  manager: {
+    editInventory: true,
+    transferLaptops: true,
+    createStaff: true,
+    renameStores: true,
+    editLabels: false
+  },
+  staff: {
+    editInventory: false,
+    transferLaptops: false,
+    createStaff: false,
+    renameStores: false,
+    editLabels: false
+  }
+};
+
+const PERMISSION_KEYS = Object.keys(DEFAULT_ROLE_PERMISSIONS.manager);
+
+function getRolePermissions() {
+  const raw = (getSettings() || {}).role_permissions;
+  if (!raw) return JSON.parse(JSON.stringify(DEFAULT_ROLE_PERMISSIONS));
+  try {
+    const parsed = JSON.parse(raw);
+    const out = {};
+    for (const role of ['manager', 'staff']) {
+      out[role] = { ...DEFAULT_ROLE_PERMISSIONS[role], ...(parsed[role] || {}) };
+    }
+    return out;
+  } catch {
+    return JSON.parse(JSON.stringify(DEFAULT_ROLE_PERMISSIONS));
+  }
+}
+
+function hasPerm(user, perm) {
+  if (!user) return false;
+  if (user.role === 'admin' || user.role === 'superadmin') return true;
+  return !!getRolePermissions()[user.role]?.[perm];
+}
 
 // -------------------------------- REST API ---------------------------------
 app.get('/api/health', (_req, res) => {
@@ -108,12 +167,10 @@ app.get('/api/health', (_req, res) => {
 });
 
 // -------------------------------- Auth routes ------------------------------
-app.post('/api/auth/register', (req, res) => {
-  // Self-registration creates a regular staff account.
-  const result = createUser({ ...req.body, role: 'staff' });
-  if (result.error) return res.status(400).json({ error: result.error });
-  const token = signToken(result.user);
-  res.status(201).json({ token, user: result.user });
+// Public self-registration is disabled. Accounts are created by an admin or a
+// manager (staff accounts only) through the Account Manager.
+app.post('/api/auth/register', (_req, res) => {
+  res.status(403).json({ error: 'Self-registration is disabled. Ask an admin or manager to create your account.' });
 });
 
 app.post('/api/auth/login', (req, res) => {
@@ -121,6 +178,7 @@ app.post('/api/auth/login', (req, res) => {
   if (!user || !verifyPassword(user, req.body?.password)) {
     return res.status(401).json({ error: 'Invalid username or password' });
   }
+  recordLogin(user.id, user.username, req.ip, req.headers['user-agent']);
   const safe = { id: user.id, username: user.username, display_name: user.display_name, role: user.role, created_at: user.created_at };
   res.json({ token: signToken(user), user: safe });
 });
@@ -130,39 +188,80 @@ app.get('/api/auth/me', authenticate, (req, res) => {
 });
 
 // ------------------------------ Account management -------------------------
-// Only admins can manage accounts.
-app.get('/api/users', authenticate, isAdmin, (_req, res) => {
-  res.json(getUsers());
+// Super admins manage everyone. Admins manage admin/manager/staff but never
+// see or touch superadmin accounts. Managers see staff + manager accounts only.
+app.get('/api/users', authenticate, isAdminOrManager, (req, res) => {
+  const users = getUsers();
+  if (req.user.role === 'manager') return res.json(users.filter((u) => !['admin', 'superadmin'].includes(u.role)));
+  if (req.user.role === 'admin') return res.json(users.filter((u) => u.role !== 'superadmin'));
+  res.json(users);
 });
 
-app.get('/api/users/:id', authenticate, isAdmin, (req, res) => {
+app.get('/api/users/:id', authenticate, isAdminOrManager, (req, res) => {
   const user = getUserById(Number(req.params.id));
   if (!user) return res.status(404).json({ error: 'User not found' });
+  if ((req.user.role === 'manager' && ['admin', 'superadmin'].includes(user.role)) ||
+      (req.user.role === 'admin' && user.role === 'superadmin')) {
+    return res.status(403).json({ error: 'Insufficient permissions to view this account' });
+  }
   res.json({ user: { id: user.id, username: user.username, display_name: user.display_name, role: user.role, created_at: user.created_at } });
 });
 
-app.post('/api/users', authenticate, isAdmin, (req, res) => {
-  const result = createUser(req.body || {});
+// Creates a staff, manager or admin account. Only a superadmin can create a
+// superadmin (or any inferior role). Managers can create staff + managers.
+app.post('/api/users', authenticate, isAdminOrManager, (req, res) => {
+  const body = req.body || {};
+  const role = body.role || 'staff';
+  if (req.user.role === 'manager') {
+    if (!hasPerm(req.user, 'createStaff')) return res.status(403).json({ error: 'Insufficient permissions' });
+    if (['admin', 'superadmin'].includes(role)) return res.status(403).json({ error: 'Managers cannot create admin accounts' });
+  }
+  if (role === 'superadmin' && req.user.role !== 'superadmin') {
+    return res.status(403).json({ error: 'Only the super admin can create super admin accounts' });
+  }
+  const result = createUser({ ...body, role });
   if (result.error) return res.status(400).json({ error: result.error });
   res.status(201).json(result.user);
 });
 
-app.put('/api/users/:id', authenticate, isAdmin, (req, res) => {
+// Updates a user. Superadmin can update anyone. Admin can update admin/manager/
+// staff but never superadmin, and never promote anyone to superadmin. Managers
+// can update staff + manager accounts, never admins.
+app.put('/api/users/:id', authenticate, isAdminOrManager, (req, res) => {
   const id = Number(req.params.id);
+  const target = getUserById(id);
+  if (!target) return res.status(404).json({ error: 'User not found' });
+
+  if (req.user.role === 'manager') {
+    if (!hasPerm(req.user, 'createStaff')) return res.status(403).json({ error: 'Insufficient permissions' });
+    if (['admin', 'superadmin'].includes(target.role)) return res.status(403).json({ error: 'Admin accounts are hidden from managers' });
+    if (['admin', 'superadmin'].includes(req.body?.role)) return res.status(403).json({ error: 'Managers cannot assign the admin role' });
+  }
+  if (req.user.role === 'admin') {
+    if (target.role === 'superadmin') return res.status(403).json({ error: 'Admin cannot modify the super admin account' });
+    if (req.body?.role === 'superadmin') return res.status(403).json({ error: 'Admin cannot assign the super admin role' });
+  }
+
   const result = updateUser(id, req.body || {});
   if (result.error) return res.status(400).json({ error: result.error });
-  // Editing yourself: return a fresh token so the session still matches.
   if (req.user.id === id) return res.json({ user: result.user, token: signToken(result.user) });
   res.json(result.user);
 });
 
 app.delete('/api/users/:id', authenticate, isAdmin, (req, res) => {
-  if (Number(req.params.id) === req.user.id) {
-    return res.status(400).json({ error: 'You cannot delete your own account' });
+  if (Number(req.params.id) === req.user.id) return res.status(400).json({ error: 'You cannot delete your own account' });
+  const target = getUserById(Number(req.params.id));
+  if (req.user.role === 'admin' && target?.role === 'superadmin') {
+    return res.status(403).json({ error: 'Admin cannot delete the super admin account' });
   }
   const result = deleteUser(Number(req.params.id));
   if (result.error) return res.status(404).json({ error: result.error });
   res.json(result);
+});
+
+// Login activity (admin only).
+app.get('/api/auth/logins', authenticate, isAdmin, (req, res) => {
+  res.json(getLoginLogs());
 });
 
 // Protect the inventory API. Viewing is allowed for all roles; writes are
@@ -182,14 +281,16 @@ app.get('/api/laptops', authenticate, (req, res) => {
 });
 
 app.get('/api/laptops/:id', authenticate, (req, res) => {
-  const { getLaptop } = require('./db');
   const laptop = getLaptop(Number(req.params.id));
   if (!laptop) return res.status(404).json({ error: 'Laptop not found' });
   res.json(laptop);
 });
 
 // POST /api/laptops/:id/transfer  body: { toStoreId: 5 }
-app.post('/api/laptops/:id/transfer', authenticate, isManagerOrHigher, (req, res) => {
+app.post('/api/laptops/:id/transfer', authenticate, (req, res) => {
+  if (!hasPerm(req.user, 'transferLaptops')) {
+    return res.status(403).json({ error: 'Insufficient permissions' });
+  }
   const laptopId = Number(req.params.id);
   const toStoreId = Number(req.body.toStoreId);
 
@@ -220,8 +321,30 @@ app.put('/api/settings', authenticate, isAdmin, (req, res) => {
   res.json(setSettings(req.body || {}));
 });
 
+// ------------------------- Role permissions --------------------------------
+// Admin reads/writes the permission map that controls what managers and staff
+// can do. Admin itself always has full access.
+app.get('/api/permissions', authenticate, isAdmin, (_req, res) => {
+  res.json(getRolePermissions());
+});
+
+app.put('/api/permissions', authenticate, isAdmin, (req, res) => {
+  const body = req.body || {};
+  const clean = {};
+  for (const role of ['manager', 'staff']) {
+    clean[role] = {};
+    for (const key of PERMISSION_KEYS) {
+      clean[role][key] = !!body[role]?.[key];
+    }
+  }
+  setSettings({ role_permissions: JSON.stringify(clean) });
+  broadcast('permissions:updated', clean);
+  res.json(clean);
+});
+
 // ----------------------------- Store management -----------------------------
-// Rename / add / remove stores (admin only). Broadcasts so every screen syncs.
+// Admins can add / rename / remove stores. Managers can only rename stores
+// (when granted the renameStores permission).
 app.post('/api/stores', authenticate, isAdmin, (req, res) => {
   const result = addStore(req.body?.store_name);
   if (result.error) return res.status(400).json({ error: result.error });
@@ -230,7 +353,10 @@ app.post('/api/stores', authenticate, isAdmin, (req, res) => {
   res.status(201).json(result.store);
 });
 
-app.put('/api/stores/:id', authenticate, isAdmin, (req, res) => {
+app.put('/api/stores/:id', authenticate, (req, res) => {
+  if (!hasPerm(req.user, 'renameStores')) {
+    return res.status(403).json({ error: 'Insufficient permissions' });
+  }
   const result = renameStore(Number(req.params.id), req.body?.store_name);
   if (result.error) return res.status(400).json({ error: result.error });
   broadcast('store:renamed', result.store);
@@ -248,16 +374,77 @@ app.delete('/api/stores/:id', authenticate, isAdmin, (req, res) => {
 
 // ----------------------------- Inventory CRUD ------------------------------
 
-// POST /api/laptops  body: { brand_model, serial_number, current_store_id, status }
-app.post('/api/laptops', authenticate, isManagerOrHigher, (req, res) => {
-  const result = createLaptop(req.body || {});
+// ----------------------------- Brands --------------------------------------
+// Managers (and above) can list add, update and delete brands.
+app.get('/api/brands', authenticate, (_req, res) => {
+  res.json(getBrands());
+});
+
+app.post('/api/brands', authenticate, isAdminOrManager, (req, res) => {
+  const result = addBrand(req.body || {});
+  if (result.error) return res.status(400).json({ error: result.error });
+  broadcast('brands:updated');
+  res.status(201).json(result.brand);
+});
+
+app.put('/api/brands/:id', authenticate, isAdminOrManager, (req, res) => {
+  const result = updateBrand(Number(req.params.id), req.body || {});
+  if (result.error) return res.status(400).json({ error: result.error });
+  broadcast('brands:updated');
+  res.json(result.brand);
+});
+
+app.delete('/api/brands/:id', authenticate, isAdminOrManager, (req, res) => {
+  const result = deleteBrand(Number(req.params.id));
+  if (result.error) return res.status(400).json({ error: result.error });
+  broadcast('brands:updated');
+  res.json(result);
+});
+
+// ----------------------------- Sales --------------------------------------
+app.get('/api/sales', authenticate, (_req, res) => {
+  res.json(getSales());
+});
+
+app.get('/api/sales/summary', authenticate, (_req, res) => {
+  res.json(getSalesSummary());
+});
+
+// POST /api/laptops/:id/sell  body: { salePrice }
+app.post('/api/laptops/:id/sell', authenticate, (req, res) => {
+  if (!hasPerm(req.user, 'editInventory')) {
+    return res.status(403).json({ error: 'Insufficient permissions' });
+  }
+  const result = sellLaptop(Number(req.params.id), req.body?.salePrice, req.user.username);
+  if (result.error) return res.status(400).json({ error: result.error });
+  broadcast('sale:new', result.sale);
+  res.status(201).json(result.sale);
+});
+
+// POST /api/laptops  body: { brand, brand_model, ..., quantity?, serial_prefix? }
+app.post('/api/laptops', authenticate, (req, res) => {
+  if (!hasPerm(req.user, 'editInventory')) {
+    return res.status(403).json({ error: 'Insufficient permissions' });
+  }
+  const body = req.body || {};
+  // If a quantity > 1 is supplied, bulk-add that many units.
+  if (body.quantity != null && Number(body.quantity) > 1) {
+    const result = createLaptopsBulk(body, body.quantity);
+    if (result.error) return res.status(400).json({ error: result.error, created: result.created });
+    broadcast('laptop:bulk', result.laptops);
+    return res.status(201).json(result);
+  }
+  const result = createLaptop(body);
   if (result.error) return res.status(400).json({ error: result.error });
   broadcast('laptop:created', result.laptop);
   res.status(201).json(result.laptop);
 });
 
 // PUT /api/laptops/:id  body: { brand_model?, current_store_id?, status? }
-app.put('/api/laptops/:id', authenticate, isManagerOrHigher, (req, res) => {
+app.put('/api/laptops/:id', authenticate, (req, res) => {
+  if (!hasPerm(req.user, 'editInventory')) {
+    return res.status(403).json({ error: 'Insufficient permissions' });
+  }
   const result = updateLaptop(Number(req.params.id), req.body || {});
   if (result.error) return res.status(404).json({ error: result.error });
   broadcast('laptop:updated', result.laptop);
@@ -265,7 +452,10 @@ app.put('/api/laptops/:id', authenticate, isManagerOrHigher, (req, res) => {
 });
 
 // DELETE /api/laptops/:id
-app.delete('/api/laptops/:id', authenticate, isManagerOrHigher, (req, res) => {
+app.delete('/api/laptops/:id', authenticate, (req, res) => {
+  if (!hasPerm(req.user, 'editInventory')) {
+    return res.status(403).json({ error: 'Insufficient permissions' });
+  }
   const result = deleteLaptop(Number(req.params.id));
   if (result.error) return res.status(404).json({ error: result.error });
   broadcast('laptop:deleted', { id: result.id });
@@ -298,11 +488,10 @@ io.use((socket, next) => {
 });
 
 io.on('connection', (socket) => {
-  const canWrite = socket.user && (socket.user.role === 'admin' || socket.user.role === 'manager');
   console.log(`Client connected: ${socket.id} (${socket.user.username})`);
 
   socket.on('laptop:transfer', (data, ack) => {
-    if (!canWrite) return typeof ack === 'function' && ack({ error: 'Insufficient permissions' });
+    if (!hasPerm(socket.user, 'transferLaptops')) return typeof ack === 'function' && ack({ error: 'Insufficient permissions' });
     const result = transferLaptop(Number(data?.laptopId), Number(data?.toStoreId));
     if (result.error && typeof ack === 'function') return ack({ error: result.error });
     // Reflect the change back to all clients (including the requesting one).
@@ -311,7 +500,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('laptop:create', (data, ack) => {
-    if (!canWrite) return typeof ack === 'function' && ack({ error: 'Insufficient permissions' });
+    if (!hasPerm(socket.user, 'editInventory')) return typeof ack === 'function' && ack({ error: 'Insufficient permissions' });
     const result = createLaptop(data || {});
     if (result.error && typeof ack === 'function') return ack({ error: result.error });
     broadcast('laptop:created', result.laptop);
@@ -319,7 +508,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('laptop:update', (data, ack) => {
-    if (!canWrite) return typeof ack === 'function' && ack({ error: 'Insufficient permissions' });
+    if (!hasPerm(socket.user, 'editInventory')) return typeof ack === 'function' && ack({ error: 'Insufficient permissions' });
     const result = updateLaptop(Number(data?.id), data?.fields || {});
     if (result.error && typeof ack === 'function') return ack({ error: result.error });
     broadcast('laptop:updated', result.laptop);
@@ -327,7 +516,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('laptop:delete', (data, ack) => {
-    if (!canWrite) return typeof ack === 'function' && ack({ error: 'Insufficient permissions' });
+    if (!hasPerm(socket.user, 'editInventory')) return typeof ack === 'function' && ack({ error: 'Insufficient permissions' });
     const result = deleteLaptop(Number(data?.id));
     if (result.error && typeof ack === 'function') return ack({ error: result.error });
     broadcast('laptop:deleted', { id: result.id });
@@ -352,7 +541,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('store:rename', (data, ack) => {
-    if (!isAdminUser) return typeof ack === 'function' && ack({ error: 'Insufficient permissions' });
+    if (!hasPerm(socket.user, 'renameStores')) return typeof ack === 'function' && ack({ error: 'Insufficient permissions' });
     const result = renameStore(Number(data?.id), data?.store_name);
     if (result.error && typeof ack === 'function') return ack({ error: result.error });
     broadcast('store:renamed', result.store);

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { getUsers, createUser, updateUser, deleteUser } from '../api';
+import { getUsers, createUser, updateUser, deleteUser, getLoginLogs } from '../api';
 
 const ROLES = ['admin', 'manager', 'staff'];
+const MANAGER_CREATABLE_ROLES = ['manager', 'staff'];
 const EMPTY = { username: '', password: '', display_name: '', role: 'staff' };
 
 export default function AccountManager({ currentUser, onClose, onCurrentUserChanged }) {
@@ -9,9 +10,26 @@ export default function AccountManager({ currentUser, onClose, onCurrentUserChan
   const [modal, setModal] = useState(null); // null | { } | { user }
   const [error, setError] = useState('');
 
+  const isAdmin = currentUser?.role === 'admin';
+  const isManager = currentUser?.role === 'manager';
+
+  const [logins, setLogins] = useState(null); // null = not loaded
+  const [loginsOpen, setLoginsOpen] = useState(false);
+
+  const loadLogins = async () => {
+    try {
+      setLogins(await getLoginLogs());
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
   const load = async () => {
     try {
-      setUsers(await getUsers());
+      let list = await getUsers();
+      // Managers must never see admin accounts (server enforces this too).
+      if (isManager) list = list.filter((u) => u.role !== 'admin');
+      setUsers(list);
     } catch (e) {
       setError(e.message);
     }
@@ -73,18 +91,69 @@ export default function AccountManager({ currentUser, onClose, onCurrentUserChan
 
         <div className="flex items-center justify-between px-6 py-4">
           <p className="text-sm text-slate-500">
-            {users.length} account{users.length === 1 ? '' : 's'}
+            <span className="font-semibold text-slate-800">{users.length}</span> account{users.length === 1 ? '' : 's'}
+            {isAdmin && users.length > 0 && (
+              <span className="ml-2 text-xs text-slate-400">
+                · {users.filter((u) => u.role === 'admin').length} admin
+                · {users.filter((u) => u.role === 'manager').length} manager
+                · {users.filter((u) => u.role === 'staff').length} staff
+              </span>
+            )}
           </p>
-          <button
-            onClick={() => setModal({})}
-            className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-emerald-500"
-          >
-            + New Account
-          </button>
-        </div>
-
-        {error && (
+          <div className="flex items-center gap-2">
+            {isAdmin && (
+              <button
+                onClick={() => {
+                  setLoginsOpen((o) => !o);
+                  if (!logins) loadLogins();
+                }}
+                className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100"
+              >
+                {loginsOpen ? 'Hide Login Activity' : 'Login Activity'}
+              </button>
+            )}
+            <button
+              onClick={() => setModal({})}
+              className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-emerald-500"
+            >
+              + New Account
+            </button>
+          </div>
+        </div>        {error && (
           <div className="mx-6 mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
+        )}
+
+        {loginsOpen && (
+          <div className="mx-6 mb-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <h3 className="text-sm font-semibold text-slate-800">Login Activity</h3>
+            <p className="mb-3 text-xs text-slate-500">Who logged in and when.</p>
+            {!logins ? (
+              <p className="text-sm text-slate-400">Loading…</p>
+            ) : logins.length === 0 ? (
+              <p className="text-sm text-slate-400">No logins recorded yet.</p>
+            ) : (
+              <div className="max-h-64 overflow-y-auto rounded-lg border border-slate-200 bg-white">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-100 text-slate-500">
+                    <tr>
+                      <th className="px-3 py-2">Username</th>
+                      <th className="px-3 py-2">IP</th>
+                      <th className="px-3 py-2">Logged in</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {logins.map((l) => (
+                      <tr key={l.id}>
+                        <td className="px-3 py-2 font-medium text-slate-700">{l.username}</td>
+                        <td className="px-3 py-2 font-mono text-slate-500">{l.ip || '—'}</td>
+                        <td className="px-3 py-2 text-slate-500">{l.logged_in}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         )}
 
         <div className="overflow-y-auto px-6 pb-6">
@@ -124,19 +193,23 @@ export default function AccountManager({ currentUser, onClose, onCurrentUserChan
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => setModal({ user: u })}
-                        className="rounded-md border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100"
-                      >
-                        Edit
-                      </button>
-                      {u.id !== currentUser.id && (
-                        <button
-                          onClick={() => handleDelete(u)}
-                          className="ml-2 rounded-md border border-red-200 px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
-                        >
-                          Delete
-                        </button>
+                      {(isAdmin || isManager) && (
+                        <>
+                          <button
+                            onClick={() => setModal({ user: u })}
+                            className="rounded-md border border-slate-300 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-100"
+                          >
+                            Edit
+                          </button>
+                          {isAdmin && u.id !== currentUser.id && (
+                            <button
+                              onClick={() => handleDelete(u)}
+                              className="ml-2 rounded-md border border-red-200 px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-50"
+                            >
+                              Delete
+                            </button>
+                          )}
+                        </>
                       )}
                     </td>
                   </tr>
@@ -157,6 +230,7 @@ export default function AccountManager({ currentUser, onClose, onCurrentUserChan
       {modal && (
         <UserModal
           editing={modal.user}
+          managerOnly={isManager}
           onSave={handleSave}
           onClose={() => setModal(null)}
         />
@@ -165,10 +239,16 @@ export default function AccountManager({ currentUser, onClose, onCurrentUserChan
   );
 }
 
-function UserModal({ editing, onSave, onClose }) {
+function UserModal({ editing, onSave, onClose, managerOnly }) {
+  const allowedRoles = managerOnly ? MANAGER_CREATABLE_ROLES : ROLES;
   const [form, setForm] = useState(editing
-    ? { username: editing.username, password: '', display_name: editing.display_name || '', role: editing.role }
-    : EMPTY);
+    ? {
+        username: editing.username,
+        password: '',
+        display_name: editing.display_name || '',
+        role: managerOnly ? (editing.role === 'admin' ? 'staff' : editing.role) : editing.role
+      }
+    : { ...EMPTY, role: managerOnly ? 'staff' : EMPTY.role });
   const [error, setError] = useState('');
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -226,14 +306,14 @@ function UserModal({ editing, onSave, onClose }) {
               onChange={set('role')}
               className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
             >
-              {ROLES.map((r) => (
+              {allowedRoles.map((r) => (
                 <option key={r} value={r}>
                   {r.charAt(0).toUpperCase() + r.slice(1)}
                 </option>
               ))}
             </select>
             <p className="mt-1 text-xs text-slate-400">
-              Staff view inventory · Manager can edit/transfer · Admin manages accounts.
+              Staff view inventory · Manager can edit/transfer · {managerOnly ? 'Managers can create staff & managers, but not admins' : 'Admin manages accounts.'}
             </p>
           </div>
 

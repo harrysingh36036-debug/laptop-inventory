@@ -42,6 +42,7 @@ export const createUser = (data) => request('/users', { method: 'POST', body: JS
 export const updateUser = (id, data) =>
   request(`/users/${id}`, { method: 'PUT', body: JSON.stringify(data) });
 export const deleteUser = (id) => request(`/users/${id}`, { method: 'DELETE' });
+export const getLoginLogs = () => request('/auth/logins');
 
 // --------------------------------- Inventory -------------------------------
 export const getStores = () => request('/stores');
@@ -63,11 +64,33 @@ export const updateLaptop = (id, data) =>
   request(`/laptops/${id}`, { method: 'PUT', body: JSON.stringify(data) });
 export const deleteLaptop = (id) =>
   request(`/laptops/${id}`, { method: 'DELETE' });
+export const sellLaptop = (id, salePrice) =>
+  request(`/laptops/${id}/sell`, {
+    method: 'POST',
+    body: JSON.stringify({ salePrice })
+  });
+
+// ----------------------------------- Brands --------------------------------
+export const getBrands = () => request('/brands');
+export const addBrand = (data) =>
+  request('/brands', { method: 'POST', body: JSON.stringify(data) });
+export const updateBrand = (id, data) =>
+  request(`/brands/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+export const deleteBrand = (id) => request(`/brands/${id}`, { method: 'DELETE' });
+
+// ----------------------------------- Sales ---------------------------------
+export const getSales = () => request('/sales');
+export const getSalesSummary = () => request('/sales/summary');
 
 // --------------------------------- Settings --------------------------------
 export const getSettings = () => request('/settings');
 export const saveSettings = (patch) =>
   request('/settings', { method: 'PUT', body: JSON.stringify(patch) });
+
+// --------------------------- Role permissions ------------------------------
+export const getPermissions = () => request('/permissions');
+export const savePermissions = (perms) =>
+  request('/permissions', { method: 'PUT', body: JSON.stringify(perms) });
 
 // ------------------------------- Store mgmt --------------------------------
 export const addStore = (name) =>

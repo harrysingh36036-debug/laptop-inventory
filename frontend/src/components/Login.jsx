@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { login, register } from '../api';
+import { login } from '../api';
 
 export default function Login({ onSuccess }) {
-  const [mode, setMode] = useState('login'); // 'login' | 'register'
-  const [form, setForm] = useState({ username: '', password: '', display_name: '' });
+  const [form, setForm] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -14,7 +13,7 @@ export default function Login({ onSuccess }) {
     setError('');
     setBusy(true);
     try {
-      const res = mode === 'login' ? await login(form) : await register(form);
+      const res = await login(form);
       onSuccess(res.token, res.user);
     } catch (err) {
       setError(err.message);
@@ -37,24 +36,10 @@ export default function Login({ onSuccess }) {
             </svg>
           </div>
           <h1 className="mt-4 text-xl font-bold text-slate-800">Laptop Inventory</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            {mode === 'login' ? 'Sign in to your account' : 'Create a staff account'}
-          </p>
+          <p className="mt-1 text-sm text-slate-500">Sign in to your account</p>
         </div>
 
         <form onSubmit={submit} className="mt-6 space-y-4">
-          {mode === 'register' && (
-            <div>
-              <label className="text-sm font-medium text-slate-700">Display name</label>
-              <input
-                value={form.display_name}
-                onChange={set('display_name')}
-                placeholder="e.g. Jordan Miles"
-                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-              />
-            </div>
-          )}
-
           <div>
             <label className="text-sm font-medium text-slate-700">Username</label>
             <input
@@ -73,7 +58,7 @@ export default function Login({ onSuccess }) {
               type="password"
               value={form.password}
               onChange={set('password')}
-              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+              autoComplete="current-password"
               placeholder="••••••••"
               required
               minLength={6}
@@ -90,31 +75,12 @@ export default function Login({ onSuccess }) {
             disabled={busy}
             className="w-full rounded-lg bg-slate-900 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:opacity-60"
           >
-            {busy ? 'Please wait…' : mode === 'login' ? 'Sign in' : 'Create account'}
+            {busy ? 'Please wait…' : 'Sign in'}
           </button>
         </form>
 
         <p className="mt-5 text-center text-sm text-slate-500">
-          {mode === 'login' ? (
-            <>
-              No account?{' '}
-              <button onClick={() => setMode('register')} className="font-medium text-slate-900 hover:underline">
-                Register
-              </button>
-            </>
-          ) : (
-            <>
-              Already have an account?{' '}
-              <button onClick={() => setMode('login')} className="font-medium text-slate-900 hover:underline">
-                Sign in
-              </button>
-            </>
-          )}
-        </p>
-
-        <p className="mt-4 border-t border-slate-100 pt-3 text-center text-xs text-slate-400">
-          Default admin — username <span className="font-mono">admin</span>, password{' '}
-          <span className="font-mono">admin123</span>
+          Accounts are created by an administrator or manager. Contact them if you need access.
         </p>
       </div>
     </div>

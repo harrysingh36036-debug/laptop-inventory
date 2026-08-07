@@ -7,6 +7,8 @@ import {
   createLaptop,
   updateLaptop,
   deleteLaptop,
+  sellLaptop,
+  getBrands,
   getToken,
   setToken,
   getMe,
@@ -24,8 +26,10 @@ import Toolbar from './components/Toolbar';
 import LaptopTable from './components/LaptopTable';
 import HistoryLog from './components/HistoryLog';
 import InventoryModal from './components/InventoryModal';
+import SalesTab from './components/SalesTab';
 import AccountManager from './components/AccountManager';
 import AdminSettings from './components/AdminSettings';
+import BrandsManager from './components/BrandsManager';
 import Toast from './components/Toast';
 
 export default function App() {
@@ -36,11 +40,13 @@ export default function App() {
   const [laptops, setLaptops] = useState([]);
   const [logs, setLogs] = useState([]);
   const [labels, setLabels] = useState({});
+  const [brands, setBrands] = useState([]);
 
   // Filters / state
   const [storeId, setStoreId] = useState('');
   const [status, setStatus] = useState('');
   const [search, setSearch] = useState('');
+  const [tab, setTab] = useState('inventory');
 
   // Toast / sync notifications
   const [toast, setToast] = useState(null);
@@ -50,9 +56,28 @@ export default function App() {
   const [invModal, setInvModal] = useState(null);
   const [accountsOpen, setAccountsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [brandsOpen, setBrandsOpen] = useState(false);
 
-  const isAdmin = user?.role === 'admin';
-  const canEdit = user && (user.role === 'admin' || user.role === 'manager');
+  const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
+
+  // Admin-configurable permissions (parsed from settings).
+  const rolePerms = (() => {
+    try {
+      return JSON.parse(labels.role_permissions || 'null') || null;
+    } catch {
+      return null;
+    }
+  })();
+  const defaultPerms = {
+    manager: { editInventory: true, transferLaptops: true, createStaff: true, renameStores: true, editLabels: false },
+    staff: { editInventory: false, transferLaptops: false, createStaff: false, renameStores: false, editLabels: false }
+  };
+  const myPerms = rolePerms?.[user?.role] || defaultPerms[user?.role] || {};
+  const can = (perm) => (isAdmin ? true : !!myPerms[perm]);
+  const canEditInventory = can('editInventory');
+  const canTransfer = can('transferLaptops');
+  const canCreateStaff = can('createStaff');
+  const canRenameStores = can('renameStores');
 
   const notify = useCallback((msg, type = 'info') => {
     setToast({ msg, type, id: Date.now() });
@@ -86,16 +111,18 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
     const load = async () => {
-      const [s, l, lg, st] = await Promise.all([
+      const [s, l, lg, st, b] = await Promise.all([
         getStores(),
         getLaptops(),
         getTransferLogs(),
-        getSettings()
+        getSettings(),
+        getBrands().catch(() => [])
       ]);
       setStores(s);
       setLaptops(l);
       setLogs(lg);
       setLabels(st);
+      setBrands(b);
     };
     load().catch((e) => notify(e.message, 'error'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -167,6 +194,30 @@ export default function App() {
     };
 
     socket.on('laptop:created', onCreate);
+
+    const onBulk = (list) => {
+      setLaptops((prev) => {
+        const known = new Set(prev.map((l) => l.id));
+        const fresh = (list || []).filter((l) => !known.has(l.id));
+        return fresh.length ? [...fresh, ...prev] : prev;
+      });
+      notify(`In real time: ${(list || []).length} units added to inventory`, 'success');
+    };
+    socket.on('laptop:bulk', onBulk);
+
+    const onSale = (sale) => {
+      notify(`In real time: ${sale?.brand_model} sold for ₹${Number(sale?.sale_price || 0).toLocaleString('en-IN')}`, 'success');
+    };
+    socket.on('sale:new', onSale);
+
+    const reloadBrands = async () => {
+      try {
+        setBrands(await getBrands());
+      } catch (e) {
+        /* ignore */
+      }
+    };
+    socket.on('brands:updated', reloadBrands);
     socket.on('laptop:updated', onUpdate);
     socket.on('laptop:deleted', onDelete);
 
@@ -184,6 +235,7 @@ export default function App() {
     socket.on('store:renamed', reloadStores);
     socket.on('store:deleted', reloadStores);
     socket.on('settings:updated', (st) => setLabels(st || {}));
+    socket.on('permissions:updated', reloadStores);
 
     // Sheets was edited externally (or full reload) — refetch everything.
     const onDataReloaded = async () => {
@@ -198,6 +250,7 @@ export default function App() {
         setLaptops(l);
         setLogs(lg);
         setLabels(st);
+        getBrands().then(setBrands).catch(() => {});
         notify('Data refreshed from Google Sheets', 'info');
       } catch (e) {
         /* ignore transient errors */
@@ -210,12 +263,16 @@ export default function App() {
     return () => {
       socket.off('laptop:transferred', onTransfer);
       socket.off('laptop:created', onCreate);
+      socket.off('laptop:bulk', onBulk);
+      socket.off('sale:new', onSale);
+      socket.off('brands:updated', reloadBrands);
       socket.off('laptop:updated', onUpdate);
       socket.off('laptop:deleted', onDelete);
       socket.off('store:added', reloadStores);
       socket.off('store:renamed', reloadStores);
       socket.off('store:deleted', reloadStores);
       socket.off('settings:updated');
+      socket.off('permissions:updated', reloadStores);
       socket.off('data:reloaded', onDataReloaded);
       socket.off('connect');
       socket.off('disconnect');
@@ -250,20 +307,29 @@ export default function App() {
   // ---- Inventory create / update / delete ----------------------------------
   const handleSave = async (form) => {
     try {
+      const payload = {
+        brand: form.brand,
+        brand_model: form.brand_model,
+        processor_type: form.processor_type,
+        generation: form.generation,
+        storage_type: form.storage_type,
+        purchased_from: form.purchased_from,
+        graphics: form.graphics,
+        graphics_type: form.graphics_type,
+        graphics_model: form.graphics_model,
+        purchase_rate: form.purchase_rate === '' || form.purchase_rate == null ? null : Number(form.purchase_rate),
+        extra_charges: form.extra_charges === '' || form.extra_charges == null ? null : Number(form.extra_charges),
+        current_store_id: form.current_store_id ? Number(form.current_store_id) : null,
+        status: form.status || 'In Stock'
+      };
       if (invModal?.laptop) {
-        await updateLaptop(invModal.laptop.id, {
-          brand_model: form.brand_model,
-          current_store_id: form.current_store_id ? Number(form.current_store_id) : null,
-          status: form.status
-        });
+        await updateLaptop(invModal.laptop.id, payload);
         notify('Laptop updated', 'success');
+      } else if (form.quantity > 1) {
+        const res = await createLaptop({ ...payload, quantity: Number(form.quantity), serial_prefix: form.serial_prefix });
+        notify(`Added ${res.laptops?.length ?? form.quantity} units`, 'success');
       } else {
-        await createLaptop({
-          brand_model: form.brand_model,
-          serial_number: form.serial_number,
-          current_store_id: form.current_store_id ? Number(form.current_store_id) : null,
-          status: form.status
-        });
+        await createLaptop({ ...payload, serial_number: form.serial_number });
         notify('Laptop added to inventory', 'success');
       }
       setInvModal(null);
@@ -271,6 +337,21 @@ export default function App() {
       return '';
     } catch (e) {
       return e.message;
+    }
+  };
+
+  // ---- Sell a laptop --------------------------------------------------------
+  const handleSell = async (laptop, salePrice) => {
+    if (!Number.isFinite(salePrice) || salePrice < 0) {
+      notify('Enter a valid sale price', 'error');
+      return;
+    }
+    try {
+      await sellLaptop(laptop.id, salePrice);
+      notify(`Sold ${laptop.brand_model} for ₹${salePrice.toLocaleString('en-IN')}`, 'success');
+      await refresh();
+    } catch (e) {
+      notify(e.message, 'error');
     }
   };
 
@@ -387,12 +468,36 @@ export default function App() {
                   Accounts
                 </button>
               )}
+              {!isAdmin && canCreateStaff && (
+                <button
+                  onClick={() => setAccountsOpen(true)}
+                  className="ml-2 rounded-full bg-white/10 px-3 py-1 font-medium text-white hover:bg-white/20"
+                >
+                  Accounts
+                </button>
+              )}
               {isAdmin && (
                 <button
                   onClick={() => setSettingsOpen(true)}
                   className="ml-1 rounded-full bg-white/10 px-3 py-1 font-medium text-white hover:bg-white/20"
                 >
                   Settings
+                </button>
+              )}
+              {isAdmin && (
+                <button
+                  onClick={() => setBrandsOpen(true)}
+                  className="ml-1 rounded-full bg-white/10 px-3 py-1 font-medium text-white hover:bg-white/20"
+                >
+                  Brands
+                </button>
+              )}
+              {!isAdmin && canRenameStores && (
+                <button
+                  onClick={() => setSettingsOpen(true)}
+                  className="ml-1 rounded-full bg-white/10 px-3 py-1 font-medium text-white hover:bg-white/20"
+                >
+                  Stores
                 </button>
               )}
               <button
@@ -407,7 +512,31 @@ export default function App() {
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-6 space-y-6">
-        {/* Sidebar-style filter + toolbar */}
+        {/* Tab switcher */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setTab('inventory')}
+            className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
+              tab === 'inventory'
+                ? 'bg-slate-900 text-white'
+                : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            Inventory
+          </button>
+          <button
+            onClick={() => setTab('sales')}
+            className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
+              tab === 'sales'
+                ? 'bg-slate-900 text-white'
+                : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            Sales & Profit
+          </button>
+        </div>
+
+        {tab === 'inventory' ? (
         <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
           <aside className="lg:sticky lg:top-6 self-start">
             <StoreFilter
@@ -423,7 +552,7 @@ export default function App() {
           <section className="space-y-4 min-w-0">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <Toolbar search={search} setSearch={setSearch} resultCount={laptops.length} />
-              {canEdit && (
+              {canEditInventory && (
                 <button
                   onClick={() => setInvModal({})}
                   className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500"
@@ -435,13 +564,19 @@ export default function App() {
             <LaptopTable
               laptops={laptops}
               stores={stores}
-              canEdit={canEdit}
+              canEdit={canEditInventory}
+              canTransfer={canTransfer}
+              canSell={canEditInventory}
               onTransfer={handleTransfer}
+              onSell={handleSell}
               onEdit={(laptop) => setInvModal({ laptop })}
               onDelete={handleDelete}
             />
           </section>
         </div>
+        ) : (
+          <SalesTab stores={stores} />
+        )}
 
         <HistoryLog logs={logs} />
       </main>
@@ -449,13 +584,30 @@ export default function App() {
       {invModal && (
         <InventoryModal
           stores={stores}
+          brands={brands}
           editing={invModal.laptop}
           onSave={handleSave}
           onClose={() => setInvModal(null)}
         />
       )}
 
-      {accountsOpen && isAdmin && (
+      {brandsOpen && isAdmin && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-slate-800">Manage Brands</h2>
+              <button onClick={() => setBrandsOpen(false)} className="text-slate-400 hover:text-slate-600" aria-label="Close">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <BrandsManager onNotify={notify} />
+          </div>
+        </div>
+      )}
+
+      {accountsOpen && (isAdmin || canCreateStaff) && (
         <AccountManager
           currentUser={user}
           onClose={() => setAccountsOpen(false)}
@@ -463,10 +615,11 @@ export default function App() {
         />
       )}
 
-      {settingsOpen && isAdmin && (
+      {settingsOpen && (isAdmin || canRenameStores) && (
         <AdminSettings
           stores={stores}
           settings={labels}
+          isAdmin={isAdmin}
           onSaveSettings={handleSaveSettings}
           onSaveStore={handleSaveStore}
           onDeleteStore={handleDeleteStore}
