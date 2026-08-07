@@ -65,7 +65,7 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
 
-  const [tab, setTab] = useState(isAdmin ? 'stores' : 'stores');
+  const [tab, setTab] = useState('stores');
 
   const setLabel = (key) => (e) => setLabels((l) => ({ ...l, [key]: e.target.value }));
   const setEdit = (id) => (e) => setEdits((d) => ({ ...d, [id]: e.target.value }));
@@ -147,56 +147,38 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
     if (k === 'permissions' && !permsLoaded) loadPerms();
   };
 
+  const TABS = [['stores', 'Stores']].concat(
+    isAdmin ? [['labels', 'Buttons & Labels'], ['permissions', 'Roles & Permissions']] : []
+  );
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade">
+      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-line bg-surface p-6 shadow-pop animate-rise">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-slate-800">{isAdmin ? 'Admin Settings' : 'Store Management'}</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600" aria-label="Close">
+          <h2 className="font-display text-base font-semibold tracking-tight text-ink">
+            {isAdmin ? 'Admin Settings' : 'Store Management'}
+          </h2>
+          <button onClick={onClose} className="text-ink-faint hover:text-ink transition-colors" aria-label="Close">
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        {message && <p className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{message}</p>}
+        {message && (
+          <p className="mt-3 rounded-lg border border-stock-ok/25 bg-stock-ok/10 px-3 py-2 text-sm text-stock-ok">
+            {message}
+          </p>
+        )}
 
         {/* Tabs */}
-        <div className="mt-4 flex gap-1 rounded-xl bg-slate-100 p-1">
-          {[
-            ['stores', 'Stores'],
-            ...(isAdmin
-              ? [
-                  ['labels', 'Buttons & Labels'],
-                  ['permissions', 'Roles & Permissions']
-                ]
-              : [])
-          ].map(([k, n]) => (
+        <div className="mt-4 flex gap-1 rounded-xl border border-line bg-surface-2 p-1">
+          {TABS.map(([k, n]) => (
             <button
               key={k}
               onClick={() => selectTab(k)}
-              className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition ${
-                tab === k ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              {n}
-            </button>
-          ))}
-        </div>
-
-        {message && <p className="mt-2 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{message}</p>}
-
-        {/* Tabs */}
-        <div className="mt-4 flex gap-1 rounded-xl bg-slate-100 p-1">
-          {[
-            ['stores', 'Stores'],
-            ['labels', 'Buttons & Labels']
-          ].map(([k, n]) => (
-            <button
-              key={k}
-              onClick={() => setTab(k)}
-              className={`flex-1 rounded-lg px-3 py-2 text-sm font-medium transition ${
-                tab === k ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-150 ${
+                tab === k ? 'bg-surface-3 text-ink' : 'text-ink-dim hover:text-ink'
               }`}
             >
               {n}
@@ -206,25 +188,20 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
 
         {tab === 'stores' && (
           <div className="mt-4 space-y-4">
-            {/* Add store (admin only) */}
             {isAdmin && (
               <form onSubmit={addStore} className="flex gap-2">
                 <input
                   value={storeName}
                   onChange={(e) => setStoreName(e.target.value)}
                   placeholder="New store name…"
-                  className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+                  className="field flex-1"
                 />
-                <button
-                  type="submit"
-                  className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500"
-                >
+                <button type="submit" className="btn-accent">
                   Add Store
                 </button>
               </form>
             )}
 
-            {/* Rename list */}
             <div className="space-y-2">
               {stores.map((s) => {
                 const draft = edits[s.id] ?? s.store_name;
@@ -233,19 +210,19 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
                     <input
                       value={draft}
                       onChange={setEdit(s.id)}
-                      className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+                      className="field flex-1"
                     />
                     <button
                       onClick={() => renameOne(s.id, draft)}
                       disabled={draft.trim() === s.store_name}
-                      className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-700 disabled:opacity-40"
+                      className="btn-ghost disabled:opacity-40"
                     >
                       Rename
                     </button>
                     {isAdmin && (
                       <button
                         onClick={() => removeOne(s.id, s.store_name)}
-                        className="rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50"
+                        className="btn-danger"
                       >
                         Remove
                       </button>
@@ -255,7 +232,7 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
               })}
             </div>
             {!isAdmin && (
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-ink-faint">
                 Managers can rename stores. Adding or removing stores is restricted to admins.
               </p>
             )}
@@ -266,20 +243,16 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
           <div className="mt-4 space-y-3">
             {LABEL_FIELDS.map(([key, hint]) => (
               <div key={key}>
-                <label className="text-xs font-medium text-slate-500">{hint}</label>
+                <label className="flabel">{hint}</label>
                 <input
                   value={labels[key]}
                   onChange={setLabel(key)}
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+                  className="field mt-1.5"
                 />
               </div>
             ))}
             <div className="flex justify-end pt-2">
-              <button
-                onClick={saveLabels}
-                disabled={saving}
-                className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50"
-              >
+              <button onClick={saveLabels} disabled={saving} className="btn-accent disabled:opacity-50">
                 {saving ? 'Saving…' : 'Save Labels'}
               </button>
             </div>
@@ -288,28 +261,28 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
 
         {tab === 'permissions' && (
           <div className="mt-4 space-y-4">
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-ink-faint">
               Control what managers and staff can do. Admin always has full access to everything.
             </p>
             {!perms ? (
-              <p className="text-sm text-slate-400">Loading permissions…</p>
+              <p className="text-sm text-ink-faint">Loading permissions…</p>
             ) : (
               <>
                 {['manager', 'staff'].map((role) => (
-                  <div key={role} className="rounded-xl border border-slate-200 p-4">
-                    <h3 className="text-sm font-semibold capitalize text-slate-800">{role}</h3>
+                  <div key={role} className="rounded-xl border border-line bg-surface-2/40 p-4">
+                    <h3 className="text-sm font-semibold capitalize text-ink">{role}</h3>
                     <div className="mt-2 space-y-2">
                       {PERMISSION_FIELDS.map(([key, hint]) => (
                         <label
                           key={key}
-                          className="flex cursor-pointer items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
+                          className="flex cursor-pointer items-center justify-between rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm text-ink-dim transition-colors duration-150 hover:bg-surface-3 hover:text-ink"
                         >
                           <span>{hint}</span>
                           <input
                             type="checkbox"
                             checked={!!perms[role][key]}
                             onChange={() => togglePerm(role, key)}
-                            className="h-4 w-4 rounded accent-slate-900"
+                            className="h-4 w-4 rounded accent-[#E0A458]"
                           />
                         </label>
                       ))}
@@ -317,11 +290,7 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
                   </div>
                 ))}
                 <div className="flex justify-end pt-1">
-                  <button
-                    onClick={savePerms}
-                    disabled={permsSaving}
-                    className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50"
-                  >
+                  <button onClick={savePerms} disabled={permsSaving} className="btn-accent disabled:opacity-50">
                     {permsSaving ? 'Saving…' : 'Save Permissions'}
                   </button>
                 </div>

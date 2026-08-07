@@ -1,11 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getSales, getSalesSummary } from '../api';
-import { formatTime } from '../utils';
-
-const inr = (n) => {
-  const v = Number(n) || 0;
-  return `₹${v.toLocaleString('en-IN')}`;
-};
+import { formatTime, inr } from '../utils';
 
 export default function SalesTab({ stores }) {
   const [sales, setSales] = useState([]);
@@ -32,63 +27,76 @@ export default function SalesTab({ stores }) {
     return () => { alive = false; };
   }, []);
 
-  if (loading) return <p className="text-sm text-slate-400">Loading sales…</p>;
-  if (error) return <p className="text-sm text-red-600">{error}</p>;
+  if (loading) return <p className="text-sm text-ink-faint">Loading sales…</p>;
+  if (error) return <p className="text-sm text-stock-risk">{error}</p>;
+
+  const cards = [
+    { label: 'Units Sold', value: String(summary?.count ?? 0), mono: true },
+    { label: 'Total Sales', value: inr(summary?.total_sales), mono: true, accent: true },
+    { label: 'Total Profit', value: inr(summary?.total_profit), mono: true }
+  ];
+
+  const th = 'px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint';
+  const td = 'px-4 py-3 align-middle';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-rise">
       {/* Summary cards */}
       <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-xs uppercase tracking-wide text-slate-400">Units Sold</p>
-          <p className="mt-1 text-3xl font-bold text-slate-800">{summary?.count ?? 0}</p>
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-xs uppercase tracking-wide text-slate-400">Total Sales</p>
-          <p className="mt-1 text-3xl font-bold text-emerald-600">{inr(summary?.total_sales)}</p>
-        </div>
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-xs uppercase tracking-wide text-slate-400">Total Profit</p>
-          <p className="mt-1 text-3xl font-bold text-slate-800">{inr(summary?.total_profit)}</p>
-        </div>
+        {cards.map((c) => (
+          <div key={c.label} className="panel p-5">
+            <p className="text-xs uppercase tracking-wide text-ink-faint">{c.label}</p>
+            <p
+              className={`mt-2 font-mono text-2xl font-medium tracking-tight ${
+                c.accent ? 'text-accent' : 'text-ink'
+              }`}
+            >
+              {c.value}
+            </p>
+          </div>
+        ))}
       </div>
 
       {/* Sales table */}
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="panel overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[840px] text-left text-sm">
-            <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-              <tr>
-                <th className="px-4 py-3 font-semibold">Laptop</th>
-                <th className="px-4 py-3 font-semibold">Serial</th>
-                <th className="px-4 py-3 font-semibold">Store</th>
-                <th className="px-4 py-3 font-semibold">Sale Price</th>
-                <th className="px-4 py-3 font-semibold">Cost</th>
-                <th className="px-4 py-3 font-semibold">Profit</th>
-                <th className="px-4 py-3 font-semibold">Sold By</th>
-                <th className="px-4 py-3 font-semibold">Sold At</th>
+            <thead>
+              <tr className="border-b border-line">
+                <th className={th}>Laptop</th>
+                <th className={th}>Serial</th>
+                <th className={th}>Store</th>
+                <th className={th}>Sale Price</th>
+                <th className={th}>Cost</th>
+                <th className={th}>Profit</th>
+                <th className={th}>Sold By</th>
+                <th className={th}>Sold At</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-[var(--hairline)]">
               {sales.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-10 text-center text-slate-400">
+                  <td colSpan={8} className="px-4 py-10 text-center text-sm text-ink-faint">
                     No sales recorded yet.
                   </td>
                 </tr>
               )}
               {sales.map((s) => (
-                <tr key={s.id} className="hover:bg-slate-50/60 transition-colors">
-                  <td className="px-4 py-3 font-medium text-slate-800">{s.brand_model}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-slate-500">{s.serial_number}</td>
-                  <td className="px-4 py-3 text-slate-700">{storeName(s.store_id) ?? <span className="text-slate-400">—</span>}</td>
-                  <td className="px-4 py-3 text-slate-800">{inr(s.sale_price)}</td>
-                  <td className="px-4 py-3 text-slate-500">{inr(s.cost_price)}</td>
-                  <td className={`px-4 py-3 font-semibold ${s.profit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                <tr key={s.id} className="transition-colors duration-150 hover:bg-surface-2/60">
+                  <td className={`${td} font-medium text-ink`}>{s.brand_model}</td>
+                  <td className={td}>
+                    <span className="mono-chip">{s.serial_number}</span>
+                  </td>
+                  <td className={`${td} text-ink-dim`}>
+                    {storeName(s.store_id) ?? <span className="text-ink-faint">—</span>}
+                  </td>
+                  <td className={`${td} font-mono text-xs text-ink`}>{inr(s.sale_price)}</td>
+                  <td className={`${td} font-mono text-xs text-ink-dim`}>{inr(s.cost_price)}</td>
+                  <td className={`${td} font-mono text-xs font-medium ${s.profit >= 0 ? 'text-stock-ok' : 'text-stock-risk'}`}>
                     {inr(s.profit)}
                   </td>
-                  <td className="px-4 py-3 text-slate-600">{s.sold_by || '—'}</td>
-                  <td className="px-4 py-3 text-xs text-slate-500">{formatTime(s.sold_at)}</td>
+                  <td className={`${td} text-ink-dim`}>{s.sold_by || '—'}</td>
+                  <td className={`${td} font-mono text-[11px] text-ink-faint`}>{formatTime(s.sold_at)}</td>
                 </tr>
               ))}
             </tbody>

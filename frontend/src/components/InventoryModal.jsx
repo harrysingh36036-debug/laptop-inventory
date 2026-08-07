@@ -79,32 +79,31 @@ export default function InventoryModal({ stores, brands = [], editing, onSave, o
     if (err) setError(err);
   };
 
-  const input = (cls = '') =>
-    `mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none ${cls}`;
-  const label = 'block text-sm font-medium text-slate-700';
+  const input = (cls = '') => `field mt-1.5 ${cls}`;
+  const label = 'flabel';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-      <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-slate-800">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade">
+      <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-line bg-surface shadow-pop animate-rise">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-surface/95 px-6 py-4 backdrop-blur">
+          <h2 className="font-display text-base font-semibold tracking-tight text-ink">
             {editing ? t.editLaptopTitle : t.addLaptopTitle}
           </h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600" aria-label="Close">
+          <button onClick={onClose} className="text-ink-faint hover:text-ink transition-colors" aria-label="Close">
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        <form onSubmit={submit} className="mt-4 space-y-4">
+        <form onSubmit={submit} className="space-y-5 p-6">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className={label}>Brand</label>
               <select
                 value={form.brand}
                 onChange={set('brand')}
-                className={input('bg-white')}
+                className={input()}
               >
                 <option value="">Select brand…</option>
                 {brands.map((b) => (
@@ -112,8 +111,8 @@ export default function InventoryModal({ stores, brands = [], editing, onSave, o
                 ))}
               </select>
               {brandPrefix && !editing && (
-                <p className="mt-1 text-xs text-emerald-600">
-                  Serials will start with <code>{brandPrefix}</code> (auto-generated).
+                <p className="mt-1 text-xs text-stock-ok">
+                  Serials will start with <code className="mono-chip">{brandPrefix}</code> (auto-generated).
                 </p>
               )}
             </div>
@@ -134,7 +133,7 @@ export default function InventoryModal({ stores, brands = [], editing, onSave, o
             </div>
             <div>
               <label className={label}>Storage Type</label>
-              <select value={form.storage_type} onChange={set('storage_type')} className={input('bg-white')}>
+              <select value={form.storage_type} onChange={set('storage_type')} className={input()}>
                 <option value="">Select…</option>
                 <option value="SSD">SSD</option>
                 <option value="HDD">HDD</option>
@@ -148,11 +147,11 @@ export default function InventoryModal({ stores, brands = [], editing, onSave, o
           </div>
 
           {/* Graphics */}
-          <div className="rounded-lg border border-slate-200 p-4">
+          <div className="rounded-xl border border-line bg-surface-2/40 p-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div>
                 <label className={label}>Graphics?</label>
-                <select value={form.graphics} onChange={set('graphics')} className={input('bg-white')}>
+                <select value={form.graphics} onChange={set('graphics')} className={input()}>
                   <option value="no">No</option>
                   <option value="yes">Yes</option>
                 </select>
@@ -161,7 +160,7 @@ export default function InventoryModal({ stores, brands = [], editing, onSave, o
                 <>
                   <div>
                     <label className={label}>Number of Graphics</label>
-                    <select value={form.graphics_type} onChange={set('graphics_type')} className={input('bg-white')}>
+                    <select value={form.graphics_type} onChange={set('graphics_type')} className={input()}>
                       <option value="">Select…</option>
                       <option value="integrated">Integrated</option>
                       <option value="dedicated">Dedicated</option>
@@ -195,7 +194,7 @@ export default function InventoryModal({ stores, brands = [], editing, onSave, o
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
               <label className={label}>Location</label>
-              <select value={form.current_store_id} onChange={set('current_store_id')} className={input('bg-white')}>
+              <select value={form.current_store_id} onChange={set('current_store_id')} className={input()}>
                 <option value="">Unassigned</option>
                 {stores.map((s) => (
                   <option key={s.id} value={s.id}>{s.store_name}</option>
@@ -204,7 +203,7 @@ export default function InventoryModal({ stores, brands = [], editing, onSave, o
             </div>
             <div>
               <label className={label}>Status</label>
-              <select value={form.status} onChange={set('status')} className={input('bg-white')}>
+              <select value={form.status} onChange={set('status')} className={input()}>
                 {STATUSES.map((s) => (
                   <option key={s} value={s}>{s}</option>
                 ))}
@@ -212,10 +211,10 @@ export default function InventoryModal({ stores, brands = [], editing, onSave, o
             </div>
             {!editing && (
               <div>
-                <label className={`${label} flex items-center gap-1`}>{t.quantityLabel || 'Quantity'}</label>
+                <label className={label}>{t.quantityLabel || 'Quantity'}</label>
                 <input value={form.quantity} onChange={setN('quantity')} type="number" min="1" max="1000"
                   className={input()} />
-                <p className="mt-1 text-xs text-slate-400">Bulk-add same spec with auto serials.</p>
+                <p className="mt-1 text-xs text-ink-faint">Bulk-add same spec with auto serials.</p>
               </div>
             )}
           </div>
@@ -230,16 +229,16 @@ export default function InventoryModal({ stores, brands = [], editing, onSave, o
           )}
 
           {error && (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+            <p className="rounded-lg border border-stock-risk/25 bg-stock-risk/10 px-3 py-2 text-sm text-stock-risk">
+              {error}
+            </p>
           )}
 
-          <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={onClose}
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+          <div className="flex justify-end gap-2 border-t border-line pt-4">
+            <button type="button" onClick={onClose} className="btn-ghost">
               Cancel
             </button>
-            <button type="submit"
-              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">
+            <button type="submit" className="btn-accent">
               {editing ? 'Save Changes' : form.quantity > 1 ? `Add ${form.quantity} Units` : 'Add Laptop'}
             </button>
           </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { STATUS_STYLES, formatTime } from '../utils';
+import { formatTime, inr } from '../utils';
 import { useLabels } from '../labels.jsx';
+import StatusChip from './StatusChip';
 
 export default function LaptopTable({
   laptops, stores, onTransfer, onEdit, onDelete, onSell,
@@ -31,26 +32,29 @@ export default function LaptopTable({
     setSellBusy(null);
   };
 
+  const th = 'px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint';
+  const td = 'px-4 py-3 align-middle';
+
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div className="panel overflow-hidden animate-rise">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[960px] text-left text-sm">
-          <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-            <tr>
-              <th className="px-4 py-3 font-semibold">{t.tableBrand}</th>
-              <th className="px-4 py-3 font-semibold">Specs</th>
-              <th className="px-4 py-3 font-semibold">{t.tableSerial}</th>
-              <th className="px-4 py-3 font-semibold">{t.tableStore}</th>
-              <th className="px-4 py-3 font-semibold">{t.tableStatus}</th>
-              <th className="px-4 py-3 font-semibold">Purchase</th>
-              <th className="px-4 py-3 font-semibold">{t.tableChangeLocation}</th>
-              <th className="px-4 py-3 font-semibold">{t.tableActions}</th>
+        <table className="w-full min-w-[960px] border-collapse text-left text-sm">
+          <thead>
+            <tr className="border-b border-line">
+              <th className={th}>{t.tableBrand}</th>
+              <th className={th}>Specs</th>
+              <th className={th}>{t.tableSerial}</th>
+              <th className={th}>{t.tableStore}</th>
+              <th className={th}>{t.tableStatus}</th>
+              <th className={th}>Purchase</th>
+              <th className={th}>{t.tableChangeLocation}</th>
+              <th className={`${th} text-right`}>{t.tableActions}</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-[var(--hairline)]">
             {laptops.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-10 text-center text-slate-400">
+                <td colSpan={8} className="px-4 py-12 text-center text-sm text-ink-faint">
                   {t.noLaptops}
                 </td>
               </tr>
@@ -58,44 +62,43 @@ export default function LaptopTable({
             {laptops.map((l) => {
               const sel = pending[l.id] ?? '';
               const spec = [l.processor_type, l.generation, l.storage_type].filter(Boolean).join(' · ');
-              const gfx = l.graphics === 'yes' ? ` · GPU: ${l.graphics_type || '—'}${l.graphics_model ? ` ${l.graphics_model}` : ''}` : '';
+              const gfx = l.graphics === 'yes' ? `GPU: ${l.graphics_type || '—'}${l.graphics_model ? ` ${l.graphics_model}` : ''}` : '';
+              const isSold = l.status === 'Sold';
               return (
-                <tr key={l.id} className="hover:bg-slate-50/60 transition-colors">
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-slate-800">{l.brand_model}</p>
+                <tr key={l.id} className="group transition-colors duration-150 hover:bg-surface-2/60">
+                  <td className={td}>
+                    <p className="font-medium text-ink">{l.brand_model}</p>
                     {l.purchased_from && (
-                      <p className="text-[11px] text-slate-400">{l.purchased_from}</p>
+                      <p className="mt-0.5 text-[11px] text-ink-faint">{l.purchased_from}</p>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-xs text-slate-500">
+                  <td className={`${td} text-xs text-ink-dim`}>
                     <p>{spec || '—'}</p>
-                    <p>{gfx}</p>
+                    {gfx && <p className="mt-0.5 text-[11px] text-ink-faint">{gfx}</p>}
                   </td>
-                  <td className="px-4 py-3 font-mono text-xs text-slate-500">{l.serial_number}</td>
-                  <td className="px-4 py-3 text-slate-700">
+                  <td className={td}>
+                    <span className="mono-chip">{l.serial_number}</span>
+                  </td>
+                  <td className={td}>
                     {l.current_store_name ?? (
-                      <span className="text-slate-400">{t.unassigned}</span>
+                      <span className="text-ink-faint">{t.unassigned}</span>
                     )}
                   </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ring-1 ring-inset ${STATUS_STYLES[l.status]}`}
-                    >
-                      {l.status}
-                    </span>
+                  <td className={td}>
+                    <StatusChip status={l.status} />
                   </td>
-                  <td className="px-4 py-3 text-xs text-slate-500">
+                  <td className={`${td} font-mono text-xs text-ink-dim`}>
                     {l.purchase_rate != null
-                      ? `₹${Number(l.purchase_rate).toLocaleString('en-IN')}${l.extra_charges ? ` +${Number(l.extra_charges).toLocaleString('en-IN')}` : ''}`
+                      ? `${inr(l.purchase_rate)}${l.extra_charges ? `+${inr(l.extra_charges)}` : ''}`
                       : '—'}
                   </td>
-                  {canTransfer && l.status !== 'Sold' ? (
-                    <td className="px-4 py-3">
+                  {canTransfer && !isSold ? (
+                    <td className={td}>
                       <div className="flex flex-wrap items-center gap-2">
                         <select
                           value={sel}
                           onChange={(e) => setPending({ ...pending, [l.id]: e.target.value })}
-                          className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs focus:border-slate-500 focus:outline-none"
+                          className="rounded-lg border border-line bg-surface-2 px-2 py-1.5 font-mono text-xs text-ink-dim focus:border-accent-line focus:outline-none"
                         >
                           <option value="">{t.selectStore}</option>
                           {stores
@@ -109,38 +112,37 @@ export default function LaptopTable({
                         <button
                           onClick={() => handleConfirm(l)}
                           disabled={!sel}
-                          className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+                          className="btn-ghost disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           {t.transferButton}
                         </button>
                       </div>
                     </td>
                   ) : (
-                    <td className="px-4 py-3 text-xs text-slate-400">{l.status === 'Sold' ? 'Sold' : t.viewOnly}</td>
+                    <td className={`${td} text-xs text-ink-faint`}>
+                      {isSold ? 'Sold' : t.viewOnly}
+                    </td>
                   )}
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap items-center gap-2">
+                  <td className={`${td} text-right`}>
+                    <div className="flex flex-wrap items-center justify-end gap-2">
                       {canEdit && (
                         <>
-                          <button
-                            onClick={() => onEdit?.(l)}
-                            className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
-                          >
+                          <button onClick={() => onEdit?.(l)} className="btn-ghost">
                             {t.editButton}
                           </button>
                           <button
                             onClick={() => onDelete?.(l.id, l.brand_model)}
-                            className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-50"
+                            className="btn-danger"
                           >
                             {t.deleteButton}
                           </button>
                         </>
                       )}
-                      {canSell && l.status !== 'Sold' && (
+                      {canSell && !isSold && (
                         <button
                           onClick={() => handleSell(l)}
                           disabled={sellBusy === l.id}
-                          className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-50"
+                          className="btn-accent disabled:opacity-50"
                         >
                           {sellBusy === l.id ? '…' : 'Sell'}
                         </button>

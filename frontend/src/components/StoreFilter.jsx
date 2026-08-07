@@ -4,48 +4,59 @@ export default function StoreFilter({ stores, storeId, setStoreId, countFor, sta
   const t = useLabels();
   const statuses = ['In Stock', 'In Transit', 'Sold'];
 
+  const row =
+    'w-full flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors duration-150';
+
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <h2 className="px-1 text-sm font-semibold text-slate-700">{t.filterByStore}</h2>
+    <div className="panel p-3">
+      <h2 className="px-1 text-xs font-semibold uppercase tracking-wide text-ink-faint">
+        {t.filterByStore}
+      </h2>
 
       {/* All stores */}
       <button
         onClick={() => setStoreId('')}
-        className={`mt-3 w-full rounded-lg px-3 py-2 text-left text-sm transition ${
-          storeId === ''
-            ? 'bg-slate-900 text-white'
-            : 'text-slate-700 hover:bg-slate-100'
+        className={`mt-3 ${row} ${
+          storeId === '' ? 'bg-accent-soft text-accent' : 'text-ink-dim hover:bg-surface-2 hover:text-ink'
         }`}
       >
-        {t.allStores} <span className="float-right opacity-60">{laptopsAll()}</span>
+        <span className="font-medium">{t.allStores}</span>
+        <span className="mono-chip">{countFor('all')}</span>
       </button>
 
       {/* Individual stores */}
       <div className="mt-1 max-h-72 space-y-0.5 overflow-y-auto pr-1">
-        {stores.map((s) => {
+        {stores.map((s, i) => {
           const active = String(s.id) === String(storeId);
           return (
             <button
               key={s.id}
               onClick={() => setStoreId(active ? '' : s.id)}
-              className={`w-full rounded-lg px-3 py-2 text-left text-sm transition ${
-                active ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100'
-              }`}
+              className={`${row} ${active ? 'bg-accent-soft text-accent' : 'text-ink-dim hover:bg-surface-2 hover:text-ink'}`}
             >
-              {s.store_name}
-              <span className="float-right opacity-60">{countFor(s.id)}</span>
+              <span className="flex items-center gap-2 min-w-0">
+                <span className={`font-mono text-[10px] ${active ? 'text-accent/70' : 'text-ink-faint'}`}>
+                  {String(i + 1).padStart(2, '0')}
+                </span>
+                <span className="truncate">{s.store_name}</span>
+              </span>
+              <span className={`font-mono text-[11px] ${active ? 'text-accent/80' : 'text-ink-faint'}`}>
+                {countFor(s.id)}
+              </span>
             </button>
           );
         })}
       </div>
 
       {/* Status filter */}
-      <div className="mt-5 border-t border-slate-100 pt-4">
-        <h3 className="px-1 text-sm font-semibold text-slate-700">{t.statusLabel}</h3>
+      <div className="mt-5 border-t border-line pt-4">
+        <h3 className="px-1 text-xs font-semibold uppercase tracking-wide text-ink-dim">
+          {t.statusLabel}
+        </h3>
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-          className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+          className="field mt-2"
         >
           <option value="">{t.anyStatus}</option>
           {statuses.map((s) => (
@@ -57,9 +68,4 @@ export default function StoreFilter({ stores, storeId, setStoreId, countFor, sta
       </div>
     </div>
   );
-
-  // Show total filtered count for "All Stores".
-  function laptopsAll() {
-    return countFor('all');
-  }
 }

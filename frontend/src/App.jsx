@@ -418,8 +418,8 @@ export default function App() {
 
   if (!authReady) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <p className="text-sm text-slate-400">Loading…</p>
+      <div className="flex min-h-screen items-center justify-center bg-page">
+        <p className="text-sm text-ink-faint">Loading…</p>
       </div>
     );
   }
@@ -430,40 +430,49 @@ export default function App() {
 
   return (
     <LabelsProvider labels={labels}>
-      <div className="min-h-screen bg-slate-50">
+      <div className="min-h-screen bg-page text-ink">
         {/* Header */}
-        <header className="bg-slate-900 text-white">
-          <div className="mx-auto max-w-7xl px-4 py-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="text-xl font-bold tracking-tight">{labels.appTitle || 'Laptop Inventory Tracker'}</h1>
-              <p className="text-sm text-slate-400 mt-0.5">
-                {labels.appSubtitle || 'Real-time location tracking across 7 retail stores'}
-              </p>
+        <header className="sticky top-0 z-40 border-b border-line bg-[#0e0f13]/80 backdrop-blur-md">
+          <div className="mx-auto max-w-[1440px] px-4 h-14 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="h-6 w-6 rounded-md bg-accent-soft flex items-center justify-center">
+                <svg className="h-3.5 w-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </span>
+              <div className="min-w-0">
+                <h1 className="truncate font-display text-sm font-semibold tracking-tight">{labels.appTitle || 'Laptop Inventory Tracker'}</h1>
+                <p className="hidden sm:block text-[11px] text-ink-faint">
+                  {labels.appSubtitle || 'Real-time location tracking across 7 retail stores'}
+                </p>
+              </div>
             </div>
-          <div className="flex flex-wrap items-center gap-3 text-xs">
+          <div className="flex items-center gap-2 text-xs">
             <span
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-medium ${
-                connected ? 'bg-emerald-500/15 text-emerald-300' : 'bg-red-500/15 text-red-300'
+              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-medium ${
+                connected
+                  ? 'border-stock-ok/25 bg-stock-ok/10 text-stock-ok'
+                  : 'border-stock-risk/25 bg-stock-risk/10 text-stock-risk'
               }`}
             >
               <span
-                className={`h-2 w-2 rounded-full ${connected ? 'bg-emerald-400' : 'bg-red-400 animate-pulse'}`}
+                className={`h-1.5 w-1.5 rounded-full ${connected ? 'bg-stock-ok' : 'bg-stock-risk animate-pulse'}`}
               />
-              {connected ? 'Live · synced' : 'Reconnecting…'}
+              <span className="hidden sm:inline">{connected ? 'Live · synced' : 'Reconnecting…'}</span>
             </span>
 
-            <div className="flex items-center gap-2 rounded-full bg-white/10 py-1 pl-1 pr-3">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 font-semibold uppercase">
+            <div className="flex items-center gap-1 rounded-full border border-line bg-surface p-1">
+              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent-soft font-display text-xs font-semibold text-accent">
                 {(user.display_name || user.username).slice(0, 1)}
               </span>
-              <div className="leading-tight">
-                <p className="font-medium">{user.display_name || user.username}</p>
-                <p className="text-[10px] uppercase tracking-wide text-slate-300">{user.role}</p>
-              </div>
+              <span className="hidden md:block leading-tight px-1">
+                <span className="block max-w-[120px] truncate text-xs font-medium text-ink">{user.display_name || user.username}</span>
+                <span className="block text-[10px] uppercase tracking-wide text-ink-faint">{user.role}</span>
+              </span>
               {isAdmin && (
                 <button
                   onClick={() => setAccountsOpen(true)}
-                  className="ml-2 rounded-full bg-white/10 px-3 py-1 font-medium text-white hover:bg-white/20"
+                  className="rounded-full px-2.5 py-1 font-medium text-ink-dim hover:bg-surface-3 hover:text-ink transition-colors"
                 >
                   Accounts
                 </button>
@@ -471,7 +480,7 @@ export default function App() {
               {!isAdmin && canCreateStaff && (
                 <button
                   onClick={() => setAccountsOpen(true)}
-                  className="ml-2 rounded-full bg-white/10 px-3 py-1 font-medium text-white hover:bg-white/20"
+                  className="rounded-full px-2.5 py-1 font-medium text-ink-dim hover:bg-surface-3 hover:text-ink transition-colors"
                 >
                   Accounts
                 </button>
@@ -479,7 +488,7 @@ export default function App() {
               {isAdmin && (
                 <button
                   onClick={() => setSettingsOpen(true)}
-                  className="ml-1 rounded-full bg-white/10 px-3 py-1 font-medium text-white hover:bg-white/20"
+                  className="rounded-full px-2.5 py-1 font-medium text-ink-dim hover:bg-surface-3 hover:text-ink transition-colors"
                 >
                   Settings
                 </button>
@@ -487,7 +496,7 @@ export default function App() {
               {isAdmin && (
                 <button
                   onClick={() => setBrandsOpen(true)}
-                  className="ml-1 rounded-full bg-white/10 px-3 py-1 font-medium text-white hover:bg-white/20"
+                  className="rounded-full px-2.5 py-1 font-medium text-ink-dim hover:bg-surface-3 hover:text-ink transition-colors"
                 >
                   Brands
                 </button>
@@ -495,14 +504,14 @@ export default function App() {
               {!isAdmin && canRenameStores && (
                 <button
                   onClick={() => setSettingsOpen(true)}
-                  className="ml-1 rounded-full bg-white/10 px-3 py-1 font-medium text-white hover:bg-white/20"
+                  className="rounded-full px-2.5 py-1 font-medium text-ink-dim hover:bg-surface-3 hover:text-ink transition-colors"
                 >
                   Stores
                 </button>
               )}
               <button
                 onClick={handleLogout}
-                className="rounded-full bg-white/10 px-3 py-1 font-medium text-white hover:bg-red-500/80"
+                className="rounded-full border border-line px-2.5 py-1 font-medium text-ink-dim hover:text-stock-risk hover:border-stock-risk/40 transition-colors"
               >
                 Sign out
               </button>
@@ -511,25 +520,25 @@ export default function App() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-6 space-y-6">
+      <main className="mx-auto max-w-[1440px] px-4 py-6 space-y-6">
         {/* Tab switcher */}
-        <div className="flex items-center gap-2">
+        <div className="inline-flex items-center gap-1 rounded-xl border border-line bg-surface p-1">
           <button
             onClick={() => setTab('inventory')}
-            className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
+            className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-colors duration-150 ${
               tab === 'inventory'
-                ? 'bg-slate-900 text-white'
-                : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'
+                ? 'bg-surface-3 text-ink shadow-[0_1px_2px_rgba(0,0,0,0.4)]'
+                : 'text-ink-dim hover:text-ink'
             }`}
           >
             Inventory
           </button>
           <button
             onClick={() => setTab('sales')}
-            className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
+            className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-colors duration-150 ${
               tab === 'sales'
-                ? 'bg-slate-900 text-white'
-                : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50'
+                ? 'bg-surface-3 text-ink shadow-[0_1px_2px_rgba(0,0,0,0.4)]'
+                : 'text-ink-dim hover:text-ink'
             }`}
           >
             Sales & Profit
@@ -555,7 +564,7 @@ export default function App() {
               {canEditInventory && (
                 <button
                   onClick={() => setInvModal({})}
-                  className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500"
+                  className="btn-accent"
                 >
                   {labels.addInventoryButton || '+ Update Inventory'}
                 </button>
@@ -592,11 +601,11 @@ export default function App() {
       )}
 
       {brandsOpen && isAdmin && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-line bg-surface p-6 shadow-pop animate-rise">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-slate-800">Manage Brands</h2>
-              <button onClick={() => setBrandsOpen(false)} className="text-slate-400 hover:text-slate-600" aria-label="Close">
+              <h2 className="font-display text-base font-semibold tracking-tight text-ink">Manage Brands</h2>
+              <button onClick={() => setBrandsOpen(false)} className="text-ink-faint hover:text-ink transition-colors" aria-label="Close">
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
