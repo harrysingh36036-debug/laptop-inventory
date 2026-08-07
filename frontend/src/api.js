@@ -1,101 +1,247 @@
-// Thin REST client. Endpoints are proxied to the backend by Vite.
-const BASE = '/api';
+import supabase from './supabaseClient';
+
+// Thin Supabase client wrapper that exposes the same function signatures the
+// React components already use, so the UI code needed no rewriting.
+
 const TOKEN_KEY = 'laptop_inventory_token';
 
-export const getToken = () => localStorage.getItem(TOKEN_KEY);
-export const setToken = (token) =>
-  token ? localStorage.setItem(TOKEN_KEY, token) : localStorage.removeItem(TOKEN_KEY);
+export const getToken = () => {
+  try {
+    return localStorage.getItem(TOKEN_KEY) || null;
+  } catch {
+    return null;
+  }
+};
 
-// Attach the current JWT (if any) to every request.
+let signingOut = false;
+
+export const setToken = (token) => {
+  try {
+    if (token) localStorage.setItem(TOKEN_KEY, token);
+    else localStorage.removeItem(TOKEN_KEY);
+  } catch {
+    /* ignore */
+  }
+  // "Sign out" also ends the real Supabase session, not just our mirror.
+  if (!token && !signingOut) {
+    signingOut = true;
+    supabase.auth.signOut().finally(() => {
+      signingOut = false;
+    });
+  }
+};
+
+// Keep the token cache in sync with the real Supabase session (including the
+// "already signed in" restored session on reload).
+supabase.auth.onAuthStateChange((event, session) => {
+  if (session && ['INITIAL_SESSION', 'SIGNED_IN', 'TOKEN_REFRESHED'].includes(event)) {
+    setToken(session.access_token);
+  }
+  if (event === 'SIGNED_OUT') setToken(null);
+});
+
 export function authHeaders(extra = {}) {
-  const token = getToken();
-  return token ? { Authorization: `Bearer ${token}`, ...extra } : { ...extra };
+  return { ...extra };
 }
 
-async function request(path, options = {}) {
-  const headers = authHeaders({ 'Content-Type': 'application/json' });
-  const res = await fetch(`${BASE}${path}`, {
-    headers,
-    ...options
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    if (res.status === 401) {
-      // Session expired / invalid — clear it so the UI returns to login.
-      setToken(null);
-    }
-    throw new Error(data.error || 'Request failed');
-  }
+// Throw a plain Error with the server/realtime message, matching the old REST
+// client's behaviour so components keep rendering `e.message`.
+function unwrap(error) {
+  if (!error) return new Error('Request failed');
+  const msg = error.message || error.error_description || 'Request failed';
+  return new Error(msg);
+}
+
+// ------------------------------ Primitives --------------------------------
+async function rpc(name, params = {}) {
+  const { data, error } = await supabase.rpc(name, params);
+  if (error) throw unwrap(error);
+  return data;
+}
+
+async function table(name) {
+  const { data, error } = await supabase.from(name).select('*');
+  if (error) throw unwrap(error);
+  return data || [];
+}
+
+// Username -> email. Users sign in with a username in the UI, but Supabase
+// authenticates against the derived address (always "@laptop.inventory").
+function toEmail(username) {
+  const value = String(username || '').trim();
+  if (value.includes('@')) return value;
+  return `${value}@laptop.inventory`;
+}
+
+function safeUser(profile) {
+  if (!profile) return null;
+  return {
+    id: profile.id,
+    username: profile.username,
+    display_name: profile.display_name || '',
+    role: profile.role,
+    created_at: profile.created_at
+  };
+}
+
+async function profileForUserId(id) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, username, display_name, role, created_at')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw unwrap(error);
   return data;
 }
 
 // ---------------------------------- Auth -----------------------------------
-export const register = (data) =>
-  request('/auth/register', { method: 'POST', body: JSON.stringify(data) });
-export const login = (data) =>
-  request('/auth/login', { method: 'POST', body: JSON.stringify(data) });
-export const getMe = () => request('/auth/me');
+export const register = () => {
+  throw new Error('Self-registration is disabled. Ask an admin or manager to create your account.');
+};
+
+export const login = async ({ username, password }) => {
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: toEmail(username),
+    password
+  });
+  if (error) throw new Error(error.message || 'Invalid username or password');
+  const user = await profileForUserId(data.user.id);
+  const profile = safeUser(user);
+  setToken(data.session.access_token);
+  return { token: data.session.access_token, user: profile };
+};
+
+export const getMe = async () => {
+  const {
+    data: { session },
+    error
+  } = await supabase.auth.getSession();
+  if (error) throw unwrap(error);
+  if (!session) throw new Error('Authentication required');
+  const profile = safeUser(await profileForUserId(session.user.id));
+  return { user: profile };
+};
 
 // ------------------------------- Account mgmt ------------------------------
-export const getUsers = () => request('/users');
-export const createUser = (data) => request('/users', { method: 'POST', body: JSON.stringify(data) });
-export const updateUser = (id, data) =>
-  request(`/users/${id}`, { method: 'PUT', body: JSON.stringify(data) });
-export const deleteUser = (id) => request(`/users/${id}`, { method: 'DELETE' });
-export const getLoginLogs = () => request('/auth/logins');
+export const getUsers = () => rpc('app_get_users')
+
+export const createUser = async (data) => {
+  const result = await rpc('app_create_user', {
+    p_username: data.username,
+    p_password: data.password,
+    p_display_name: data.display_name || '',
+    p_role: data.role || 'staff'
+  });
+  return result.user;
+};
+
+export const updateUser = async (id, data) => {
+  const result = await rpc('app_update_user', {
+    p_id: id,
+    p_username: data.username || null,
+    p_password: data.password || null,
+    p_display_name: data.display_name || null,
+    p_role: data.role || null
+  });
+  const {
+    data: { session }
+  } = await supabase.auth.getSession();
+  // app_update_user returns { user: {...} }: unwrap it like the old API did.
+  return { user: result.user, token: session?.access_token || null };
+};
+
+export const deleteUser = (id) => rpc('app_delete_user', { p_id: id });
+export const getLoginLogs = () => rpc('app_get_login_logs');
 
 // --------------------------------- Inventory -------------------------------
-export const getStores = () => request('/stores');
-export const getLaptops = (params = {}) => {
-  const q = new URLSearchParams(
-    Object.entries(params).filter(([, v]) => v != null && v !== '')
-  ).toString();
-  return request(`/laptops${q ? `?${q}` : ''}`);
-};
-export const getTransferLogs = () => request('/logs');
+export const getStores = () => table('stores');
+
+export const getLaptops = (params = {}) =>
+  rpc('app_get_laptops', {
+    p_store_id: params.storeId ? Number(params.storeId) : null,
+    p_status: params.status || null,
+    p_search: params.search || null
+  });
+
+export const getTransferLogs = (limit = 100) => rpc('app_get_transfer_logs', { p_limit: limit });
+
 export const transferLaptop = (id, toStoreId) =>
-  request(`/laptops/${id}/transfer`, {
-    method: 'POST',
-    body: JSON.stringify({ toStoreId })
-  });
-export const createLaptop = (data) =>
-  request('/laptops', { method: 'POST', body: JSON.stringify(data) });
+  rpc('app_transfer_laptop', { p_laptop_id: id, p_to_store: toStoreId });
+
+export const createLaptop = (data) => {
+  const quantity = data.quantity != null ? Number(data.quantity) : 1;
+  if (quantity > 1) return createLaptopsBulk(data, quantity);
+  return rpc('app_create_laptop', { p_data: data });
+};
+
+export const createLaptopsBulk = (data, quantity) =>
+  rpc('app_bulk_create_laptops', { p_data: data, p_quantity: quantity });
+
 export const updateLaptop = (id, data) =>
-  request(`/laptops/${id}`, { method: 'PUT', body: JSON.stringify(data) });
-export const deleteLaptop = (id) =>
-  request(`/laptops/${id}`, { method: 'DELETE' });
-export const sellLaptop = (id, salePrice) =>
-  request(`/laptops/${id}/sell`, {
-    method: 'POST',
-    body: JSON.stringify({ salePrice })
+  rpc('app_update_laptop', { p_id: id, p_data: data });
+
+export const deleteLaptop = (id) => rpc('app_delete_laptop', { p_id: id });
+
+export const sellLaptop = async (id, salePrice) =>
+  rpc('app_sell_laptop', {
+    p_laptop_id: id,
+    p_sale_price: salePrice,
+    p_sold_by: await currentUsername()
   });
+
+// Current user's username, used as the "sold_by" audit value.
+async function currentUsername() {
+  try {
+    const me = await getMe();
+    return me.user?.username || '';
+  } catch {
+    return '';
+  }
+}
 
 // ----------------------------------- Brands --------------------------------
-export const getBrands = () => request('/brands');
+export const getBrands = () => table('brands');
 export const addBrand = (data) =>
-  request('/brands', { method: 'POST', body: JSON.stringify(data) });
+  rpc('app_add_brand', { p_name: data.name, p_serial_prefix: data.serial_prefix || '' });
 export const updateBrand = (id, data) =>
-  request(`/brands/${id}`, { method: 'PUT', body: JSON.stringify(data) });
-export const deleteBrand = (id) => request(`/brands/${id}`, { method: 'DELETE' });
+  rpc('app_update_brand', {
+    p_id: id,
+    p_name: data.name,
+    p_serial_prefix: data.serial_prefix || ''
+  });
+export const deleteBrand = (id) => rpc('app_delete_brand', { p_id: id });
 
 // ----------------------------------- Sales ---------------------------------
-export const getSales = () => request('/sales');
-export const getSalesSummary = () => request('/sales/summary');
+export const getSales = () => rpc('app_get_sales');
+export const getSalesSummary = () => rpc('app_sales_summary');
 
 // --------------------------------- Settings --------------------------------
-export const getSettings = () => request('/settings');
-export const saveSettings = (patch) =>
-  request('/settings', { method: 'PUT', body: JSON.stringify(patch) });
+export const getSettings = () => rpc('app_get_settings');
+export const saveSettings = (patch) => rpc('app_set_settings', { p_patch: patch });
 
 // --------------------------- Role permissions ------------------------------
-export const getPermissions = () => request('/permissions');
+export const getPermissions = async () => {
+  const settings = await getSettings();
+  const raw = settings?.role_permissions;
+  const fallback = {
+    manager: { editInventory: true, transferLaptops: true, createStaff: true, renameStores: true, editLabels: false },
+    staff: { editInventory: false, transferLaptops: false, createStaff: false, renameStores: false, editLabels: false }
+  };
+  try {
+    const parsed = JSON.parse(raw || '{}');
+    return {
+      manager: { ...fallback.manager, ...(parsed.manager || {}) },
+      staff: { ...fallback.staff, ...(parsed.staff || {}) }
+    };
+  } catch {
+    return fallback;
+  }
+};
+
 export const savePermissions = (perms) =>
-  request('/permissions', { method: 'PUT', body: JSON.stringify(perms) });
+  rpc('app_set_settings', { p_patch: { role_permissions: JSON.stringify(perms) } });
 
 // ------------------------------- Store mgmt --------------------------------
-export const addStore = (name) =>
-  request('/stores', { method: 'POST', body: JSON.stringify({ store_name: name }) });
-export const renameStore = (id, name) =>
-  request(`/stores/${id}`, { method: 'PUT', body: JSON.stringify({ store_name: name }) });
-export const deleteStore = (id) =>
-  request(`/stores/${id}`, { method: 'DELETE' });
+export const addStore = (name) => rpc('app_add_store', { p_store_name: name });
+export const renameStore = (id, name) => rpc('app_rename_store', { p_store_id: id, p_store_name: name });
+export const deleteStore = (id) => rpc('app_delete_store', { p_store_id: id });

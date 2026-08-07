@@ -7,3 +7,5 @@ frontend/dist/
 *.db-wal
 .DS_Store
 backend/.env
+backend/supabase-url.txt
+frontend/.env

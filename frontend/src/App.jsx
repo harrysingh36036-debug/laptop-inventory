@@ -251,7 +251,7 @@ export default function App() {
         setLogs(lg);
         setLabels(st);
         getBrands().then(setBrands).catch(() => {});
-        notify('Data refreshed from Google Sheets', 'info');
+        notify('Data refreshed', 'info');
       } catch (e) {
         /* ignore transient errors */
       }
