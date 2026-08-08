@@ -720,21 +720,31 @@ GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO authenticated;
 
 -- ---------------------------------------------------------------------------
 -- 14. Seed: superadmin + admin (only if no profiles exist)
+--     Passwords are NOT stored in this repository. Generate strong passwords
+--     and set them via the Supabase dashboard (Authentication > Users) after
+--     applying, or pass them at runtime via psql variables.
 -- ---------------------------------------------------------------------------
+-- If you need scripted seeding, create users with a DO block that reads
+-- passwords from environment/JIT variables, e.g. current_setting('app.seed_pass', true):
 DO $$
 DECLARE v_super uuid := gen_random_uuid(); v_admin uuid := gen_random_uuid();
+DECLARE p_super text := current_setting('app.superadmin_password', true);
+DECLARE p_admin text := current_setting('app.admin_password', true);
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM public.profiles) THEN
+    IF p_super IS NULL OR p_admin IS NULL THEN
+      RAISE EXCEPTION 'Set app.superadmin_password and app.admin_password (SET app.superadmin_password = ''...'') before seeding users';
+    END IF;
     INSERT INTO auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, is_sso_user, is_anonymous, created_at, updated_at)
     VALUES (v_super, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'superadmin@laptop.inventory',
-            extensions.crypt('SUPERADMIN_PLACEHOLDER', extensions.gen_salt('bf', 10)), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, false, false, now(), now());
+            extensions.crypt(p_super, extensions.gen_salt('bf', 10)), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, false, false, now(), now());
     INSERT INTO auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
     VALUES (gen_random_uuid(), v_super, 'superadmin@laptop.inventory', jsonb_build_object('sub', v_super::text, 'email', 'superadmin@laptop.inventory'), 'email', now(), now(), now());
     INSERT INTO public.profiles (id, username, display_name, role) VALUES (v_super, 'superadmin', 'Super Administrator', 'superadmin');
 
     INSERT INTO auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, is_sso_user, is_anonymous, created_at, updated_at)
     VALUES (v_admin, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'admin@laptop.inventory',
-            extensions.crypt('ADMIN_PLACEHOLDER', extensions.gen_salt('bf', 10)), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, false, false, now(), now());
+            extensions.crypt(p_admin, extensions.gen_salt('bf', 10)), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, false, false, now(), now());
     INSERT INTO auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
     VALUES (gen_random_uuid(), v_admin, 'admin@laptop.inventory', jsonb_build_object('sub', v_admin::text, 'email', 'admin@laptop.inventory'), 'email', now(), now(), now());
     INSERT INTO public.profiles (id, username, display_name, role) VALUES (v_admin, 'admin', 'System Administrator', 'admin');
