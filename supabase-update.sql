@@ -512,3 +512,98 @@ BEGIN
   DELETE FROM auth.users WHERE id = ANY(v_ids); -- cascades profiles, identities, loginlogs
   RETURN jsonb_build_object('ok', true, 'deleted', v_n);
 END $$;
+
+-- ============================================================================
+-- 14. Customers catalog (who laptops are sold to)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS public.customers (
+  id         bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  name       text NOT NULL,
+  phone      text NOT NULL DEFAULT '',
+  email      text NOT NULL DEFAULT '',
+  address    text NOT NULL DEFAULT '',
+  notes      text NOT NULL DEFAULT '',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "customers_read" ON public.customers;
+CREATE POLICY "customers_read" ON public.customers FOR SELECT TO authenticated USING (true);
+GRANT SELECT ON public.customers TO authenticated;
+
+DO $$
+BEGIN
+  EXECUTE 'ALTER PUBLICATION supabase_realtime ADD TABLE public.customers';
+EXCEPTION WHEN undefined_object THEN NULL;
+END $$;
+
+CREATE OR REPLACE FUNCTION public.app_get_customers()
+RETURNS jsonb
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE v_out jsonb;
+BEGIN
+  PERFORM public.app_req_auth();
+  SELECT COALESCE(jsonb_agg(jsonb_build_object(
+      'id', c.id, 'name', c.name, 'phone', c.phone, 'email', c.email,
+      'address', c.address, 'notes', c.notes,
+      'created_at', to_char(c.created_at, 'YYYY-MM-DD HH24:MI:SS'))
+      ORDER BY c.name), '[]'::jsonb) INTO v_out
+  FROM public.customers c;
+  RETURN v_out;
+END $$;
+
+CREATE OR REPLACE FUNCTION public.app_add_customer(p_name text, p_phone text DEFAULT '', p_email text DEFAULT '', p_address text DEFAULT '', p_notes text DEFAULT '')
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE v_row public.customers%ROWTYPE;
+BEGIN
+  IF NOT public.app_perm_exact('manageCustomers') THEN RAISE EXCEPTION 'Insufficient permissions'; END IF;
+  IF COALESCE(btrim(p_name),'') = '' THEN RAISE EXCEPTION 'Customer name is required'; END IF;
+  INSERT INTO public.customers (name, phone, email, address, notes)
+  VALUES (btrim(p_name), COALESCE(btrim(p_phone),''), COALESCE(btrim(p_email),''),
+          COALESCE(btrim(p_address),''), COALESCE(btrim(p_notes),''))
+  RETURNING * INTO v_row;
+  RETURN to_jsonb(v_row);
+END $$;
+
+CREATE OR REPLACE FUNCTION public.app_update_customer(p_id bigint, p_name text, p_phone text DEFAULT '', p_email text DEFAULT '', p_address text DEFAULT '', p_notes text DEFAULT '')
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE v_row public.customers%ROWTYPE;
+BEGIN
+  IF NOT public.app_perm_exact('manageCustomers') THEN RAISE EXCEPTION 'Insufficient permissions'; END IF;
+  IF COALESCE(btrim(p_name),'') = '' THEN RAISE EXCEPTION 'Customer name is required'; END IF;
+  UPDATE public.customers SET
+    name = btrim(p_name), phone = COALESCE(btrim(p_phone),''), email = COALESCE(btrim(p_email),''),
+    address = COALESCE(btrim(p_address),''), notes = COALESCE(btrim(p_notes),'')
+    WHERE id = p_id RETURNING * INTO v_row;
+  IF v_row IS NULL THEN RAISE EXCEPTION 'Customer not found'; END IF;
+  RETURN to_jsonb(v_row);
+END $$;
+
+CREATE OR REPLACE FUNCTION public.app_delete_customer(p_id bigint)
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE v_row public.customers%ROWTYPE;
+BEGIN
+  IF NOT public.app_perm_exact('manageCustomers') THEN RAISE EXCEPTION 'Insufficient permissions'; END IF;
+  DELETE FROM public.customers WHERE id = p_id RETURNING * INTO v_row;
+  IF v_row IS NULL THEN RAISE EXCEPTION 'Customer not found'; END IF;
+  RETURN jsonb_build_object('ok', true, 'id', p_id);
+END $$;
+
+CREATE OR REPLACE FUNCTION public.app_bulk_delete_customers(p_ids bigint[])
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE v_n int;
+BEGIN
+  IF NOT public.app_perm_exact('manageCustomers') THEN RAISE EXCEPTION 'Insufficient permissions'; END IF;
+  IF p_ids IS NULL OR cardinality(p_ids) = 0 THEN RAISE EXCEPTION 'No customers selected'; END IF;
+  DELETE FROM public.customers WHERE id = ANY (p_ids);
+  GET DIAGNOSTICS v_n = ROW_COUNT;
+  RETURN jsonb_build_object('ok', true, 'deleted', v_n);
+END $$;

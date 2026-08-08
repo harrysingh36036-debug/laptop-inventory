@@ -40,7 +40,8 @@ const PERMISSION_FIELDS = [
   ['createStaff', 'Create staff accounts'],
   ['renameStores', 'Rename stores'],
   ['editLabels', 'Edit buttons & labels'],
-  ['manageVendors', 'Manage vendors (add / edit / delete)']
+  ['manageVendors', 'Manage vendors (add / edit / delete)'],
+  ['manageCustomers', 'Manage customers (add / edit / delete)']
 ];
 
 const DEFAULT_PERMISSIONS = {
@@ -50,7 +51,8 @@ const DEFAULT_PERMISSIONS = {
     createStaff: true,
     renameStores: true,
     editLabels: true,
-    manageVendors: false
+    manageVendors: false,
+    manageCustomers: false
   },
   manager: {
     editInventory: true,
@@ -58,7 +60,8 @@ const DEFAULT_PERMISSIONS = {
     createStaff: true,
     renameStores: true,
     editLabels: false,
-    manageVendors: false
+    manageVendors: false,
+    manageCustomers: false
   },
   staff: {
     editInventory: false,
@@ -66,7 +69,8 @@ const DEFAULT_PERMISSIONS = {
     createStaff: false,
     renameStores: false,
     editLabels: false,
-    manageVendors: false
+    manageVendors: false,
+    manageCustomers: false
   }
 };
 

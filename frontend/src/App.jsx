@@ -32,6 +32,7 @@ import AccountManager from './components/AccountManager';
 import AdminSettings from './components/AdminSettings';
 import BrandsManager from './components/BrandsManager';
 import VendorsManager from './components/VendorsManager';
+import CustomersManager from './components/CustomersManager';
 import Toast from './components/Toast';
 
 export default function App() {
@@ -61,6 +62,7 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [brandsOpen, setBrandsOpen] = useState(false);
   const [vendorsOpen, setVendorsOpen] = useState(false);
+  const [customersOpen, setCustomersOpen] = useState(false);
 
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
   const isSuperAdmin = user?.role === 'superadmin';
@@ -85,6 +87,7 @@ export default function App() {
   const canRenameStores = can('renameStores');
   // Vendor management is granted by the super admin only — even for admins.
   const canManageVendors = isSuperAdmin || !!((rolePerms || {})[user?.role] || {})['manageVendors'];
+  const canManageCustomers = isSuperAdmin || !!((rolePerms || {})[user?.role] || {})['manageCustomers'];
 
   const notify = useCallback((msg, type = 'info') => {
     setToast({ msg, type, id: Date.now() });
@@ -518,6 +521,14 @@ export default function App() {
                   Vendors
                 </button>
               )}
+              {canManageCustomers && (
+                <button
+                  onClick={() => setCustomersOpen(true)}
+                  className="rounded-full px-2.5 py-1 font-medium text-ink-dim hover:bg-surface-3 hover:text-ink transition-colors"
+                >
+                  Customers
+                </button>
+              )}
               {!isAdmin && canRenameStores && (
                 <button
                   onClick={() => setSettingsOpen(true)}
@@ -646,6 +657,22 @@ export default function App() {
               </button>
             </div>
             <VendorsManager onNotify={notify} />
+          </div>
+        </div>
+      )}
+
+      {customersOpen && canManageCustomers && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-line bg-surface p-6 shadow-pop animate-rise">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="font-display text-base font-semibold tracking-tight text-ink">Manage Customers</h2>
+              <button onClick={() => setCustomersOpen(false)} className="text-ink-faint hover:text-ink transition-colors" aria-label="Close">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <CustomersManager onNotify={notify} />
           </div>
         </div>
       )}

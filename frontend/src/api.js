@@ -225,6 +225,28 @@ export const bulkDeleteVendors = (ids) => rpc('app_bulk_delete_vendors', { p_ids
 export const getSales = () => rpc('app_get_sales');
 export const getSalesSummary = () => rpc('app_sales_summary');
 
+// --------------------------------- Customers -------------------------------
+export const getCustomers = () => rpc('app_get_customers');
+export const addCustomer = (data) =>
+  rpc('app_add_customer', {
+    p_name: data.name,
+    p_phone: data.phone || '',
+    p_email: data.email || '',
+    p_address: data.address || '',
+    p_notes: data.notes || ''
+  });
+export const updateCustomer = (id, data) =>
+  rpc('app_update_customer', {
+    p_id: id,
+    p_name: data.name,
+    p_phone: data.phone || '',
+    p_email: data.email || '',
+    p_address: data.address || '',
+    p_notes: data.notes || ''
+  });
+export const deleteCustomer = (id) => rpc('app_delete_customer', { p_id: id });
+export const bulkDeleteCustomers = (ids) => rpc('app_bulk_delete_customers', { p_ids: ids });
+
 // --------------------------------- Settings --------------------------------
 export const getSettings = () => rpc('app_get_settings');
 export const saveSettings = (patch) => rpc('app_set_settings', { p_patch: patch });
