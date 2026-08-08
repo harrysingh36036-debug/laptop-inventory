@@ -1,0 +1,26 @@
+name: sync-to-google-sheets
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+  push:
+    branches: ['main']
+    paths: ['backend/gas-sync.js']
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install deps
+        run: npm install --prefix backend --omit=dev
+      - name: Sync Supabase data to Google Sheets
+        run: node backend/gas-sync.js
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          GAS_WEBAPP_URL: ${{ secrets.GAS_WEBAPP_URL }}
+          GAS_KEY: ${{ secrets.GAS_KEY }}
