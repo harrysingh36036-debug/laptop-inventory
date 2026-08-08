@@ -24,8 +24,12 @@ GRANT SELECT ON public.vendors TO authenticated;
 
 DO $$
 BEGIN
-  EXECUTE 'ALTER PUBLICATION supabase_realtime ADD TABLE public.vendors';
-EXCEPTION WHEN undefined_object THEN NULL;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'vendors'
+  ) THEN
+    EXECUTE 'ALTER PUBLICATION supabase_realtime ADD TABLE public.vendors';
+  END IF;
 END $$;
 
 -- ---------------------------------------------------------------------------
@@ -532,8 +536,12 @@ GRANT SELECT ON public.customers TO authenticated;
 
 DO $$
 BEGIN
-  EXECUTE 'ALTER PUBLICATION supabase_realtime ADD TABLE public.customers';
-EXCEPTION WHEN undefined_object THEN NULL;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'customers'
+  ) THEN
+    EXECUTE 'ALTER PUBLICATION supabase_realtime ADD TABLE public.customers';
+  END IF;
 END $$;
 
 CREATE OR REPLACE FUNCTION public.app_get_customers()
@@ -606,4 +614,170 @@ BEGIN
   DELETE FROM public.customers WHERE id = ANY (p_ids);
   GET DIAGNOSTICS v_n = ROW_COUNT;
   RETURN jsonb_build_object('ok', true, 'deleted', v_n);
+END $$;
+
+-- ============================================================================
+-- 15. Sales track the buyer (customer) + customer purchase summaries
+-- ============================================================================
+ALTER TABLE public.sales ADD COLUMN IF NOT EXISTS customer_id bigint REFERENCES public.customers(id) ON DELETE SET NULL;
+
+CREATE OR REPLACE FUNCTION public.app_sell_laptop(p_laptop_id bigint, p_sale_price numeric, p_sold_by text, p_customer_id bigint DEFAULT NULL)
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  v_cur public.laptops%ROWTYPE;
+  v_cost numeric;
+  v_profit numeric;
+  v_row public.sales%ROWTYPE;
+  v_store public.stores%ROWTYPE;
+  v_customer public.customers%ROWTYPE;
+BEGIN
+  IF NOT public.app_perm('editInventory') THEN RAISE EXCEPTION 'Insufficient permissions'; END IF;
+  SELECT * INTO v_cur FROM public.laptops WHERE id = p_laptop_id;
+  IF v_cur.id IS NULL THEN RAISE EXCEPTION 'Laptop not found'; END IF;
+  IF v_cur.status = 'Sold' THEN RAISE EXCEPTION 'Laptop is already sold'; END IF;
+  IF p_sale_price IS NULL OR p_sale_price < 0 THEN RAISE EXCEPTION 'sale_price is required'; END IF;
+  IF p_customer_id IS NOT NULL THEN
+    SELECT * INTO v_customer FROM public.customers WHERE id = p_customer_id;
+    IF v_customer.id IS NULL THEN RAISE EXCEPTION 'Customer not found'; END IF;
+  END IF;
+  v_cost := COALESCE(v_cur.purchase_rate,0) + COALESCE(v_cur.extra_charges,0);
+  v_profit := p_sale_price - v_cost;
+  INSERT INTO public.sales (laptop_id, serial_number, brand_model, store_id, sale_price, cost_price, profit, sold_by, customer_id)
+  VALUES (p_laptop_id, v_cur.serial_number, v_cur.brand_model, v_cur.current_store_id, p_sale_price, v_cost, v_profit, p_sold_by, p_customer_id)
+  RETURNING * INTO v_row;
+  UPDATE public.laptops SET status = 'Sold', updated_at = now() WHERE id = p_laptop_id;
+  SELECT * INTO v_store FROM public.stores WHERE id = v_row.store_id;
+  RETURN jsonb_build_object(
+    'sale', jsonb_build_object(
+      'id', v_row.id, 'laptop_id', v_row.laptop_id, 'serial_number', v_row.serial_number,
+      'brand_model', v_row.brand_model, 'store_id', v_row.store_id, 'store_name', v_store.store_name,
+      'sale_price', v_row.sale_price, 'cost_price', v_row.cost_price, 'profit', v_row.profit,
+      'sold_by', v_row.sold_by, 'sold_at', to_char(v_row.sold_at, 'YYYY-MM-DD HH24:MI:SS'),
+      'customer_id', v_row.customer_id, 'customer_name', v_customer.name)
+  );
+END $$;
+
+CREATE OR REPLACE FUNCTION public.app_get_sales()
+RETURNS jsonb
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE v_out jsonb := '[]'::jsonb;
+BEGIN
+  PERFORM public.app_req_auth();
+  SELECT COALESCE(jsonb_agg(jsonb_build_object(
+      'id', s.id, 'laptop_id', s.laptop_id, 'serial_number', s.serial_number, 'brand_model', s.brand_model,
+      'store_id', s.store_id, 'store_name', st.store_name, 'sale_price', s.sale_price, 'cost_price', s.cost_price,
+      'profit', s.profit, 'sold_by', s.sold_by, 'sold_at', to_char(s.sold_at, 'YYYY-MM-DD HH24:MI:SS'),
+      'customer_id', s.customer_id, 'customer_name', c.name)
+      ORDER BY s.sold_at DESC), '[]'::jsonb) INTO v_out
+  FROM public.sales s
+  LEFT JOIN public.stores st ON st.id = s.store_id
+  LEFT JOIN public.customers c ON c.id = s.customer_id;
+  RETURN v_out;
+END $$;
+
+CREATE OR REPLACE FUNCTION public.app_get_customers()
+RETURNS jsonb
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE v_out jsonb;
+BEGIN
+  PERFORM public.app_req_auth();
+  SELECT COALESCE(jsonb_agg(jsonb_build_object(
+      'id', c.id, 'name', c.name, 'phone', c.phone, 'email', c.email,
+      'address', c.address, 'notes', c.notes,
+      'created_at', to_char(c.created_at, 'YYYY-MM-DD HH24:MI:SS'),
+      'units', COALESCE(su.units, 0),
+      'total_amount', COALESCE(su.total_amount, 0),
+      'last_purchase', su.last_purchase,
+      'stores', COALESCE(su.stores, ''))
+      ORDER BY c.name), '[]'::jsonb) INTO v_out
+  FROM public.customers c
+  LEFT JOIN LATERAL (
+    SELECT count(*) AS units, COALESCE(sum(s.sale_price), 0) AS total_amount,
+           to_char(max(s.sold_at), 'YYYY-MM-DD HH24:MI:SS') AS last_purchase,
+           string_agg(DISTINCT st.store_name, ', ' ORDER BY st.store_name) AS stores
+    FROM public.sales s LEFT JOIN public.stores st ON st.id = s.store_id
+    WHERE s.customer_id = c.id
+  ) su ON true;
+  RETURN v_out;
+END $$;
+
+-- ============================================================================
+-- 16. Inventory stats: brand-wise / generation-wise / configuration-wise counts
+-- ============================================================================
+CREATE OR REPLACE FUNCTION public.app_inventory_stats(p_store_id bigint DEFAULT NULL, p_status text DEFAULT NULL)
+RETURNS jsonb
+LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE v_out jsonb;
+BEGIN
+  PERFORM public.app_req_auth();
+  SELECT jsonb_build_object(
+    'by_brand', COALESCE((SELECT jsonb_agg(jsonb_build_object(
+        'brand', b.brand, 'total', b.total, 'in_stock', b.in_stock, 'in_transit', b.in_transit, 'sold', b.sold)
+        ORDER BY b.total DESC) FROM (
+      SELECT l.brand,
+             count(*) AS total,
+             count(*) FILTER (WHERE l.status = 'In Stock') AS in_stock,
+             count(*) FILTER (WHERE l.status = 'In Transit') AS in_transit,
+             count(*) FILTER (WHERE l.status = 'Sold') AS sold
+      FROM public.laptops l
+      WHERE (p_store_id IS NULL OR l.current_store_id = p_store_id)
+        AND (p_status IS NULL OR l.status = p_status)
+      GROUP BY l.brand
+    ) b), '[]'::jsonb),
+    'by_generation', COALESCE((SELECT jsonb_agg(jsonb_build_object(
+        'generation', g.generation, 'total', g.total) ORDER BY g.total DESC) FROM (
+      SELECT COALESCE(l.generation, 'Not specified') AS generation, count(*) AS total
+      FROM public.laptops l
+      WHERE (p_store_id IS NULL OR l.current_store_id = p_store_id)
+        AND (p_status IS NULL OR l.status = p_status)
+      GROUP BY 1
+    ) g), '[]'::jsonb),
+    'by_config', COALESCE((SELECT jsonb_agg(jsonb_build_object(
+        'config', cf.config, 'total', cf.total) ORDER BY cf.total DESC) FROM (
+      SELECT COALESCE(NULLIF(CONCAT_WS(' / ', l.processor_type, l.generation, CONCAT_WS(' ', l.storage_size, l.storage_type)), ''), 'Not specified') AS config,
+             count(*) AS total
+      FROM public.laptops l
+      WHERE (p_store_id IS NULL OR l.current_store_id = p_store_id)
+        AND (p_status IS NULL OR l.status = p_status)
+      GROUP BY 1
+    ) cf), '[]'::jsonb),
+    'totals', (SELECT jsonb_build_object(
+        'total', count(*),
+        'in_stock', count(*) FILTER (WHERE status = 'In Stock'),
+        'in_transit', count(*) FILTER (WHERE status = 'In Transit'),
+        'sold', count(*) FILTER (WHERE status = 'Sold'))
+      FROM public.laptops l
+      WHERE (p_store_id IS NULL OR l.current_store_id = p_store_id)
+        AND (p_status IS NULL OR l.status = p_status))
+  ) INTO v_out;
+  RETURN v_out;
+END $$;
+
+-- ============================================================================
+-- 17. Admins may edit role permissions for admin / manager / staff
+--     (super admin keeps ultimate authority and stays invisible to admins)
+-- ============================================================================
+CREATE OR REPLACE FUNCTION public.app_set_settings(p_patch jsonb)
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE k text; v text; v_role text := public.app_role();
+BEGIN
+  IF NOT public.app_perm('editLabels') AND v_role NOT IN ('admin','superadmin') THEN
+    RAISE EXCEPTION 'Insufficient permissions';
+  END IF;
+  IF (p_patch ? 'role_permissions') AND v_role NOT IN ('admin','superadmin') THEN
+    RAISE EXCEPTION 'Only a super admin or admin can edit role permissions';
+  END IF;
+  FOR k, v IN SELECT key, value FROM jsonb_each_text(p_patch)
+  LOOP
+    INSERT INTO public.settings (key, value) VALUES (k, v)
+      ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;
+  END LOOP;
+  RETURN public.app_get_settings();
 END $$;
