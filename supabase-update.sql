@@ -479,3 +479,34 @@ BEGIN
     AND (p_search IS NULL OR l.brand ILIKE '%' || p_search || '%' OR l.brand_model ILIKE '%' || p_search || '%' OR l.serial_number ILIKE '%' || p_search || '%');
   RETURN v_out;
 END $$;
+
+-- ---------------------------------------------------------------------------
+-- 13. Bulk-delete users (superadmin anyone except self; admin managers/staff)
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.app_bulk_delete_users(p_ids uuid[])
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  v_role text := public.app_role();
+  v_me uuid := auth.uid();
+  v_ids uuid[];
+  v_n int := 0;
+BEGIN
+  IF p_ids IS NULL THEN RAISE EXCEPTION 'No users selected'; END IF;
+  v_ids := ARRAY(SELECT DISTINCT unnest(p_ids));
+  IF v_ids = '{}' THEN RAISE EXCEPTION 'No users selected'; END IF;
+  IF v_role = 'superadmin' THEN
+    IF v_me = ANY(v_ids) THEN RAISE EXCEPTION 'Cannot delete your own account'; END IF;
+  ELSIF v_role = 'admin' THEN
+    IF EXISTS (SELECT 1 FROM public.profiles WHERE id = ANY(v_ids) AND role NOT IN ('manager','staff')) THEN
+      RAISE EXCEPTION 'Admins can only delete manager and staff accounts';
+    END IF;
+    IF v_me = ANY(v_ids) THEN RAISE EXCEPTION 'Cannot delete your own account'; END IF;
+  ELSE
+    RAISE EXCEPTION 'Insufficient permissions';
+  END IF;
+  SELECT count(*) INTO v_n FROM public.profiles WHERE id = ANY(v_ids);
+  DELETE FROM auth.users WHERE id = ANY(v_ids); -- cascades profiles, identities, loginlogs
+  RETURN jsonb_build_object('ok', true, 'deleted', v_n);
+END $$;

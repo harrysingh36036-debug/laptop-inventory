@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getUsers, createUser, updateUser, deleteUser, getLoginLogs } from '../api';
+import { getUsers, createUser, updateUser, deleteUser, bulkDeleteUsers, getLoginLogs } from '../api';
 
 const ROLES = ['admin', 'manager', 'staff'];
 const MANAGER_CREATABLE_ROLES = ['manager', 'staff'];
@@ -16,6 +16,7 @@ export default function AccountManager({ currentUser, onClose, onCurrentUserChan
   const [users, setUsers] = useState([]);
   const [modal, setModal] = useState(null); // null | { } | { user }
   const [error, setError] = useState('');
+  const [selected, setSelected] = useState([]); // ids checked for bulk delete
 
   const MAX_ACCOUNTS = 8;
 
@@ -92,6 +93,30 @@ export default function AccountManager({ currentUser, onClose, onCurrentUserChan
     }
   };
 
+  const selectable = users.filter((u) => canDeleteUser(u));
+  const allSelected = selectable.length > 0 && selectable.every((u) => selected.includes(u.id));
+
+  const toggleAll = () => {
+    setSelected(allSelected ? [] : selectable.map((u) => u.id));
+  };
+
+  const toggleOne = (id) => {
+    setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+  };
+
+  const handleBulkDelete = async () => {
+    const victims = users.filter((u) => selected.includes(u.id));
+    if (victims.length === 0) return;
+    if (!window.confirm(`Delete ${victims.length} account${victims.length > 1 ? 's' : ''} (${victims.map((u) => u.username).join(', ')})? This cannot be undone.`)) return;
+    try {
+      await bulkDeleteUsers(selected);
+      setSelected([]);
+      await load();
+    } catch (e) {
+      setError(e.message);
+    }
+  };
+
   const th = 'px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint';
   const td = 'px-4 py-3 align-middle';
 
@@ -148,6 +173,22 @@ export default function AccountManager({ currentUser, onClose, onCurrentUserChan
           </div>
         )}
 
+        {selected.length > 0 && (
+          <div className="mx-6 mb-4 flex items-center justify-between rounded-xl border border-stock-risk/30 bg-stock-risk/10 px-4 py-2.5">
+            <span className="text-sm text-stock-risk">
+              {selected.length} account{selected.length > 1 ? 's' : ''} selected
+            </span>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setSelected([])} className="btn-ghost">
+                Clear
+              </button>
+              <button onClick={handleBulkDelete} className="btn-danger">
+                Delete Selected
+              </button>
+            </div>
+          </div>
+        )}
+
         {loginsOpen && (
           <div className="mx-6 mb-4 rounded-xl border border-line bg-surface-2/40 p-4">
             <h3 className="text-sm font-semibold text-ink">Login Activity</h3>
@@ -186,6 +227,18 @@ export default function AccountManager({ currentUser, onClose, onCurrentUserChan
             <table className="w-full text-left text-sm">
               <thead className="bg-surface-2/50">
                 <tr>
+                  {isAdmin || isManager ? (
+                    <th className={`${th} w-10`}>
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        onChange={toggleAll}
+                        disabled={selectable.length === 0}
+                        aria-label="Select all accounts"
+                        className="accent-[var(--accent)]"
+                      />
+                    </th>
+                  ) : null}
                   <th className={th}>User</th>
                   <th className={th}>Username</th>
                   <th className={th}>Role</th>
@@ -195,6 +248,19 @@ export default function AccountManager({ currentUser, onClose, onCurrentUserChan
               <tbody className="divide-y divide-[var(--hairline)]">
                 {users.map((u) => (
                   <tr key={u.id} className="transition-colors duration-150 hover:bg-surface-2/60">
+                    {isAdmin || isManager ? (
+                      <td className={td}>
+                        {canDeleteUser(u) ? (
+                          <input
+                            type="checkbox"
+                            checked={selected.includes(u.id)}
+                            onChange={() => toggleOne(u.id)}
+                            aria-label={`Select ${u.username}`}
+                            className="accent-[var(--accent)]"
+                          />
+                        ) : null}
+                      </td>
+                    ) : null}
                     <td className={`${td} font-medium text-ink`}>
                       {u.display_name || u.username}
                       {u.id === currentUser.id && (
@@ -235,7 +301,7 @@ export default function AccountManager({ currentUser, onClose, onCurrentUserChan
                 ))}
                 {users.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="px-4 py-8 text-center text-ink-faint">
+                    <td colSpan={isAdmin || isManager ? 5 : 4} className="px-4 py-8 text-center text-ink-faint">
                       No accounts yet.
                     </td>
                   </tr>

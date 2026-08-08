@@ -151,6 +151,7 @@ export const updateUser = async (id, data) => {
 };
 
 export const deleteUser = (id) => rpc('app_delete_user', { p_id: id });
+export const bulkDeleteUsers = (ids) => rpc('app_bulk_delete_users', { p_ids: ids });
 export const getLoginLogs = () => rpc('app_get_login_logs');
 
 // --------------------------------- Inventory -------------------------------
