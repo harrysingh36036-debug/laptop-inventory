@@ -32,33 +32,45 @@ const LABEL_FIELDS = [
   ['noLaptops', 'Empty-table message']
 ];
 
-// Admin-configurable capabilities per role (admin always has everything).
+// Admin-configurable capabilities per role (the super admin decides for every
+// role; admins always have the core rights, vendor control is grantable).
 const PERMISSION_FIELDS = [
   ['editInventory', 'Add / edit / remove laptops'],
   ['transferLaptops', 'Transfer laptops between stores'],
   ['createStaff', 'Create staff accounts'],
   ['renameStores', 'Rename stores'],
-  ['editLabels', 'Edit buttons & labels']
+  ['editLabels', 'Edit buttons & labels'],
+  ['manageVendors', 'Manage vendors (add / edit / delete)']
 ];
 
 const DEFAULT_PERMISSIONS = {
+  admin: {
+    editInventory: true,
+    transferLaptops: true,
+    createStaff: true,
+    renameStores: true,
+    editLabels: true,
+    manageVendors: false
+  },
   manager: {
     editInventory: true,
     transferLaptops: true,
     createStaff: true,
     renameStores: true,
-    editLabels: false
+    editLabels: false,
+    manageVendors: false
   },
   staff: {
     editInventory: false,
     transferLaptops: false,
     createStaff: false,
     renameStores: false,
-    editLabels: false
+    editLabels: false,
+    manageVendors: false
   }
 };
 
-export default function AdminSettings({ stores, settings, onSaveSettings, onSaveStore, onDeleteStore, onClose, isAdmin = true }) {
+export default function AdminSettings({ stores, settings, onSaveSettings, onSaveStore, onDeleteStore, onClose, isAdmin = true, isSuperAdmin = false }) {
   const [labels, setLabels] = useState({ ...DEFAULT_LABELS, ...(settings || {}) });
   const [storeName, setStoreName] = useState('');
   const [edits, setEdits] = useState({}); // storeId -> draft name
@@ -116,6 +128,7 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
     try {
       const p = await getPermissions();
       setPerms({
+        admin: { ...DEFAULT_PERMISSIONS.admin, ...(p.admin || {}) },
         manager: { ...DEFAULT_PERMISSIONS.manager, ...(p.manager || {}) },
         staff: { ...DEFAULT_PERMISSIONS.staff, ...(p.staff || {}) }
       });
@@ -148,7 +161,8 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
   };
 
   const TABS = [['stores', 'Stores']].concat(
-    isAdmin ? [['labels', 'Buttons & Labels'], ['permissions', 'Roles & Permissions']] : []
+    isAdmin ? [['labels', 'Buttons & Labels']] : [],
+    isSuperAdmin ? [['permissions', 'Roles & Permissions']] : []
   );
 
   return (
@@ -262,13 +276,13 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
         {tab === 'permissions' && (
           <div className="mt-4 space-y-4">
             <p className="text-sm text-ink-faint">
-              Control what managers and staff can do. Admin always has full access to everything.
+              Grant or revoke each permission for admins, managers and staff. The super admin always has access to everything.
             </p>
             {!perms ? (
               <p className="text-sm text-ink-faint">Loading permissions…</p>
             ) : (
               <>
-                {['manager', 'staff'].map((role) => (
+                {['admin', 'manager', 'staff'].map((role) => (
                   <div key={role} className="rounded-xl border border-line bg-surface-2/40 p-4">
                     <h3 className="text-sm font-semibold capitalize text-ink">{role}</h3>
                     <div className="mt-2 space-y-2">

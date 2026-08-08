@@ -61,7 +61,7 @@ export default function LaptopTable({
             )}
             {laptops.map((l) => {
               const sel = pending[l.id] ?? '';
-              const spec = [l.processor_type, l.generation, l.storage_type].filter(Boolean).join(' · ');
+              const spec = [l.storage_size, l.storage_type, l.processor_type, l.generation].filter(Boolean).join(' · ');
               const gfx = l.graphics === 'yes' ? `GPU: ${l.graphics_type || '—'}${l.graphics_model ? ` ${l.graphics_model}` : ''}` : '';
               const isSold = l.status === 'Sold';
               return (

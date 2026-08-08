@@ -40,7 +40,9 @@ const TABS = {
 const QUERIES = {
   Stores: 'SELECT id, store_name, created_at FROM public.stores ORDER BY id',
   Brands: 'SELECT id, name, serial_prefix, created_at FROM public.brands ORDER BY id',
-  Laptops: `SELECT id, brand, brand_model, processor_type, generation, storage_type,
+  Laptops: `SELECT id, brand, brand_model, processor_type, generation,
+      CASE WHEN storage_size IS NOT NULL AND btrim(storage_size) <> '' THEN btrim(storage_size) || ' ' || storage_type
+           ELSE storage_type END AS storage_type,
       purchased_from, graphics, graphics_type, graphics_model, purchase_rate,
       extra_charges, serial_number, current_store_id, status, created_at, updated_at
     FROM public.laptops ORDER BY id`,

@@ -78,6 +78,7 @@ function laptopFromRow(row) {
     processor_type: row.processor_type,
     generation: row.generation,
     storage_type: row.storage_type,
+    storage_size: row.storage_size,
     purchased_from: row.purchased_from,
     graphics: row.graphics,
     graphics_type: row.graphics_type,

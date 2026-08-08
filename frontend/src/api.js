@@ -211,6 +211,15 @@ export const updateBrand = (id, data) =>
   });
 export const deleteBrand = (id) => rpc('app_delete_brand', { p_id: id });
 
+// ---------------------------------- Vendors --------------------------------
+export const getVendors = () => table('vendors');
+export const addVendor = (data) =>
+  rpc('app_add_vendor', { p_name: data.name, p_contact: data.contact || '' });
+export const updateVendor = (id, data) =>
+  rpc('app_update_vendor', { p_id: id, p_name: data.name, p_contact: data.contact || '' });
+export const deleteVendor = (id) => rpc('app_delete_vendor', { p_id: id });
+export const bulkDeleteVendors = (ids) => rpc('app_bulk_delete_vendors', { p_ids: ids });
+
 // ----------------------------------- Sales ---------------------------------
 export const getSales = () => rpc('app_get_sales');
 export const getSalesSummary = () => rpc('app_sales_summary');
@@ -224,12 +233,14 @@ export const getPermissions = async () => {
   const settings = await getSettings();
   const raw = settings?.role_permissions;
   const fallback = {
-    manager: { editInventory: true, transferLaptops: true, createStaff: true, renameStores: true, editLabels: false },
-    staff: { editInventory: false, transferLaptops: false, createStaff: false, renameStores: false, editLabels: false }
+    admin: { editInventory: true, transferLaptops: true, createStaff: true, renameStores: true, editLabels: true, manageVendors: false },
+    manager: { editInventory: true, transferLaptops: true, createStaff: true, renameStores: true, editLabels: false, manageVendors: false },
+    staff: { editInventory: false, transferLaptops: false, createStaff: false, renameStores: false, editLabels: false, manageVendors: false }
   };
   try {
     const parsed = JSON.parse(raw || '{}');
     return {
+      admin: { ...fallback.admin, ...(parsed.admin || {}) },
       manager: { ...fallback.manager, ...(parsed.manager || {}) },
       staff: { ...fallback.staff, ...(parsed.staff || {}) }
     };

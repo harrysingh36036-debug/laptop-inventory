@@ -767,3 +767,12 @@ UPDATE auth.users SET
   confirmation_sent_at          = COALESCE(confirmation_sent_at, now()),
   recovery_sent_at              = COALESCE(recovery_sent_at, now()),
   email_change_sent_at          = COALESCE(email_change_sent_at, now());
+
+-- ---------------------------------------------------------------------------
+-- 16. V2 (applied): storage_size, vendors catalog, superadmin-only permission
+--     model (app_perm_exact + manageVendors), auto serial for single adds,
+--     and the account matrix (max 8 accounts; superadmin resets anyone,
+--     admin only manager+staff, manager no password resets).
+--     Apply supabase-update.sql on top of this file — it is idempotent and
+--     contains every CREATE OR REPLACE from v2.
+-- ---------------------------------------------------------------------------

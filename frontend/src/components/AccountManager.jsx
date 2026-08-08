@@ -17,7 +17,10 @@ export default function AccountManager({ currentUser, onClose, onCurrentUserChan
   const [modal, setModal] = useState(null); // null | { } | { user }
   const [error, setError] = useState('');
 
+  const MAX_ACCOUNTS = 8;
+
   const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'superadmin';
+  const isSuperAdmin = currentUser?.role === 'superadmin';
   const isManager = currentUser?.role === 'manager';
 
   const [logins, setLogins] = useState(null); // null = not loaded
@@ -33,14 +36,22 @@ export default function AccountManager({ currentUser, onClose, onCurrentUserChan
 
   const load = async () => {
     try {
-      let list = await getUsers();
-      // Managers must never see admin accounts (server enforces this too).
-      if (isManager) list = list.filter((u) => u.role !== 'admin');
+      const list = await getUsers();
       setUsers(list);
     } catch (e) {
       setError(e.message);
     }
   };
+
+  // Who can a role edit? superadmin: anyone. admin: manager+staff. manager: staff.
+  const canEditUser = (u) =>
+    isSuperAdmin ||
+    (currentUser?.role === 'admin' && u.role !== 'admin' && u.role !== 'superadmin');
+
+  const canResetPassword = (u) =>
+    isSuperAdmin || (currentUser?.role === 'admin' && u.role !== 'admin' && u.role !== 'superadmin');
+
+  const canDeleteUser = (u) => isSuperAdmin ? u.id !== currentUser.id : (currentUser?.role === 'admin' && u.role !== 'admin' && u.role !== 'superadmin' && u.id !== currentUser.id);
 
   useEffect(() => {
     load();
@@ -101,7 +112,7 @@ export default function AccountManager({ currentUser, onClose, onCurrentUserChan
 
         <div className="flex items-center justify-between px-6 py-4">
           <p className="text-sm text-ink-faint">
-            <span className="font-semibold text-ink">{users.length}</span> account{users.length === 1 ? '' : 's'}
+            <span className="font-semibold text-ink">{users.length}</span> of {MAX_ACCOUNTS} accounts
             {isAdmin && users.length > 0 && (
               <span className="ml-2 text-xs text-ink-faint">
                 · {users.filter((u) => u.role === 'admin' || u.role === 'superadmin').length} admin
@@ -122,9 +133,13 @@ export default function AccountManager({ currentUser, onClose, onCurrentUserChan
                 {loginsOpen ? 'Hide Login Activity' : 'Login Activity'}
               </button>
             )}
-            <button onClick={() => setModal({})} className="btn-accent">
-              + New Account
-            </button>
+            {isAdmin && users.length < MAX_ACCOUNTS ? (
+              <button onClick={() => setModal({})} className="btn-accent">
+                + New Account
+              </button>
+            ) : (
+              <span className="text-xs text-ink-faint">Account limit of {MAX_ACCOUNTS} reached.</span>
+            )}
           </div>
         </div>
         {error && (
@@ -195,15 +210,17 @@ export default function AccountManager({ currentUser, onClose, onCurrentUserChan
                       </span>
                     </td>
                     <td className={`${td} text-right`}>
-                      {(isAdmin || isManager) && (
+                      {(canEditUser(u) || canDeleteUser(u)) && (
                         <>
-                          <button
-                            onClick={() => setModal({ user: u })}
-                            className="btn-ghost"
-                          >
-                            Edit
-                          </button>
-                          {isAdmin && u.id !== currentUser.id && (
+                          {canEditUser(u) && (
+                            <button
+                              onClick={() => setModal({ user: u })}
+                              className="btn-ghost"
+                            >
+                              Edit
+                            </button>
+                          )}
+                          {canDeleteUser(u) && (
                             <button
                               onClick={() => handleDelete(u)}
                               className="btn-danger ml-2"
@@ -229,10 +246,12 @@ export default function AccountManager({ currentUser, onClose, onCurrentUserChan
         </div>
       </div>
 
-      {modal && (
+{modal && (
         <UserModal
           editing={modal.user}
-          managerOnly={isManager}
+          isSuperAdmin={isSuperAdmin}
+          viewerRole={currentUser?.role}
+          canResetPassword={modal.user ? canResetPassword(modal.user) : true}
           onSave={handleSave}
           onClose={() => setModal(null)}
         />
@@ -241,16 +260,22 @@ export default function AccountManager({ currentUser, onClose, onCurrentUserChan
   );
 }
 
-function UserModal({ editing, onSave, onClose, managerOnly }) {
-  const allowedRoles = managerOnly ? MANAGER_CREATABLE_ROLES : ROLES;
+function UserModal({ editing, onSave, onClose, viewerRole, isSuperAdmin, canResetPassword }) {
+  const viewerIsManager = viewerRole === 'manager';
+  const viewerIsAdmin = viewerRole === 'admin';
+  const allowedRoles = viewerIsManager
+    ? MANAGER_CREATABLE_ROLES
+    : viewerIsAdmin
+      ? ['manager', 'staff']
+      : ROLES;
   const [form, setForm] = useState(editing
     ? {
         username: editing.username,
         password: '',
         display_name: editing.display_name || '',
-        role: managerOnly ? (editing.role === 'admin' ? 'staff' : editing.role) : editing.role
+        role: allowedRoles.includes(editing.role) ? editing.role : allowedRoles[0]
       }
-    : { ...EMPTY, role: managerOnly ? 'staff' : EMPTY.role });
+    : { ...EMPTY, role: viewerIsManager || viewerIsAdmin ? allowedRoles[0] : EMPTY.role });
   const [error, setError] = useState('');
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -288,19 +313,35 @@ function UserModal({ editing, onSave, onClose, managerOnly }) {
               className="field mt-1.5"
             />
           </div>
-          <div>
-            <label className="flabel">
-              {editing ? 'New password (leave blank to keep)' : 'Password'}
-            </label>
-            <input
-              type="password"
-              value={form.password}
-              onChange={set('password')}
-              placeholder="at least 6 characters"
-              minLength={6}
-              className="field mt-1.5"
-            />
-          </div>
+          {canResetPassword && (
+            <div>
+              <label className="flabel">
+                {editing ? 'New password (leave blank to keep)' : 'Password'}
+              </label>
+              <input
+                type="password"
+                value={form.password}
+                onChange={set('password')}
+                placeholder="at least 6 characters"
+                minLength={6}
+                className="field mt-1.5"
+              />
+              {editing && (
+                <p className="mt-1 text-xs text-ink-faint">
+                  {isSuperAdmin ? 'Master reset — works for every account.' : 'You can reset this password.'}
+                </p>
+              )}
+            </div>
+          )}
+          {!canResetPassword && editing && (
+            <div>
+              <label className="flabel">Password</label>
+              <input type="password" value="unchanged" disabled className="field mt-1.5 opacity-50" />
+              <p className="mt-1 text-xs text-ink-faint">
+                Password of {editing.username} can only be reset by the super admin.
+              </p>
+            </div>
+          )}
           <div>
             <label className="flabel">Role</label>
             <select
@@ -315,7 +356,12 @@ function UserModal({ editing, onSave, onClose, managerOnly }) {
               ))}
             </select>
             <p className="mt-1 text-xs text-ink-faint">
-              Staff view inventory · Manager can edit/transfer · {managerOnly ? 'Managers can create staff & managers, but not admins' : 'Admin manages accounts.'}
+              Staff view inventory · Manager can edit/transfer ·{' '}
+              {viewerIsManager
+                ? 'Managers can manage staff, but password reset is only for admins & the super admin'
+                : viewerIsAdmin
+                  ? 'Admins manage manager & staff accounts only — the super admin owns admin accounts'
+                  : 'The super admin manages every account.'}
             </p>
           </div>
 

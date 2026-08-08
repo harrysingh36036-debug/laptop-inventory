@@ -18,6 +18,7 @@ import {
   renameStore,
   deleteStore
 } from './api';
+import { getVendors } from './api';
 import { socket, setSocketAuth } from './socket';
 import { LabelsProvider } from './labels.jsx';
 import Login from './components/Login';
@@ -30,6 +31,7 @@ import SalesTab from './components/SalesTab';
 import AccountManager from './components/AccountManager';
 import AdminSettings from './components/AdminSettings';
 import BrandsManager from './components/BrandsManager';
+import VendorsManager from './components/VendorsManager';
 import Toast from './components/Toast';
 
 export default function App() {
@@ -41,6 +43,7 @@ export default function App() {
   const [logs, setLogs] = useState([]);
   const [labels, setLabels] = useState({});
   const [brands, setBrands] = useState([]);
+  const [vendors, setVendors] = useState([]);
 
   // Filters / state
   const [storeId, setStoreId] = useState('');
@@ -57,8 +60,10 @@ export default function App() {
   const [accountsOpen, setAccountsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [brandsOpen, setBrandsOpen] = useState(false);
+  const [vendorsOpen, setVendorsOpen] = useState(false);
 
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
+  const isSuperAdmin = user?.role === 'superadmin';
 
   // Admin-configurable permissions (parsed from settings).
   const rolePerms = (() => {
@@ -69,8 +74,8 @@ export default function App() {
     }
   })();
   const defaultPerms = {
-    manager: { editInventory: true, transferLaptops: true, createStaff: true, renameStores: true, editLabels: false },
-    staff: { editInventory: false, transferLaptops: false, createStaff: false, renameStores: false, editLabels: false }
+    manager: { editInventory: true, transferLaptops: true, createStaff: true, renameStores: true, editLabels: false, manageVendors: false },
+    staff: { editInventory: false, transferLaptops: false, createStaff: false, renameStores: false, editLabels: false, manageVendors: false }
   };
   const myPerms = rolePerms?.[user?.role] || defaultPerms[user?.role] || {};
   const can = (perm) => (isAdmin ? true : !!myPerms[perm]);
@@ -78,6 +83,8 @@ export default function App() {
   const canTransfer = can('transferLaptops');
   const canCreateStaff = can('createStaff');
   const canRenameStores = can('renameStores');
+  // Vendor management is granted by the super admin only — even for admins.
+  const canManageVendors = isSuperAdmin || !!((rolePerms || {})[user?.role] || {})['manageVendors'];
 
   const notify = useCallback((msg, type = 'info') => {
     setToast({ msg, type, id: Date.now() });
@@ -123,6 +130,7 @@ export default function App() {
       setLogs(lg);
       setLabels(st);
       setBrands(b);
+      getVendors().then(setVendors).catch(() => {});
     };
     load().catch((e) => notify(e.message, 'error'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -313,6 +321,7 @@ export default function App() {
         processor_type: form.processor_type,
         generation: form.generation,
         storage_type: form.storage_type,
+        storage_size: form.storage_size,
         purchased_from: form.purchased_from,
         graphics: form.graphics,
         graphics_type: form.graphics_type,
@@ -501,6 +510,14 @@ export default function App() {
                   Brands
                 </button>
               )}
+              {canManageVendors && (
+                <button
+                  onClick={() => setVendorsOpen(true)}
+                  className="rounded-full px-2.5 py-1 font-medium text-ink-dim hover:bg-surface-3 hover:text-ink transition-colors"
+                >
+                  Vendors
+                </button>
+              )}
               {!isAdmin && canRenameStores && (
                 <button
                   onClick={() => setSettingsOpen(true)}
@@ -594,6 +611,7 @@ export default function App() {
         <InventoryModal
           stores={stores}
           brands={brands}
+          vendors={vendors}
           editing={invModal.laptop}
           onSave={handleSave}
           onClose={() => setInvModal(null)}
@@ -616,6 +634,22 @@ export default function App() {
         </div>
       )}
 
+      {vendorsOpen && canManageVendors && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-line bg-surface p-6 shadow-pop animate-rise">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="font-display text-base font-semibold tracking-tight text-ink">Manage Vendors</h2>
+              <button onClick={() => setVendorsOpen(false)} className="text-ink-faint hover:text-ink transition-colors" aria-label="Close">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <VendorsManager onNotify={notify} />
+          </div>
+        </div>
+      )}
+
       {accountsOpen && (isAdmin || canCreateStaff) && (
         <AccountManager
           currentUser={user}
@@ -629,6 +663,7 @@ export default function App() {
           stores={stores}
           settings={labels}
           isAdmin={isAdmin}
+          isSuperAdmin={isSuperAdmin}
           onSaveSettings={handleSaveSettings}
           onSaveStore={handleSaveStore}
           onDeleteStore={handleDeleteStore}

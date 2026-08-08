@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLabels } from '../labels.jsx';
 
 const STATUSES = ['In Stock', 'In Transit', 'Sold'];
+const SIZES = ['256 GB', '512 GB', '1 TB', '2 TB', '4 TB', '8 TB'];
 
 const EMPTY = {
   brand: '',
@@ -9,6 +10,7 @@ const EMPTY = {
   processor_type: '',
   generation: '',
   storage_type: '',
+  storage_size: '',
   purchased_from: '',
   graphics: 'no',
   graphics_type: '',
@@ -21,7 +23,7 @@ const EMPTY = {
   status: 'In Stock'
 };
 
-export default function InventoryModal({ stores, brands = [], editing, onSave, onClose }) {
+export default function InventoryModal({ stores, brands = [], vendors = [], editing, onSave, onClose }) {
   const t = useLabels();
   const [form, setForm] = useState(EMPTY);
   const [error, setError] = useState('');
@@ -35,6 +37,7 @@ export default function InventoryModal({ stores, brands = [], editing, onSave, o
             processor_type: editing.processor_type || '',
             generation: editing.generation || '',
             storage_type: editing.storage_type || '',
+            storage_size: editing.storage_size || '',
             purchased_from: editing.purchased_from || '',
             graphics: editing.graphics || 'no',
             graphics_type: editing.graphics_type || '',
@@ -66,13 +69,13 @@ export default function InventoryModal({ stores, brands = [], editing, onSave, o
       setError('Choose integrated or dedicated graphics when "Yes".');
       return;
     }
-    // In bulk mode the backend auto-generates serials — drop the manual one.
+    // Bulk mode always auto-generates serials; single mode too (brand prefix).
     const payload = { ...form };
     if (payload.quantity > 1) {
       delete payload.serial_number;
       payload.serial_prefix = brandPrefix || undefined;
-    } else if (!editing && !payload.serial_number.trim()) {
-      setError('Serial Number is required (or set the quantity above 1).');
+    } else if (!editing && !payload.serial_number.trim() && !brandPrefix) {
+      setError('Serial Number is required (or use a brand with a serial prefix).');
       return;
     }
     const err = await onSave(payload);
@@ -140,9 +143,34 @@ export default function InventoryModal({ stores, brands = [], editing, onSave, o
               </select>
             </div>
             <div>
+              <label className={label}>Storage Size</label>
+              <input
+                value={form.storage_size}
+                onChange={set('storage_size')}
+                list="storage-sizes"
+                placeholder="e.g. 512 GB"
+                className={input()}
+              />
+              <datalist id="storage-sizes">
+                {SIZES.map((s) => (
+                  <option key={s} value={s} />
+                ))}
+              </datalist>
+            </div>
+            <div>
               <label className={label}>Purchased From (Vendor)</label>
-              <input value={form.purchased_from} onChange={set('purchased_from')} placeholder="e.g. HP Direct"
-                className={input()} />
+              <input
+                value={form.purchased_from}
+                onChange={set('purchased_from')}
+                list="vendor-list"
+                placeholder="e.g. HP Direct"
+                className={input()}
+              />
+              <datalist id="vendor-list">
+                {vendors.map((v) => (
+                  <option key={v.id} value={v.name} />
+                ))}
+              </datalist>
             </div>
           </div>
 
@@ -225,6 +253,9 @@ export default function InventoryModal({ stores, brands = [], editing, onSave, o
               <input value={form.serial_number} onChange={set('serial_number')}
                 placeholder={brandPrefix ? `e.g. ${brandPrefix}001` : 'e.g. SN-000001'}
                 className={input()} />
+              <p className="mt-1 text-xs text-ink-faint">
+                {brandPrefix ? 'Leave blank to auto-generate the next serial.' : 'Required unless the brand has a serial prefix.'}
+              </p>
             </div>
           )}
 
