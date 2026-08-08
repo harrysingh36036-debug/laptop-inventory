@@ -95,7 +95,7 @@ async function pushTab(client, tab) {
 async function run() {
   if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is not set');
   if (!GAS_URL || !GAS_KEY) throw new Error('GAS_WEBAPP_URL / GAS_KEY are not set');
-  const client = new Client({ connectionString: process.env.DATABASE_URL.trim() });
+  const client = new Client({ connectionString: process.env.DATABASE_URL.trim(), connectionTimeoutMillis: 15000, query_timeout: 30000 });
   await client.connect();
   let total = 0;
   const t0 = Date.now();
@@ -109,7 +109,13 @@ async function run() {
   console.log(`[sync] done, ${total} rows across ${Object.keys(TABS).length} tabs (${Date.now() - t0}ms)`);
 }
 
-run().catch((e) => {
-  console.error('[sync] FAILED:', e.message);
-  process.exitCode = 1;
-});
+// Hard watchdog: never let the runner hang (GH Actions default is 6h).
+setTimeout(() => { console.error('[sync] watchdog: exceeded 10 min, exiting'); process.exit(1); }, 10 * 60 * 1000).unref();
+
+run().then(
+  () => process.exit(0),
+  (e) => {
+    console.error('[sync] FAILED:', e.message);
+    process.exit(1);
+  }
+);
