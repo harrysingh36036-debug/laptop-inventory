@@ -395,7 +395,7 @@ BEGIN
   ELSE
     RAISE EXCEPTION 'Insufficient permissions';
   END IF;
-  DELETE FROM public.profiles WHERE id = p_id; -- cascades auth.users delete
+  DELETE FROM auth.users WHERE id = p_id; -- cascades to profiles, identities, loginlogs
   RETURN jsonb_build_object('ok', true, 'id', p_id);
 END $$;
 
