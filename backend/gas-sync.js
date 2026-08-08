@@ -72,10 +72,16 @@ async function gasRpc(action, extra = {}) {
   url.searchParams.set('action', action);
   url.searchParams.set('payload', JSON.stringify(extra));
   url.searchParams.set('key', GAS_KEY);
-  const res = await fetch(url.toString(), { method: 'GET', redirect: 'follow' });
-  const data = await res.json().catch(() => ({}));
-  if (!data.ok) throw new Error(data.error || `gas ${action} failed (HTTP ${res.status})`);
-  return data;
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), 30000);
+  try {
+    const res = await fetch(url.toString(), { method: 'GET', redirect: 'follow', signal: ac.signal });
+    const data = await res.json().catch(() => ({}));
+    if (!data.ok) throw new Error(data.error || `gas ${action} failed (HTTP ${res.status})`);
+    return data;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function pushTab(client, tab) {
@@ -92,13 +98,15 @@ async function run() {
   const client = new Client({ connectionString: process.env.DATABASE_URL.trim() });
   await client.connect();
   let total = 0;
+  const t0 = Date.now();
   for (const tab of Object.keys(TABS)) {
+    const ts = Date.now();
     const n = await pushTab(client, tab);
     total += n;
-    console.log(`[sync] ${tab}: ${n} rows`);
+    console.log(`[sync] ${tab}: ${n} rows (${Date.now() - ts}ms)`);
   }
   await client.end();
-  console.log(`[sync] done, ${total} rows across ${Object.keys(TABS).length} tabs`);
+  console.log(`[sync] done, ${total} rows across ${Object.keys(TABS).length} tabs (${Date.now() - t0}ms)`);
 }
 
 run().catch((e) => {
