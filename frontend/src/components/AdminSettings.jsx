@@ -166,7 +166,7 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
 
   const TABS = [['stores', 'Stores']].concat(
     isAdmin ? [['labels', 'Buttons & Labels']] : [],
-    isSuperAdmin ? [['permissions', 'Roles & Permissions']] : []
+    (isAdmin || isSuperAdmin) ? [['permissions', 'Roles & Permissions']] : []
   );
 
   return (

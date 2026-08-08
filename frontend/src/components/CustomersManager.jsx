@@ -1,7 +1,12 @@
 import { useEffect, useState } from 'react';
+import { inr } from '../utils';
 import { getCustomers, addCustomer, updateCustomer, deleteCustomer, bulkDeleteCustomers } from '../api';
 
 const EMPTY = { name: '', phone: '', email: '', address: '', notes: '' };
+
+const input = 'field mt-1.5';
+const th = 'px-4 py-2.5 font-semibold';
+const td = 'px-4 py-2.5';
 
 export default function CustomersManager({ onNotify }) {
   const [customers, setCustomers] = useState([]);
@@ -105,10 +110,6 @@ export default function CustomersManager({ onNotify }) {
   };
 
   if (loading) return <p className="text-sm text-ink-faint">Loading customers…</p>;
-
-  const input = 'field mt-1.5';
-  const th = 'px-4 py-2.5 font-semibold';
-  const td = 'px-4 py-2.5';
 
   return (
     <div className="space-y-4">

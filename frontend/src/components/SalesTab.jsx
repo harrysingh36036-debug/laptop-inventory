@@ -66,6 +66,7 @@ export default function SalesTab({ stores }) {
                 <th className={th}>Laptop</th>
                 <th className={th}>Serial</th>
                 <th className={th}>Store</th>
+                <th className={th}>Customer</th>
                 <th className={th}>Sale Price</th>
                 <th className={th}>Cost</th>
                 <th className={th}>Profit</th>
@@ -76,7 +77,7 @@ export default function SalesTab({ stores }) {
             <tbody className="divide-y divide-[var(--hairline)]">
               {sales.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-10 text-center text-sm text-ink-faint">
+                  <td colSpan={9} className="px-4 py-10 text-center text-sm text-ink-faint">
                     No sales recorded yet.
                   </td>
                 </tr>
@@ -90,6 +91,7 @@ export default function SalesTab({ stores }) {
                   <td className={`${td} text-ink-dim`}>
                     {storeName(s.store_id) ?? <span className="text-ink-faint">—</span>}
                   </td>
+                  <td className={`${td} text-ink-dim`}>{s.customer_name || <span className="text-ink-faint">—</span>}</td>
                   <td className={`${td} font-mono text-xs text-ink`}>{inr(s.sale_price)}</td>
                   <td className={`${td} font-mono text-xs text-ink-dim`}>{inr(s.cost_price)}</td>
                   <td className={`${td} font-mono text-xs font-medium ${s.profit >= 0 ? 'text-stock-ok' : 'text-stock-risk'}`}>

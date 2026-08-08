@@ -183,11 +183,12 @@ export const updateLaptop = (id, data) =>
 
 export const deleteLaptop = (id) => rpc('app_delete_laptop', { p_id: id });
 
-export const sellLaptop = async (id, salePrice) =>
+export const sellLaptop = async (id, salePrice, customerId = null) =>
   rpc('app_sell_laptop', {
     p_laptop_id: id,
     p_sale_price: salePrice,
-    p_sold_by: await currentUsername()
+    p_sold_by: await currentUsername(),
+    p_customer_id: customerId
   });
 
 // Current user's username, used as the "sold_by" audit value.
@@ -250,6 +251,13 @@ export const bulkDeleteCustomers = (ids) => rpc('app_bulk_delete_customers', { p
 // --------------------------------- Settings --------------------------------
 export const getSettings = () => rpc('app_get_settings');
 export const saveSettings = (patch) => rpc('app_set_settings', { p_patch: patch });
+
+// --------------------------------- Stats ----------------------------------
+export const getInventoryStats = (params = {}) =>
+  rpc('app_inventory_stats', {
+    p_store_id: params.storeId ? Number(params.storeId) : null,
+    p_status: params.status || null
+  });
 
 // --------------------------- Role permissions ------------------------------
 export const getPermissions = async () => {

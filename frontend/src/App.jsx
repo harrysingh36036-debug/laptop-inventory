@@ -9,6 +9,8 @@ import {
   deleteLaptop,
   sellLaptop,
   getBrands,
+  getInventoryStats,
+  addCustomer,
   getToken,
   setToken,
   getMe,
@@ -18,7 +20,6 @@ import {
   renameStore,
   deleteStore
 } from './api';
-import { getVendors } from './api';
 import { socket, setSocketAuth } from './socket';
 import { LabelsProvider } from './labels.jsx';
 import Login from './components/Login';
@@ -33,6 +34,8 @@ import AdminSettings from './components/AdminSettings';
 import BrandsManager from './components/BrandsManager';
 import VendorsManager from './components/VendorsManager';
 import CustomersManager from './components/CustomersManager';
+import InventoryStats from './components/InventoryStats';
+import SellModal from './components/SellModal';
 import Toast from './components/Toast';
 
 export default function App() {
@@ -45,6 +48,7 @@ export default function App() {
   const [labels, setLabels] = useState({});
   const [brands, setBrands] = useState([]);
   const [vendors, setVendors] = useState([]);
+  const [customers, setCustomers] = useState([]);
 
   // Filters / state
   const [storeId, setStoreId] = useState('');
@@ -63,6 +67,7 @@ export default function App() {
   const [brandsOpen, setBrandsOpen] = useState(false);
   const [vendorsOpen, setVendorsOpen] = useState(false);
   const [customersOpen, setCustomersOpen] = useState(false);
+  const [sellTarget, setSellTarget] = useState(null); // laptop about to be sold
 
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
   const isSuperAdmin = user?.role === 'superadmin';
@@ -76,8 +81,8 @@ export default function App() {
     }
   })();
   const defaultPerms = {
-    manager: { editInventory: true, transferLaptops: true, createStaff: true, renameStores: true, editLabels: false, manageVendors: false },
-    staff: { editInventory: false, transferLaptops: false, createStaff: false, renameStores: false, editLabels: false, manageVendors: false }
+    manager: { editInventory: true, transferLaptops: true, createStaff: true, renameStores: true, editLabels: false, manageVendors: false, manageCustomers: false },
+    staff: { editInventory: false, transferLaptops: false, createStaff: false, renameStores: false, editLabels: false, manageVendors: false, manageCustomers: false }
   };
   const myPerms = rolePerms?.[user?.role] || defaultPerms[user?.role] || {};
   const can = (perm) => (isAdmin ? true : !!myPerms[perm]);
@@ -85,7 +90,7 @@ export default function App() {
   const canTransfer = can('transferLaptops');
   const canCreateStaff = can('createStaff');
   const canRenameStores = can('renameStores');
-  // Vendor management is granted by the super admin only — even for admins.
+  // Vendor / Customer management is granted by the super admin — even for admins.
   const canManageVendors = isSuperAdmin || !!((rolePerms || {})[user?.role] || {})['manageVendors'];
   const canManageCustomers = isSuperAdmin || !!((rolePerms || {})[user?.role] || {})['manageCustomers'];
 
@@ -134,6 +139,7 @@ export default function App() {
       setLabels(st);
       setBrands(b);
       getVendors().then(setVendors).catch(() => {});
+      getCustomers().then(setCustomers).catch(() => {});
     };
     load().catch((e) => notify(e.message, 'error'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -353,17 +359,40 @@ export default function App() {
   };
 
   // ---- Sell a laptop --------------------------------------------------------
-  const handleSell = async (laptop, salePrice) => {
-    if (!Number.isFinite(salePrice) || salePrice < 0) {
+  const handleSell = (laptop) => {
+    setSellTarget(laptop);
+  };
+
+  const handleSellConfirm = async (price, { customerId } = {}) => {
+    const l = sellTarget;
+    setSellTarget(null);
+    if (!l) return;
+    const num = Number(price);
+    if (!Number.isFinite(num) || num < 0) {
       notify('Enter a valid sale price', 'error');
       return;
     }
     try {
-      await sellLaptop(laptop.id, salePrice);
-      notify(`Sold ${laptop.brand_model} for ₹${salePrice.toLocaleString('en-IN')}`, 'success');
+      await sellLaptop(l.id, num, customerId);
+      notify(
+        `Sold ${l.brand_model} for \u20b9${num.toLocaleString('en-IN')}${customerId ? ' (customer recorded)' : ''}`,
+        'success'
+      );
       await refresh();
+      getCustomers().then(setCustomers).catch(() => {});
     } catch (e) {
       notify(e.message, 'error');
+    }
+  };
+
+  const handleAddCustomer = async (data) => {
+    try {
+      const c = await addCustomer(data);
+      getCustomers().then(setCustomers).catch(() => {});
+      return c;
+    } catch (e) {
+      notify(e.message, 'error');
+      return null;
     }
   };
 
@@ -521,14 +550,6 @@ export default function App() {
                   Vendors
                 </button>
               )}
-              {canManageCustomers && (
-                <button
-                  onClick={() => setCustomersOpen(true)}
-                  className="rounded-full px-2.5 py-1 font-medium text-ink-dim hover:bg-surface-3 hover:text-ink transition-colors"
-                >
-                  Customers
-                </button>
-              )}
               {!isAdmin && canRenameStores && (
                 <button
                   onClick={() => setSettingsOpen(true)}
@@ -571,6 +592,28 @@ export default function App() {
           >
             Sales & Profit
           </button>
+          {canManageCustomers && (
+            <button
+              onClick={() => setTab('customers')}
+              className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-colors duration-150 ${
+                tab === 'customers'
+                  ? 'bg-surface-3 text-ink shadow-[0_1px_2px_rgba(0,0,0,0.4)]'
+                  : 'text-ink-dim hover:text-ink'
+              }`}
+            >
+              Customers
+            </button>
+          )}
+          <button
+            onClick={() => setTab('stats')}
+            className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-colors duration-150 ${
+              tab === 'stats'
+                ? 'bg-surface-3 text-ink shadow-[0_1px_2px_rgba(0,0,0,0.4)]'
+                : 'text-ink-dim hover:text-ink'
+            }`}
+          >
+            Brand &amp; Stock View
+          </button>
         </div>
 
         {tab === 'inventory' ? (
@@ -611,6 +654,15 @@ export default function App() {
             />
           </section>
         </div>
+        ) : tab === 'sales' ? (
+          <SalesTab stores={stores} />
+        ) : tab === 'customers' ? (
+          <div className="space-y-4">
+            <p className="text-sm text-ink-dim">Manage your customers. Linked to sales when a laptop is sold to them.</p>
+            <CustomersManager onNotify={notify} />
+          </div>
+        ) : tab === 'stats' ? (
+          <InventoryStats stores={stores} />
         ) : (
           <SalesTab stores={stores} />
         )}
@@ -661,22 +713,6 @@ export default function App() {
         </div>
       )}
 
-      {customersOpen && canManageCustomers && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-line bg-surface p-6 shadow-pop animate-rise">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-display text-base font-semibold tracking-tight text-ink">Manage Customers</h2>
-              <button onClick={() => setCustomersOpen(false)} className="text-ink-faint hover:text-ink transition-colors" aria-label="Close">
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <CustomersManager onNotify={notify} />
-          </div>
-        </div>
-      )}
-
       {accountsOpen && (isAdmin || canCreateStaff) && (
         <AccountManager
           currentUser={user}
@@ -695,6 +731,17 @@ export default function App() {
           onSaveStore={handleSaveStore}
           onDeleteStore={handleDeleteStore}
           onClose={() => setSettingsOpen(false)}
+        />
+      )}
+
+      {sellTarget && (
+        <SellModal
+          open={!!sellTarget}
+          laptop={sellTarget}
+          customers={customers}
+          onAddCustomer={handleAddCustomer}
+          onSave={handleSellConfirm}
+          onClose={() => setSellTarget(null)}
         />
       )}
 
