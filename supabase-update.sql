@@ -260,6 +260,8 @@ BEGIN
   v_l := public.app_normalize_laptop(p_data || jsonb_build_object('brand_model', COALESCE(NULLIF(p_data->>'brand_model',''), v_cur.brand_model)));
   IF v_l->>'brand' = '' THEN v_l := jsonb_set(v_l, '{brand}', to_jsonb(v_cur.brand)); END IF;
   IF v_l->>'status' NOT IN ('In Stock','In Transit','Sold') THEN RAISE EXCEPTION 'Invalid status'; END IF;
+  IF v_l->>'status' = 'Sold' THEN RAISE EXCEPTION 'Use the Sell action to record a sale (sold units are tracked on the Sales board)'; END IF;
+  IF v_cur.status = 'Sold' THEN RAISE EXCEPTION 'Sold units are final; delete the laptop to remove it'; END IF;
   UPDATE public.laptops SET
     brand = v_l->>'brand',
     brand_model = v_l->>'brand_model',

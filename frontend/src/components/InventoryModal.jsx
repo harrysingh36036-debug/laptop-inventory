@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLabels } from '../labels.jsx';
 
-const STATUSES = ['In Stock', 'In Transit', 'Sold'];
+const STATUSES = ['In Stock', 'In Transit'];
 const SIZES = ['256 GB', '512 GB', '1 TB', '2 TB', '4 TB', '8 TB'];
 
 const EMPTY = {
@@ -231,11 +231,15 @@ export default function InventoryModal({ stores, brands = [], vendors = [], edit
             </div>
             <div>
               <label className={label}>Status</label>
-              <select value={form.status} onChange={set('status')} className={input()}>
-                {STATUSES.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
+              {form.status === 'Sold' ? (
+                <p className="px-1 pt-1.5 text-sm text-stock-sold">Sold — final. Use the Sell action for new sales.</p>
+              ) : (
+                <select value={form.status} onChange={set('status')} className={input()}>
+                  {STATUSES.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              )}
             </div>
             {!editing && (
               <div>
