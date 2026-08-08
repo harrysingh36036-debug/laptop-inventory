@@ -300,14 +300,23 @@ BEGIN
   IF COALESCE(p_password,'') = '' OR length(p_password) < 6 THEN RAISE EXCEPTION 'Password must be at least 6 characters'; END IF;
   IF EXISTS (SELECT 1 FROM public.profiles WHERE username = v_name) THEN RAISE EXCEPTION 'Username already taken'; END IF;
   v_email := v_name || '@laptop.inventory';
-  INSERT INTO auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, is_sso_user, is_anonymous, created_at, updated_at)
+  INSERT INTO auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, is_sso_user, is_anonymous, confirmation_token, recovery_token, email_change, confirmation_sent_at, recovery_sent_at, email_change_sent_at, created_at, updated_at)
   VALUES (v_uid, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', v_email,
           extensions.crypt(p_password, extensions.gen_salt('bf', 10)), now(), '{"provider":"email","providers":["email"]}'::jsonb,
-          '{}'::jsonb, false, false, now(), now());
+          '{}'::jsonb, false, false, '', '', '', now(), now(), now(), now(), now());
   INSERT INTO auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
   VALUES (gen_random_uuid(), v_uid, v_email, jsonb_build_object('sub', v_uid::text, 'email', v_email), 'email', now(), now(), now());
   INSERT INTO public.profiles (id, username, display_name, role)
   VALUES (v_uid, v_name, COALESCE(btrim(p_display_name), v_name), COALESCE(p_role,'staff'));
+  UPDATE auth.users SET
+    confirmation_token = '',
+    recovery_token = '',
+    email_change = '',
+    phone_change = '',
+    reauthentication_token = '',
+    email_change_token_current = '',
+    email_change_token_new = ''
+  WHERE id = v_uid;
   RETURN jsonb_build_object('user', jsonb_build_object(
     'id', v_uid, 'username', v_name, 'display_name', COALESCE(btrim(p_display_name), v_name),
     'role', COALESCE(p_role,'staff'), 'created_at', to_char(now(), 'YYYY-MM-DD HH24:MI:SS')));
@@ -452,6 +461,7 @@ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
 AS $$
 DECLARE v_out jsonb;
 BEGIN
+  PERFORM public.app_req_auth();
   SELECT COALESCE(jsonb_agg(jsonb_build_object(
       'id', l.id, 'brand', l.brand, 'brand_model', l.brand_model,
       'processor_type', l.processor_type, 'generation', l.generation, 'storage_type', l.storage_type,
