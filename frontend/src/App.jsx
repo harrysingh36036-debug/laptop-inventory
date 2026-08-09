@@ -38,6 +38,7 @@ import VendorsManager from './components/VendorsManager';
 import CustomersManager from './components/CustomersManager';
 import InventoryStats from './components/InventoryStats';
 import SellModal from './components/SellModal';
+import TransferHistoryTab from './components/TransferHistoryTab';
 import Toast from './components/Toast';
 
 export default function App() {
@@ -614,7 +615,17 @@ export default function App() {
                 : 'text-ink-dim hover:text-ink'
             }`}
           >
-            Brand &amp; Stock View
+             Brand &amp; Stock View
+          </button>
+          <button
+            onClick={() => setTab('transfers')}
+            className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-colors duration-150 ${
+              tab === 'transfers'
+                ? 'bg-surface-3 text-ink shadow-[0_1px_2px_rgba(0,0,0,0.4)]'
+                : 'text-ink-dim hover:text-ink'
+            }`}
+          >
+            Transfer History
           </button>
         </div>
 
@@ -664,8 +675,10 @@ export default function App() {
             <p className="text-sm text-ink-dim">Manage your customers. Linked to sales when a laptop is sold to them.</p>
             <CustomersManager onNotify={notify} />
           </div>
-        ) : tab === 'stats' ? (
+         ) : tab === 'stats' ? (
           <InventoryStats stores={stores} />
+        ) : tab === 'transfers' ? (
+          <TransferHistoryTab stores={stores} />
         ) : (
           <SalesTab stores={stores} />
         )}
