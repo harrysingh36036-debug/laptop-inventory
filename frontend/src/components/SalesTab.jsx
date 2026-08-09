@@ -2,6 +2,36 @@ import { useEffect, useState } from 'react';
 import { getSales, getSalesSummary } from '../api';
 import { formatTime, inr } from '../utils';
 
+function csvEscape(v) {
+  const s = String(v ?? '');
+  return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
+}
+export function downloadSalesCsv(sales, stores) {
+  const rows = [
+    ['Sale ID', 'Laptop ID', 'Brand Model', 'Serial Number', 'Store', 'Sale Price', 'Cost Price', 'Profit', 'Customer', 'Sold By', 'Sold At']
+  ];
+  (sales || []).forEach((s) =>
+    rows.push([
+      s.id, s.laptop_id, s.brand_model, s.serial_number,
+      stores.find((st) => st.id === s.store_id)?.store_name || s.store_id,
+      s.sale_price, s.cost_price, s.profit,
+      s.customer_name || (s.customer_id ? `#${s.customer_id}` : ''),
+      s.sold_by, s.sold_at
+    ])
+  );
+  const blob = new Blob([rows.map((r) => r.map(csvEscape).join(',')).join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `sales-report-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  URL.revokeObjectURL(url);
+  // eslint-disable-next-line no-param-reassign
+  a.parentNode && a.parentNode.removeChild(a);
+}
+
 export default function SalesTab({ stores }) {
   const [sales, setSales] = useState([]);
   const [summary, setSummary] = useState(null);
@@ -57,8 +87,18 @@ export default function SalesTab({ stores }) {
         ))}
       </div>
 
-      {/* Sales table */}
+       {/* Sales table */}
       <div className="panel overflow-hidden">
+        <div className="flex items-center justify-between border-b border-line px-5 py-3">
+          <h2 className="font-display text-sm font-semibold tracking-tight text-ink">Sales Report</h2>
+          <button
+            onClick={() => downloadSalesCsv(sales, stores)}
+            disabled={!sales.length}
+            className="btn-ghost btn-sm disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Download CSV
+          </button>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[840px] text-left text-sm">
             <thead>
