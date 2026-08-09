@@ -33,10 +33,16 @@ BEGIN
       'graphics_model', l.graphics_model, 'purchase_rate', l.purchase_rate, 'extra_charges', l.extra_charges,
       'serial_number', l.serial_number, 'current_store_id', l.current_store_id,
       'current_store_name', s.store_name, 'status', l.status,
+      'sale_price', sl.sale_price, 'sale_customer_name', c.name, 'sold_at', to_char(sl.sold_at, 'YYYY-MM-DD HH24:MI:SS'), 'sold_by', sl.sold_by,
       'created_at', to_char(l.created_at, 'YYYY-MM-DD HH24:MI:SS'),
       'updated_at', to_char(l.updated_at, 'YYYY-MM-DD HH24:MI:SS'))
       ORDER BY l.updated_at DESC), '[]'::jsonb) INTO v_out
-  FROM public.laptops l LEFT JOIN public.stores s ON s.id = l.current_store_id
+  FROM public.laptops l
+  LEFT JOIN public.stores s ON s.id = l.current_store_id
+  LEFT JOIN public.sales sl ON sl.laptop_id = l.id AND sl.id = (
+    SELECT id FROM public.sales WHERE laptop_id = l.id ORDER BY sold_at DESC, id DESC LIMIT 1
+  )
+  LEFT JOIN public.customers c ON c.id = sl.customer_id
   WHERE (p_store_id IS NULL OR l.current_store_id = p_store_id)
     AND (p_status IS NULL OR l.status = p_status)
     AND (p_search IS NULL OR l.brand ILIKE '%' || p_search || '%' OR l.brand_model ILIKE '%' || p_search || '%' OR l.serial_number ILIKE '%' || p_search || '%');

@@ -649,6 +649,7 @@ export default function App() {
               canEdit={canEditInventory}
               canTransfer={canTransfer}
               canSell={canEditInventory}
+              canManageCustomers={canManageCustomers}
               onTransfer={handleTransfer}
               onSell={handleSell}
               onEdit={(laptop) => setInvModal({ laptop })}
