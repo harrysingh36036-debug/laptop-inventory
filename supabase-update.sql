@@ -349,9 +349,10 @@ BEGIN
 
   IF v_role = 'superadmin' THEN
     NULL; -- full control over every account
-  ELSIF v_role = 'admin' THEN
-    IF v_cur.role NOT IN ('manager','staff') THEN RAISE EXCEPTION 'Admins can only manage manager and staff accounts'; END IF;
-    IF p_role IN ('admin','superadmin') THEN RAISE EXCEPTION 'Admins cannot assign the admin or super admin role'; END IF;
+   ELSIF v_role = 'admin' THEN
+     IF v_cur.role = 'superadmin' THEN RAISE EXCEPTION 'You cannot modify the super admin account'; END IF;
+     IF v_cur.role NOT IN ('manager','staff','admin') THEN RAISE EXCEPTION 'Admins can only manage manager, admin and staff accounts'; END IF;
+     IF p_role = 'superadmin' THEN RAISE EXCEPTION 'Only the super admin can assign super admin'; END IF;
   ELSIF v_role = 'manager' THEN
     IF NOT public.app_perm('createStaff') THEN RAISE EXCEPTION 'Insufficient permissions'; END IF;
     IF v_cur.role IN ('admin','superadmin') THEN RAISE EXCEPTION 'Admin accounts are hidden from managers'; END IF;
@@ -404,9 +405,10 @@ BEGIN
   IF v_target IS NULL THEN RAISE EXCEPTION 'User not found'; END IF;
   IF v_role = 'superadmin' THEN
     IF p_id = auth.uid() THEN RAISE EXCEPTION 'Cannot delete your own account'; END IF;
-  ELSIF v_role = 'admin' THEN
-    IF v_target NOT IN ('manager','staff') THEN RAISE EXCEPTION 'Admins can only delete manager and staff accounts'; END IF;
-    IF p_id = auth.uid() THEN RAISE EXCEPTION 'Cannot delete your own account'; END IF;
+   ELSIF v_role = 'admin' THEN
+     IF v_target = 'superadmin' THEN RAISE EXCEPTION 'You cannot modify the super admin account'; END IF;
+     IF v_target NOT IN ('manager','staff','admin') THEN RAISE EXCEPTION 'Admins can only manage manager, admin and staff accounts'; END IF;
+     IF p_id = auth.uid() THEN RAISE EXCEPTION 'Cannot delete your own account'; END IF;
   ELSE
     RAISE EXCEPTION 'Insufficient permissions';
   END IF;
@@ -428,10 +430,10 @@ BEGIN
       'id', p.id, 'username', p.username, 'display_name', p.display_name,
       'role', p.role, 'created_at', to_char(p.created_at, 'YYYY-MM-DD HH24:MI:SS'))
       ORDER BY p.id), '[]'::jsonb) INTO v_out
-  FROM public.profiles p
-  WHERE (v_role = 'manager' AND p.role IN ('manager','staff'))
-     OR (v_role = 'admin' AND p.role IN ('manager','staff'))
-     OR v_role = 'superadmin';
+   FROM public.profiles p
+   WHERE (v_role = 'manager' AND p.role IN ('manager','staff'))
+      OR (v_role = 'admin' AND p.role IN ('admin','manager','staff'))
+      OR v_role = 'superadmin';
   RETURN v_out;
 END $$;
 
