@@ -9,6 +9,8 @@ import {
   deleteLaptop,
   sellLaptop,
   getBrands,
+  getVendors,
+  getCustomers,
   getInventoryStats,
   addCustomer,
   getToken,
