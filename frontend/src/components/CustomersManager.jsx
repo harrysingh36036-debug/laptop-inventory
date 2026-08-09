@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Fragment } from 'react';
 import { inr } from '../utils';
-import { getCustomers, addCustomer, updateCustomer, deleteCustomer, bulkDeleteCustomers } from '../api';
+import { getCustomers, getSales, addCustomer, updateCustomer, deleteCustomer, bulkDeleteCustomers } from '../api';
 
 const EMPTY = { name: '', phone: '', email: '', address: '', notes: '' };
 
@@ -10,15 +10,21 @@ const td = 'px-4 py-2.5';
 
 export default function CustomersManager({ onNotify }) {
   const [customers, setCustomers] = useState([]);
+  const [sales, setSales] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState(EMPTY);
   const [editingId, setEditingId] = useState(null);
   const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState(new Set());
+  const [openCustomer, setOpenCustomer] = useState(null);
+
+  const purchasesFor = (c) => (sales || []).filter((s) => s.customer_id === c.id || s.customer_name === c.name);
 
   const load = async () => {
     try {
-      setCustomers(await getCustomers());
+      const [c, s] = await Promise.all([getCustomers(), getSales().catch(() => [])]);
+      setCustomers(c);
+      setSales(s || []);
       setSelected(new Set());
     } catch (e) {
       onNotify?.(e.message, 'error');
@@ -215,7 +221,8 @@ export default function CustomersManager({ onNotify }) {
                 </tr>
               )}
               {customers.map((c) => (
-                <tr key={c.id} className="transition-colors duration-150 hover:bg-surface-2/60">
+                <Fragment key={c.id}>
+                <tr className="transition-colors duration-150 hover:bg-surface-2/60">
                   <td className={td}>
                     <input
                       type="checkbox"
@@ -229,13 +236,51 @@ export default function CustomersManager({ onNotify }) {
                   <td className={`${td} font-mono text-xs text-ink-dim`}>{c.phone || '—'}</td>
                   <td className={`${td} text-ink-dim`}>{c.email || '—'}</td>
                   <td className={`${td} text-ink-dim`}>{c.address || '—'}</td>
-                  <td className={td}>
+                  <td className="px-4 py-2.5">
                     <div className="flex items-center justify-end gap-2">
+                      <button onClick={() => setOpenCustomer(openCustomer === c.id ? null : c.id)} className="btn-ghost" aria-label={`Show purchases for ${c.name}`}>
+                        {purchasesFor(c).length > 0 ? '▼' : '—'}
+                      </button>
                       <button onClick={() => startEdit(c)} className="btn-ghost">Edit</button>
                       <button onClick={() => remove(c)} className="btn-danger">Delete</button>
                     </div>
                   </td>
                 </tr>
+                {openCustomer === c.id && (
+                  <tr>
+                    <td colSpan={9} className="px-4 py-0 pb-2">
+                      {purchasesFor(c).length === 0 ? (
+                        <p className="text-xs text-ink-faint">No purchases recorded.</p>
+                      ) : (
+                        <div className="overflow-x-auto">
+                          <table className="w-full min-w-[600px] text-left text-xs">
+                            <thead className="text-[10px] uppercase tracking-wider text-ink-faint">
+                              <tr>
+                                <th className="px-2 py-1.5 text-left">Laptop</th>
+                                <th className="px-2 py-1.5 text-left">Serial</th>
+                                <th className="px-2 py-1.5 text-left">Store</th>
+                                <th className="px-2 py-1.5 text-right">Sale Price</th>
+                                <th className="px-2 py-1.5 text-left">Sold At</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-[var(--hairline)]">
+                              {purchasesFor(c).map((s) => (
+                                <tr key={s.id} className="hover:bg-surface-2/50">
+                                  <td className="px-2 py-1">{s.brand_model}</td>
+                                  <td className="px-2 py-1 mono-chip text-[10px]">{s.serial_number}</td>
+                                  <td className="px-2 py-1 text-ink-dim">{s.store_name || '—'}</td>
+                                  <td className="px-2 py-1 text-right font-mono">{inr(s.sale_price)}</td>
+                                  <td className="px-2 py-1 text-ink-faint">{s.sold_at || '—'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                )}
+                </Fragment>
               ))}
             </tbody>
           </table>
