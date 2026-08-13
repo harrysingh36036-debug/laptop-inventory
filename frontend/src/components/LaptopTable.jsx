@@ -5,7 +5,7 @@ import StatusChip from './StatusChip';
 
 export default function LaptopTable({
   laptops, stores, onTransfer, onEdit, onDelete, onSell,
-  canEdit = true, canTransfer = true, canSell = false, canManageCustomers = false, rowId
+  canEdit = true, canTransfer = true, canSell = false, canManageCustomers = false, rowId, showSensitive = false
 }) {
   const t = useLabels();
   const [pending, setPending] = useState({}); // { laptopId: toStoreId }
@@ -62,12 +62,27 @@ export default function LaptopTable({
                    <td className={td}>
                      <p className="font-medium text-ink">{l.brand_model}</p>
                      {l.purchased_from && (
-                       <p className="mt-0.5 text-[11px] text-ink-faint">{l.purchased_from}</p>
+                       <p className="mt-0.5 text-[11px] text-ink-faint">From {l.purchased_from}</p>
+                     )}
+                     {l.charger && (
+                       <p className="mt-0.5 text-[11px] text-ink-faint">
+                         {l.charger === 'with' ? 'With charger' : 'Without charger'}
+                       </p>
+                     )}
+                     {showSensitive && l.purchaser_aadhar_hash && (
+                       <p className="mt-0.5 font-mono text-[10px] text-ink-faint">
+                         Aadhar ••••{l.purchaser_aadhar_hash.slice(-6)}
+                       </p>
                      )}
                    </td>
                    <td className={`${td} text-xs text-ink-dim`}>
                      <p>{spec || '—'}</p>
                      {gfx && <p className="mt-0.5 text-[11px] text-ink-faint">{gfx}</p>}
+                     {l.purchase_comment && (
+                       <p className="mt-0.5 max-w-[260px] truncate text-[11px] text-ink-faint" title={l.purchase_comment}>
+                         {l.purchase_comment}
+                       </p>
+                     )}
                    </td>
                    <td className={td}>
                      <span className="mono-chip">{l.serial_number}</span>
@@ -190,13 +205,26 @@ export default function LaptopTable({
                 <div className="min-w-0">
                   <p className="font-medium text-ink">{l.brand_model}</p>
                   {l.purchased_from && (
-                    <p className="mt-0.5 text-[11px] text-ink-faint">{l.purchased_from}</p>
+                    <p className="mt-0.5 text-[11px] text-ink-faint">From {l.purchased_from}</p>
+                  )}
+                  {l.charger && (
+                    <p className="mt-0.5 text-[11px] text-ink-faint">
+                      {l.charger === 'with' ? 'With charger' : 'Without charger'}
+                    </p>
+                  )}
+                  {showSensitive && l.purchaser_aadhar_hash && (
+                    <p className="mt-0.5 font-mono text-[10px] text-ink-faint">
+                      Aadhar ••••{l.purchaser_aadhar_hash.slice(-6)}
+                    </p>
                   )}
                 </div>
                 <StatusChip status={l.status} />
               </div>
               {spec && <p className="mt-1.5 text-xs text-ink-dim">{spec}</p>}
               {gfx && <p className="mt-0.5 text-[11px] text-ink-faint">{gfx}</p>}
+              {l.purchase_comment && (
+                <p className="mt-0.5 text-[11px] text-ink-faint">{l.purchase_comment}</p>
+              )}
               <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
                 <span className="mono-chip">{l.serial_number}</span>
                 <span className="text-ink-dim">

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLabels } from '../labels.jsx';
+import { hashAadhar } from '../utils';
 
 const STATUSES = ['In Stock', 'In Transit'];
 const SIZES = ['256 GB', '512 GB', '1 TB', '2 TB', '4 TB', '8 TB'];
@@ -23,10 +24,13 @@ const EMPTY = {
   serial_number: '',
   quantity: 1,
   current_store_id: '',
-  status: 'In Stock'
+  status: 'In Stock',
+  charger: 'with',
+  purchase_comment: '',
+  aadhar_no: ''
 };
 
-export default function InventoryModal({ stores, brands = [], vendors = [], editing, onSave, onClose }) {
+export default function InventoryModal({ stores, brands = [], vendors = [], editing, onSave, onClose, isAdmin = false }) {
   const t = useLabels();
   const [form, setForm] = useState(EMPTY);
   const [error, setError] = useState('');
@@ -52,7 +56,10 @@ export default function InventoryModal({ stores, brands = [], vendors = [], edit
             serial_number: editing.serial_number || '',
             quantity: 1,
             current_store_id: editing.current_store_id ?? '',
-            status: editing.status || 'In Stock'
+            status: editing.status || 'In Stock',
+            charger: editing.charger || 'with',
+            purchase_comment: editing.purchase_comment || '',
+            aadhar_no: ''
           }
         : EMPTY
     );
@@ -74,14 +81,25 @@ export default function InventoryModal({ stores, brands = [], vendors = [], edit
       setError('Choose integrated or dedicated graphics when "Yes".');
       return;
     }
+    if (!form.purchase_comment.trim()) {
+      setError('A purchase comment is required.');
+      return;
+    }
+    if (isAdmin && form.aadhar_no.trim() && !/^\d{12}$/.test(form.aadhar_no.trim())) {
+      setError('Aadhar number must be exactly 12 digits.');
+      return;
+    }
     // Bulk mode always auto-generates serials; single mode too (brand prefix).
-    const payload = { ...form };
+    const payload = { ...form, aadhar_no: undefined };
     if (payload.quantity > 1) {
       delete payload.serial_number;
       payload.serial_prefix = brandPrefix || undefined;
     } else if (!editing && !payload.serial_number.trim() && !brandPrefix) {
       setError('Serial Number is required (or use a brand with a serial prefix).');
       return;
+    }
+    if (isAdmin && form.aadhar_no.trim()) {
+      payload.purchaser_aadhar_hash = await hashAadhar(form.aadhar_no);
     }
     const err = await onSave(payload);
     if (err) setError(err);
@@ -136,8 +154,13 @@ export default function InventoryModal({ stores, brands = [], vendors = [], edit
                 className={input()} />
             </div>
             <div>
-              <label className={label}>Processor</label>
+              <label className={label}>Core Variant</label>
               <input value={form.processor_type} onChange={set('processor_type')} placeholder="e.g. Core i5-1345U"
+                className={input()} />
+            </div>
+            <div>
+              <label className={label}>Generation</label>
+              <input value={form.generation} onChange={set('generation')} placeholder="e.g. 13th Gen"
                 className={input()} />
             </div>
             <div>
@@ -179,7 +202,7 @@ export default function InventoryModal({ stores, brands = [], vendors = [], edit
               </datalist>
             </div>
             <div>
-              <label className={label}>Purchased From (Vendor)</label>
+              <label className={label}>Purchased From (Customer / Dealer)</label>
               <input
                 value={form.purchased_from}
                 onChange={set('purchased_from')}
@@ -193,6 +216,27 @@ export default function InventoryModal({ stores, brands = [], vendors = [], edit
                 ))}
               </datalist>
             </div>
+            <div>
+              <label className={label}>Charger</label>
+              <select value={form.charger} onChange={set('charger')} className={input()}>
+                <option value="with">With Charger</option>
+                <option value="without">Without Charger</option>
+              </select>
+            </div>
+            {isAdmin && (
+              <div>
+                <label className={label}>Purchaser Aadhar No.</label>
+                <input
+                  value={form.aadhar_no}
+                  onChange={set('aadhar_no')}
+                  inputMode="numeric"
+                  maxLength={12}
+                  placeholder={editing?.purchaser_aadhar_hash ? '•••• (stored — enter new to replace)' : '12-digit Aadhar'}
+                  className={input()}
+                />
+                <p className="mt-1 text-xs text-ink-faint">Hashed before saving; visible only to admins.</p>
+              </div>
+            )}
           </div>
 
           {/* Graphics */}
@@ -283,6 +327,18 @@ export default function InventoryModal({ stores, brands = [], vendors = [], edit
               </p>
             </div>
           )}
+
+          <div>
+            <label className={label}>Comment *</label>
+            <textarea
+              value={form.purchase_comment}
+              onChange={set('purchase_comment')}
+              rows={2}
+              placeholder="e.g. Purchased from dealer at CST Road with 1-year warranty…"
+              className={`${input()} resize-y`}
+            />
+            <p className="mt-1 text-xs text-ink-faint">Required for every purchase / inventory edit.</p>
+          </div>
 
           {error && (
             <p className="rounded-lg border border-stock-risk/25 bg-stock-risk/10 px-3 py-2 text-sm text-stock-risk">

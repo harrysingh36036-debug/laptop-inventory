@@ -815,6 +815,7 @@ export default function App() {
               canTransfer={canTransfer}
               canSell={canEditInventory}
               canManageCustomers={canManageCustomers}
+              showSensitive={isAdmin}
               onTransfer={handleTransfer}
               onSell={handleSell}
               onEdit={(laptop) => setInvModal({ laptop })}
@@ -902,6 +903,7 @@ export default function App() {
           brands={brands}
           vendors={vendors}
           editing={invModal.laptop}
+          isAdmin={isAdmin}
           onSave={handleSave}
           onClose={() => setInvModal(null)}
         />

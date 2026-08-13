@@ -88,10 +88,6 @@ export default function RepairModal({ editing = null, laptops = [], onSave, onCl
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className={label} htmlFor="repair-serial">Serial Number</label>
-              <input id="repair-serial" value={form.serial_number} onChange={set('serial_number')} className={input} placeholder="e.g. HP010001" />
-            </div>
-            <div>
               <label className={label} htmlFor="repair-model">Brand / Model</label>
               <input id="repair-model" value={form.brand_model} onChange={set('brand_model')} className={input} placeholder="e.g. HP Spectre x360" />
             </div>
