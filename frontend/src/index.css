@@ -3,29 +3,30 @@
 @tailwind utilities;
 
 /* ------------------------------------------------------------------ *
- *  Stockroom — warm-dark design tokens (Linear/Vercel school)
+ *  Stockroom — cool-dark design tokens
  * ------------------------------------------------------------------ */
 :root {
-  --page: #0b0c0f;
-  --surface-1: #15161a;
-  --surface-2: #1c1e24;
-  --surface-3: #23262e;
+  --page: #06121c;
+  --surface-1: #0d1b2a;
+  --surface-2: #13263a;
+  --surface-3: #19324b;
 
-  --hairline: rgba(255, 255, 255, 0.07);
-  --hairline-strong: rgba(255, 255, 255, 0.12);
+  --hairline: rgba(159, 183, 206, 0.13);
+  --hairline-strong: rgba(183, 214, 244, 0.22);
 
-  --ink: #f7f8f8;
-  --ink-dim: #a6adbb;
-  --ink-faint: #6b7280;
+  --ink: #edf6ff;
+  --ink-dim: #9fb7ce;
+  --ink-faint: #6f88a3;
 
-  --accent: #e0a458;
-  --accent-soft: rgba(224, 164, 88, 0.13);
-  --accent-line: rgba(224, 164, 88, 0.35);
+  --accent-rgb: 92, 200, 255;
+  --accent: #5cc8ff;
+  --accent-soft: rgba(var(--accent-rgb), 0.14);
+  --accent-line: rgba(var(--accent-rgb), 0.42);
 
-  --stock-ok: #34d399;
-  --stock-transit: #f6b45a;
-  --stock-sold: #8b93a3;
-  --stock-risk: #f87171;
+  --stock-ok: #3dd9a1;
+  --stock-transit: #ffd166;
+  --stock-sold: #7c91a8;
+  --stock-risk: #ff7b91;
 }
 
 /* ------------------------------------------------------------------ *
@@ -40,26 +41,26 @@ body {
   font-size: 14.5px;
   line-height: 1.55;
   background-image:
-    radial-gradient(1100px 500px at 75% -10%, rgba(224, 164, 88, 0.05), transparent 60%),
-    radial-gradient(900px 420px at -10% 0%, rgba(94, 106, 210, 0.04), transparent 55%);
+    radial-gradient(1100px 520px at 78% -12%, rgba(var(--accent-rgb), 0.12), transparent 58%),
+    radial-gradient(950px 460px at -10% 0%, rgba(102, 126, 234, 0.12), transparent 55%);
   background-attachment: fixed;
 }
 
 ::selection {
-  background: rgba(224, 164, 88, 0.28);
+  background: rgba(var(--accent-rgb), 0.32);
 }
 
-/* Thin warm scrollbars */
+/* Thin cool scrollbars */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #33363e transparent;
+  scrollbar-color: #21425f transparent;
 }
 *::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 *::-webkit-scrollbar-thumb {
-  background: #2b2e36;
+  background: #1d3a54;
   border-radius: 8px;
   border: 2px solid var(--surface-1);
 }
@@ -108,12 +109,12 @@ body {
 }
 
 /* ------------------------------------------------------------------ *
- *  Neon dashboard — 3D interactive cards (accent copper, same as theme)
+ *  Neon dashboard — 3D interactive cards
  * ------------------------------------------------------------------ */
 .neon-grid {
   background-image:
-    linear-gradient(rgba(224, 164, 88, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(224, 164, 88, 0.05) 1px, transparent 1px);
+    linear-gradient(rgba(var(--accent-rgb), 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--accent-rgb), 0.08) 1px, transparent 1px);
   background-size: 44px 44px;
 }
 
@@ -135,24 +136,24 @@ body {
   border-radius: inherit;
   pointer-events: none;
   box-shadow:
-    inset 0 0 0 1px rgba(224, 164, 88, 0.45),
-    inset 0 0 22px rgba(224, 164, 88, 0.12),
-    0 0 18px rgba(224, 164, 88, 0.18);
+    inset 0 0 0 1px rgba(var(--accent-rgb), 0.5),
+    inset 0 0 22px rgba(var(--accent-rgb), 0.16),
+    0 0 18px rgba(var(--accent-rgb), 0.2);
   animation: neon-breathe 2.6s ease-in-out infinite;
 }
 
 @keyframes neon-breathe {
   0%, 100% {
     box-shadow:
-      inset 0 0 0 1px rgba(224, 164, 88, 0.55),
-      inset 0 0 22px rgba(224, 164, 88, 0.12),
-      0 0 16px rgba(224, 164, 88, 0.16);
+      inset 0 0 0 1px rgba(var(--accent-rgb), 0.58),
+      inset 0 0 22px rgba(var(--accent-rgb), 0.14),
+      0 0 16px rgba(var(--accent-rgb), 0.18);
   }
   50% {
     box-shadow:
-      inset 0 0 0 1px rgba(224, 164, 88, 0.9),
-      inset 0 0 34px rgba(224, 164, 88, 0.3),
-      0 0 32px rgba(224, 164, 88, 0.4);
+      inset 0 0 0 1px rgba(var(--accent-rgb), 0.95),
+      inset 0 0 34px rgba(var(--accent-rgb), 0.34),
+      0 0 32px rgba(var(--accent-rgb), 0.42);
   }
 }
 
@@ -163,7 +164,7 @@ body {
   top: -40%;
   height: 40%;
   pointer-events: none;
-  background: linear-gradient(to bottom, transparent, rgba(224, 164, 88, 0.16), transparent);
+  background: linear-gradient(to bottom, transparent, rgba(var(--accent-rgb), 0.18), transparent);
   animation: neon-scan 3.2s linear infinite;
   border-radius: inherit;
 }
@@ -175,7 +176,7 @@ body {
 }
 
 .neon-card .neon-icon {
-  filter: drop-shadow(0 0 8px rgba(224, 164, 88, 0.85));
+  filter: drop-shadow(0 0 8px rgba(var(--accent-rgb), 0.88));
   animation: neon-flicker 3.4s ease-in-out infinite;
 }
 
@@ -189,7 +190,7 @@ body {
 }
 
 .neon-card .neon-value {
-  text-shadow: 0 0 10px rgba(224, 164, 88, 0.65), 0 0 26px rgba(224, 164, 88, 0.3);
+  text-shadow: 0 0 10px rgba(var(--accent-rgb), 0.68), 0 0 26px rgba(var(--accent-rgb), 0.32);
 }
 
 .neon-enter {

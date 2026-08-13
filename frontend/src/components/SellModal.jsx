@@ -79,7 +79,7 @@ export default function SellModal({ open, laptop, customers, onSave, onAddCustom
               id="newCustomer" type="checkbox"
               checked={newCustomer}
               onChange={() => setNewCustomer(!newCustomer)}
-              className="accent-[#E0A458]"
+              className="accent-accent"
             />
             <label htmlFor="newCustomer" className="text-sm text-ink-dim">Customer purchases this</label>
           </div>

@@ -308,7 +308,7 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
                             type="checkbox"
                             checked={!!perms[role][key]}
                             onChange={() => togglePerm(role, key)}
-                            className="h-4 w-4 rounded accent-[#E0A458]"
+                            className="h-4 w-4 rounded accent-accent"
                           />
                         </label>
                       ))}

@@ -203,7 +203,7 @@ export default function CustomersManager({ onNotify }) {
                     type="checkbox"
                     checked={customers.length > 0 && selected.size === customers.length}
                     onChange={toggleAll}
-                    className="h-4 w-4 rounded accent-[#E0A458]"
+                    className="h-4 w-4 rounded accent-accent"
                     aria-label="Select all customers"
                   />
                 </th>
@@ -231,7 +231,7 @@ export default function CustomersManager({ onNotify }) {
                       type="checkbox"
                       checked={selected.has(c.id)}
                       onChange={() => toggle(c.id)}
-                      className="h-4 w-4 rounded accent-[#E0A458]"
+                      className="h-4 w-4 rounded accent-accent"
                       aria-label={`Select ${c.name}`}
                     />
                   </td>

@@ -4,28 +4,28 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        page: '#0b0c0f',
+        page: '#06121c',
         surface: {
-          DEFAULT: '#15161a',
-          2: '#1c1e24',
-          3: '#23262e'
+          DEFAULT: '#0d1b2a',
+          2: '#13263a',
+          3: '#19324b'
         },
-        line: 'rgba(255,255,255,0.07)',
+        line: 'rgba(159,183,206,0.13)',
         ink: {
-          DEFAULT: '#f7f8f8',
-          dim: '#a6adbb',
-          faint: '#6b7280'
+          DEFAULT: '#edf6ff',
+          dim: '#9fb7ce',
+          faint: '#6f88a3'
         },
         accent: {
-          DEFAULT: '#e0a458',
-          soft: 'rgba(224,164,88,0.13)',
-          line: 'rgba(224,164,88,0.35)'
+          DEFAULT: '#5cc8ff',
+          soft: 'rgba(92,200,255,0.14)',
+          line: 'rgba(92,200,255,0.42)'
         },
         stock: {
-          ok: '#34d399',
-          transit: '#f6b45a',
-          sold: '#8b93a3',
-          risk: '#f87171'
+          ok: '#3dd9a1',
+          transit: '#ffd166',
+          sold: '#7c91a8',
+          risk: '#ff7b91'
         }
       },
       fontFamily: {

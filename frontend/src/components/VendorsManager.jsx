@@ -156,7 +156,7 @@ export default function VendorsManager({ onNotify }) {
                   type="checkbox"
                   checked={vendors.length > 0 && selected.size === vendors.length}
                   onChange={toggleAll}
-                  className="h-4 w-4 rounded accent-[#E0A458]"
+                  className="h-4 w-4 rounded accent-accent"
                   aria-label="Select all vendors"
                 />
               </th>
@@ -176,7 +176,7 @@ export default function VendorsManager({ onNotify }) {
                     type="checkbox"
                     checked={selected.has(v.id)}
                     onChange={() => toggle(v.id)}
-                    className="h-4 w-4 rounded accent-[#E0A458]"
+                    className="h-4 w-4 rounded accent-accent"
                     aria-label={`Select ${v.name}`}
                   />
                 </td>

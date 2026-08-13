@@ -677,7 +677,7 @@ export default function App() {
     <LabelsProvider labels={labels}>
       <div className="min-h-screen bg-page text-ink">
         {/* Header */}
-        <header className="sticky top-0 z-40 border-b border-line bg-[#0e0f13]/80 backdrop-blur-md">
+        <header className="sticky top-0 z-40 border-b border-line bg-page/80 backdrop-blur-md">
           <div className="mx-auto max-w-[1440px] px-4 h-14 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
             <button
