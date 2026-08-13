@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
-import { getSales, getSalesSummary } from '../api';
+import { getSales, getSalesSummary, deleteSale } from '../api';
 import { formatTime, inr } from '../utils';
+import { socket } from '../socket';
+import SearchBox from './SearchBox';
 
 function csvEscape(v) {
   const s = String(v ?? '');
@@ -32,13 +34,26 @@ export function downloadSalesCsv(sales, stores) {
   a.parentNode && a.parentNode.removeChild(a);
 }
 
-export default function SalesTab({ stores }) {
+export default function SalesTab({ stores, isSuperAdmin = false, onNotify }) {
   const [sales, setSales] = useState([]);
   const [summary, setSummary] = useState(null);
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   const storeName = (id) => stores.find((s) => s.id === id)?.store_name;
+
+  const q = search.trim().toLowerCase();
+  const filtered = q
+    ? sales.filter((s) =>
+        [
+          s.brand_model, s.serial_number, s.customer_name, s.sold_by,
+          s.store_id && storeName(s.store_id)
+        ]
+          .filter(Boolean)
+          .some((v) => String(v).toLowerCase().includes(q))
+      )
+    : sales;
 
   useEffect(() => {
     let alive = true;
@@ -57,6 +72,33 @@ export default function SalesTab({ stores }) {
     return () => { alive = false; };
   }, []);
 
+  const reload = async () => {
+    try {
+      const [s, sum] = await Promise.all([getSales(), getSalesSummary()]);
+      setSales(s);
+      setSummary(sum);
+    } catch (e) {
+      onNotify?.(e.message, 'error');
+    }
+  };
+
+  useEffect(() => {
+    const onDeleted = () => reload();
+    socket.on('sale:deleted', onDeleted);
+    return () => socket.off('sale:deleted', onDeleted);
+  }, []);
+
+  const handleDelete = async (s) => {
+    if (!window.confirm(`Delete sale of "${s.brand_model}" (${s.serial_number}) — ₹${inr(s.sale_price)}? The laptop returns to In Stock. This cannot be undone.`)) return;
+    try {
+      await deleteSale(s.id);
+      onNotify?.('Sale deleted — laptop back to In Stock', 'success');
+      reload();
+    } catch (e) {
+      onNotify?.(e.message, 'error');
+    }
+  };
+
   if (loading) return <p className="text-sm text-ink-faint">Loading sales…</p>;
   if (error) return <p className="text-sm text-stock-risk">{error}</p>;
 
@@ -71,6 +113,14 @@ export default function SalesTab({ stores }) {
 
   return (
     <div className="space-y-6 animate-rise">
+      <SearchBox
+        value={search}
+        onChange={setSearch}
+        placeholder="Search sales by laptop, serial, store, customer or staff…"
+        countLabel={`${filtered.length} of ${sales.length} sales`}
+        className="max-w-md"
+      />
+
       {/* Summary cards */}
       <div className="grid gap-4 sm:grid-cols-3">
         {cards.map((c) => (
@@ -100,7 +150,7 @@ export default function SalesTab({ stores }) {
           </button>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[840px] text-left text-sm">
+          <table className="w-full min-w-[940px] text-left text-sm">
             <thead>
               <tr className="border-b border-line">
                 <th className={th}>Laptop</th>
@@ -112,17 +162,18 @@ export default function SalesTab({ stores }) {
                 <th className={th}>Profit</th>
                 <th className={th}>Sold By</th>
                 <th className={th}>Sold At</th>
+                {isSuperAdmin && <th className={th}>Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--hairline)]">
-              {sales.length === 0 && (
+              {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-4 py-10 text-center text-sm text-ink-faint">
-                    No sales recorded yet.
+                  <td colSpan={isSuperAdmin ? 10 : 9} className="px-4 py-10 text-center text-sm text-ink-faint">
+                    {q ? 'No sales match your search.' : 'No sales recorded yet.'}
                   </td>
                 </tr>
               )}
-              {sales.map((s) => (
+              {filtered.map((s) => (
                 <tr key={s.id} className="transition-colors duration-150 hover:bg-surface-2/60">
                   <td className={`${td} font-medium text-ink`}>{s.brand_model}</td>
                   <td className={td}>
@@ -139,6 +190,17 @@ export default function SalesTab({ stores }) {
                   </td>
                   <td className={`${td} text-ink-dim`}>{s.sold_by || '—'}</td>
                   <td className={`${td} font-mono text-[11px] text-ink-faint`}>{formatTime(s.sold_at)}</td>
+                  {isSuperAdmin && (
+                    <td className={td}>
+                      <button
+                        onClick={() => handleDelete(s)}
+                        className="btn-danger btn-sm"
+                        title="Delete this sale (laptop returns to In Stock)"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

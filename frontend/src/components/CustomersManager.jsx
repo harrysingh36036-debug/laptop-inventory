@@ -1,5 +1,5 @@
 import { useEffect, useState, Fragment } from 'react';
-import { inr } from '../utils';
+import { inr, formatTime } from '../utils';
 import { getCustomers, getSales, addCustomer, updateCustomer, deleteCustomer, bulkDeleteCustomers } from '../api';
 
 const EMPTY = { name: '', phone: '', email: '', address: '', notes: '' };
@@ -209,13 +209,14 @@ export default function CustomersManager({ onNotify }) {
                 <th className={th}>Phone</th>
                 <th className={th}>Email</th>
                 <th className={th}>Address</th>
+                <th className={th}>Purchased</th>
                 <th className={`${th} text-right`}>Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--hairline)]">
               {customers.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-ink-faint">
+                  <td colSpan={7} className="px-4 py-8 text-center text-ink-faint">
                     No customers yet.
                   </td>
                 </tr>
@@ -236,10 +237,17 @@ export default function CustomersManager({ onNotify }) {
                   <td className={`${td} font-mono text-xs text-ink-dim`}>{c.phone || '—'}</td>
                   <td className={`${td} text-ink-dim`}>{c.email || '—'}</td>
                   <td className={`${td} text-ink-dim`}>{c.address || '—'}</td>
+                  <td className={td}>
+                    <span
+                      className={`mono-chip ${purchasesFor(c).length > 0 ? '' : 'text-ink-faint'}`}
+                    >
+                      {purchasesFor(c).length} laptop{purchasesFor(c).length === 1 ? '' : 's'}
+                    </span>
+                  </td>
                   <td className="px-4 py-2.5">
                     <div className="flex items-center justify-end gap-2">
                       <button onClick={() => setOpenCustomer(openCustomer === c.id ? null : c.id)} className="btn-ghost" aria-label={`Show purchases for ${c.name}`}>
-                        {purchasesFor(c).length > 0 ? '▼' : '—'}
+                        {openCustomer === c.id ? '▲ Hide purchases' : purchasesFor(c).length > 0 ? `▼ ${purchasesFor(c).length} purchase${purchasesFor(c).length === 1 ? '' : 's'}` : '—'}
                       </button>
                       <button onClick={() => startEdit(c)} className="btn-ghost">Edit</button>
                       <button onClick={() => remove(c)} className="btn-danger">Delete</button>
@@ -270,7 +278,7 @@ export default function CustomersManager({ onNotify }) {
                                   <td className="px-2 py-1 mono-chip text-[10px]">{s.serial_number}</td>
                                   <td className="px-2 py-1 text-ink-dim">{s.store_name || '—'}</td>
                                   <td className="px-2 py-1 text-right font-mono">{inr(s.sale_price)}</td>
-                                  <td className="px-2 py-1 text-ink-faint">{s.sold_at || '—'}</td>
+                                  <td className="px-2 py-1 text-ink-faint">{formatTime(s.sold_at)}</td>
                                 </tr>
                               ))}
                             </tbody>

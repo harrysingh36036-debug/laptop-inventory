@@ -103,6 +103,7 @@ BEGIN
       'id', tl.id, 'laptop_id', tl.laptop_id, 'from_store_id', tl.from_store_id, 'to_store_id', tl.to_store_id,
       'brand_model', l.brand_model, 'serial_number', l.serial_number,
       'from_store_name', fs.store_name, 'to_store_name', ts.store_name,
+      'transferred_by', tl.transferred_by,
       'changed_at', to_char(tl.changed_at, 'YYYY-MM-DD HH24:MI:SS'))
       ORDER BY tl.changed_at DESC), '[]'::jsonb) INTO v_out
   FROM public.transferlogs tl
@@ -123,9 +124,17 @@ BEGIN
   IF public.app_role() NOT IN ('admin','superadmin') THEN RETURN '[]'::jsonb; END IF;
   SELECT COALESCE(jsonb_agg(jsonb_build_object(
       'id', l.id, 'user_id', l.user_id, 'username', l.username, 'ip', l.ip,
-      'user_agent', l.user_agent, 'logged_in', to_char(l.logged_in, 'YYYY-MM-DD HH24:MI:SS'))
+      'user_agent', l.user_agent, 'store_id', l.store_id, 'store_name', ls.store_name,
+      'home_store_id', p.home_store_id, 'home_store_name', hs.store_name,
+      'match', CASE WHEN p.home_store_id IS NULL THEN NULL
+                    ELSE (l.store_id = p.home_store_id) END,
+      'logged_in', to_char(l.logged_in, 'YYYY-MM-DD HH24:MI:SS'))
       ORDER BY l.logged_in DESC), '[]'::jsonb) INTO v_out
-  FROM public.loginlogs l LIMIT p_limit;
+  FROM public.loginlogs l
+  LEFT JOIN public.stores ls ON ls.id = l.store_id
+  LEFT JOIN public.profiles p ON p.id = l.user_id
+  LEFT JOIN public.stores hs ON hs.id = p.home_store_id
+  LIMIT p_limit;
   RETURN v_out;
 END $$;
 

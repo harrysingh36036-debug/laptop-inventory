@@ -11,7 +11,7 @@ function Card({ label, value }) {
   );
 }
 
-export default function InventoryStats({ stores }) {
+export default function InventoryStats({ stores, search = '' }) {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -40,6 +40,12 @@ export default function InventoryStats({ stores }) {
 
   const brandMax = Math.max(1, ...(stats.by_brand || [{ total: 1 }]).map((b) => b.total));
 
+  const q = search.trim().toLowerCase();
+  const match = (v) => !q || String(v || '').toLowerCase().includes(q);
+  const brands = (stats.by_brand || []).filter((b) => match(b.brand));
+  const generations = (stats.by_generation || []).filter((g) => match(g.generation));
+  const configs = (stats.by_config || []).filter((c) => match(c.config));
+
   return (
     <div className="space-y-6 animate-rise">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -52,7 +58,7 @@ export default function InventoryStats({ stores }) {
       <div className="panel p-5">
         <h3 className="font-display text-sm font-semibold tracking-tight text-ink mb-3">Systems by Brand</h3>
         <div className="space-y-3">
-          {(stats.by_brand || []).map((b) => (
+          {brands.map((b) => (
             <div key={b.brand}>
               <div className="flex items-center justify-between">
                 <span className="font-medium text-ink">{b.brand}</span>
@@ -83,7 +89,7 @@ export default function InventoryStats({ stores }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--hairline)]">
-                {(stats.by_generation || []).map((g, i) => (
+                {generations.map((g, i) => (
                   <tr key={i} className="hover:bg-surface-2/60">
                     <td className={td}>{g.generation}</td>
                     <td className={`${td} text-right font-mono`}>{g.total}</td>
@@ -107,7 +113,7 @@ export default function InventoryStats({ stores }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--hairline)]">
-                {(stats.by_config || []).map((c, i) => (
+                {configs.map((c, i) => (
                   <tr key={i} className="hover:bg-surface-2/60">
                     <td className={td}>{c.config}</td>
                     <td className={`${td} text-right font-mono`}>{c.total}</td>

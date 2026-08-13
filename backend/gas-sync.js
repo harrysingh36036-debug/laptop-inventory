@@ -46,7 +46,7 @@ const QUERIES = {
       purchased_from, graphics, graphics_type, graphics_model, purchase_rate,
       extra_charges, serial_number, current_store_id, status, created_at, updated_at
     FROM public.laptops ORDER BY id`,
-  TransferLogs: 'SELECT id, laptop_id, from_store_id, to_store_id, changed_at FROM public.transferlogs ORDER BY id',
+  TransferLogs: 'SELECT id, laptop_id, from_store_id, to_store_id, transferred_by, changed_at FROM public.transferlogs ORDER BY id',
   Sales: `SELECT id, laptop_id, serial_number, brand_model, store_id, sale_price,
     cost_price, profit, sold_at, sold_by FROM public.sales ORDER BY id`,
   Users: `SELECT p.id, p.username, '' AS password_hash, p.display_name, p.role, p.created_at

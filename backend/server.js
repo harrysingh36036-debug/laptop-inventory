@@ -36,6 +36,14 @@ const {
   getSales,
   getSalesSummary,
   sellLaptop,
+  getRepairs,
+  getRepair,
+  createRepair,
+  updateRepair,
+  deleteRepair,
+  getRepairsSummary,
+  getPurchases,
+  getPurchasesSummary,
   addStore,
   renameStore,
   deleteStore,
@@ -470,6 +478,57 @@ app.delete('/api/laptops/:id', authenticate, async (req, res) => {
   const result = await deleteLaptop(Number(req.params.id));
   if (result.error) return res.status(404).json({ error: result.error });
   broadcast('laptop:deleted', { id: result.id });
+  res.json(result);
+});
+
+// ----------------------------- Purchases -----------------------------------
+// Ledger over Laptops: every unit added to inventory is a purchase.
+app.get('/api/purchases', authenticate, async (_req, res) => {
+  res.json(await getPurchases());
+});
+
+app.get('/api/purchases/summary', authenticate, async (_req, res) => {
+  res.json(await getPurchasesSummary());
+});
+
+// ----------------------------- Repairs -------------------------------------
+app.get('/api/repairs', authenticate, async (_req, res) => {
+  res.json(await getRepairs());
+});
+
+app.get('/api/repairs/summary', authenticate, async (_req, res) => {
+  res.json(await getRepairsSummary());
+});
+
+// Writes (create/update/delete) use the editInventory permission, same as
+// inventory edits and sells.
+app.post('/api/repairs', authenticate, async (req, res) => {
+  if (!(await hasPerm(req.user, 'editInventory'))) {
+    return res.status(403).json({ error: 'Insufficient permissions' });
+  }
+  const result = await createRepair({ ...(req.body || {}), created_by: req.user.username });
+  if (result.error) return res.status(400).json({ error: result.error });
+  broadcast('repair:created', result.repair);
+  res.status(201).json(result.repair);
+});
+
+app.put('/api/repairs/:id', authenticate, async (req, res) => {
+  if (!(await hasPerm(req.user, 'editInventory'))) {
+    return res.status(403).json({ error: 'Insufficient permissions' });
+  }
+  const result = await updateRepair(Number(req.params.id), req.body || {});
+  if (result.error) return res.status(400).json({ error: result.error });
+  broadcast('repair:updated', result.repair);
+  res.json(result.repair);
+});
+
+app.delete('/api/repairs/:id', authenticate, async (req, res) => {
+  if (!(await hasPerm(req.user, 'editInventory'))) {
+    return res.status(403).json({ error: 'Insufficient permissions' });
+  }
+  const result = await deleteRepair(Number(req.params.id));
+  if (result.error) return res.status(404).json({ error: result.error });
+  broadcast('repair:deleted', { id: result.id });
   res.json(result);
 });
 

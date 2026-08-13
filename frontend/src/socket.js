@@ -131,7 +131,8 @@ function handleChange(table, event, row) {
       _emit('laptop:transferred', {
         laptop,
         from: { store_name: from },
-        to: { store_name: to }
+        to: { store_name: to },
+        transferred_by: row.transferred_by
       });
       _emit('log:new', row);
     });
@@ -151,8 +152,18 @@ function handleChange(table, event, row) {
     return;
   }
 
+  if (table === 'sales' && event === 'delete') {
+    _emit('sale:deleted', { id: Number(row.id) });
+    return;
+  }
+
   if (table === 'brands') {
     _emit('brands:updated');
+    return;
+  }
+
+  if (table === 'repairs') {
+    _emit('repairs:updated');
     return;
   }
 
@@ -204,6 +215,7 @@ function ensureConnected() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'laptops' }, onPostgresChange)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'transferlogs' }, onPostgresChange)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, onPostgresChange)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'repairs' }, onPostgresChange)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'brands' }, onPostgresChange)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, onPostgresChange)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, onPostgresChange);

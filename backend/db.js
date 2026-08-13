@@ -130,6 +130,23 @@ CREATE TABLE IF NOT EXISTS LoginLogs (
   logged_in  TEXT NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY (user_id) REFERENCES Users(id)
 );
+
+CREATE TABLE IF NOT EXISTS Repairs (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  laptop_id     INTEGER,
+  serial_number TEXT,
+  brand_model   TEXT,
+  issue         TEXT NOT NULL,
+  vendor        TEXT,
+  cost          REAL NOT NULL DEFAULT 0,
+  status        TEXT NOT NULL DEFAULT 'Pending'
+                CHECK (status IN ('Pending','In Progress','Repaired')),
+  notes         TEXT,
+  created_by    TEXT,
+  created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at    TEXT NOT NULL DEFAULT (datetime('now')),
+  FOREIGN KEY (laptop_id) REFERENCES Laptops(id)
+);
 `);
 
 // ---------------------------------------------------------------------------
@@ -538,6 +555,134 @@ function getSalesSummary() {
 }
 
 // ---------------------------------------------------------------------------
+// Repairs
+// ---------------------------------------------------------------------------
+const REPAIR_STATUSES = ['Pending', 'In Progress', 'Repaired'];
+
+function repairRow(r) {
+  if (!r) return undefined;
+  return {
+    id: r.id,
+    laptop_id: r.laptop_id,
+    serial_number: r.serial_number,
+    brand_model: r.brand_model,
+    issue: r.issue,
+    vendor: r.vendor,
+    cost: r.cost,
+    status: r.status,
+    notes: r.notes,
+    created_by: r.created_by,
+    created_at: r.created_at,
+    updated_at: r.updated_at
+  };
+}
+
+function getRepairs() {
+  return db.prepare('SELECT * FROM Repairs ORDER BY updated_at DESC, id DESC').all().map(repairRow);
+}
+
+function getRepair(id) {
+  return repairRow(db.prepare('SELECT * FROM Repairs WHERE id = ?').get(id));
+}
+
+function createRepair(data) {
+  const issue = (data.issue || '').trim();
+  if (!issue) return { error: 'issue is required' };
+  const info = db.prepare(
+    `INSERT INTO Repairs (laptop_id, serial_number, brand_model, issue, vendor, cost, notes, created_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    data.laptop_id != null && data.laptop_id !== '' ? Number(data.laptop_id) : null,
+    (data.serial_number || '').trim() || null,
+    (data.brand_model || '').trim() || null,
+    issue,
+    (data.vendor || '').trim() || null,
+    data.cost != null && data.cost !== '' ? Number(data.cost) : 0,
+    (data.notes || '').trim() || null,
+    (data.created_by || '').trim() || null
+  );
+  return { repair: getRepair(info.lastInsertRowid) };
+}
+
+function updateRepair(id, data) {
+  const repair = db.prepare('SELECT * FROM Repairs WHERE id = ?').get(id);
+  if (!repair) return { error: 'Repair record not found' };
+  const issue = data.issue != null ? String(data.issue).trim() : repair.issue;
+  if (!issue) return { error: 'issue is required' };
+  const status = data.status != null ? String(data.status).trim() : repair.status;
+  if (!REPAIR_STATUSES.includes(status)) return { error: 'Invalid repair status' };
+  db.prepare(
+    `UPDATE Repairs SET laptop_id=?, serial_number=?, brand_model=?, issue=?, vendor=?, cost=?, status=?, notes=?, updated_at=datetime('now') WHERE id=?`
+  ).run(
+    data.laptop_id !== undefined && data.laptop_id !== null && data.laptop_id !== '' ? Number(data.laptop_id) : repair.laptop_id,
+    data.serial_number !== undefined ? (String(data.serial_number).trim() || null) : repair.serial_number,
+    data.brand_model !== undefined ? (String(data.brand_model).trim() || null) : repair.brand_model,
+    issue,
+    data.vendor !== undefined ? (String(data.vendor).trim() || null) : repair.vendor,
+    data.cost !== undefined && data.cost !== null && data.cost !== '' ? Number(data.cost) : repair.cost,
+    status,
+    data.notes !== undefined ? (String(data.notes).trim() || null) : repair.notes,
+    id
+  );
+  return { repair: getRepair(id) };
+}
+
+function deleteRepair(id) {
+  const repair = db.prepare('SELECT id FROM Repairs WHERE id = ?').get(id);
+  if (!repair) return { error: 'Repair record not found' };
+  db.prepare('DELETE FROM Repairs WHERE id = ?').run(id);
+  return { ok: true, id };
+}
+
+function getRepairsSummary() {
+  const r = db.prepare(
+    `SELECT COUNT(*) AS total,
+            SUM(CASE WHEN status = 'Pending' THEN 1 ELSE 0 END) AS pending,
+            SUM(CASE WHEN status = 'In Progress' THEN 1 ELSE 0 END) AS in_progress,
+            SUM(CASE WHEN status = 'Repaired' THEN 1 ELSE 0 END) AS repaired,
+            COALESCE(SUM(COALESCE(cost, 0)), 0) AS total_cost
+     FROM Repairs`
+  ).get();
+  return {
+    total: r.total || 0,
+    pending: r.pending || 0,
+    in_progress: r.in_progress || 0,
+    repaired: r.repaired || 0,
+    total_cost: r.total_cost || 0
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Purchases (ledger over Laptops)
+// ---------------------------------------------------------------------------
+function getPurchases() {
+  return db.prepare(`${LAPTOP_SELECT} ORDER BY l.created_at DESC, l.id DESC`).all().map(laptopRow);
+}
+
+function getPurchasesSummary() {
+  const r = db.prepare(
+    `SELECT COUNT(*) AS total_units,
+            COALESCE(SUM(COALESCE(purchase_rate, 0)), 0) AS total_rate,
+            COALESCE(SUM(COALESCE(extra_charges, 0)), 0) AS total_charges,
+            COALESCE(SUM(COALESCE(purchase_rate, 0) + COALESCE(extra_charges, 0)), 0) AS total_value
+     FROM Laptops`
+  ).get();
+  const m = db.prepare(
+    `SELECT COUNT(*) AS month_units,
+            COALESCE(SUM(COALESCE(purchase_rate, 0) + COALESCE(extra_charges, 0)), 0) AS month_value
+     FROM Laptops WHERE strftime('%Y-%m', created_at) = strftime('%Y-%m', 'now')`
+  ).get();
+  return {
+    total_units: r.total_units || 0,
+    total_rate: r.total_rate || 0,
+    total_charges: r.total_charges || 0,
+    total_value: r.total_value || 0,
+    month_units: m.month_units || 0,
+    month_value: m.month_value || 0
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Users (auth)
 // ---------------------------------------------------------------------------
 function publicUser(u) {
@@ -703,6 +848,14 @@ module.exports = {
   getSales,
   getSalesSummary,
   sellLaptop,
+  getRepairs,
+  getRepair,
+  createRepair,
+  updateRepair,
+  deleteRepair,
+  getRepairsSummary,
+  getPurchases,
+  getPurchasesSummary,
   getSettings,
   setSettings,
   createUser,

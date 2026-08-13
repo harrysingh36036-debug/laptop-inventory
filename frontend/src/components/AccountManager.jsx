@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { getUsers, createUser, updateUser, deleteUser, bulkDeleteUsers, getLoginLogs } from '../api';
+import { getUsers, createUser, updateUser, deleteUser, bulkDeleteUsers } from '../api';
+import LoginHistoryTab from './LoginHistoryTab';
 
 const ROLES = ['admin', 'manager', 'staff'];
 const MANAGER_CREATABLE_ROLES = ['manager', 'staff'];
-const EMPTY = { username: '', password: '', display_name: '', role: 'staff' };
+const EMPTY = { username: '', password: '', display_name: '', role: 'staff', home_store_id: '', allowed_store_ids: [] };
 
 const ROLE_PILL = {
   superadmin: 'border-accent-line bg-accent-soft text-accent',
@@ -12,7 +13,7 @@ const ROLE_PILL = {
   staff: 'border-line bg-surface-2 text-ink-dim'
 };
 
-export default function AccountManager({ currentUser, onClose, onCurrentUserChanged }) {
+export default function AccountManager({ currentUser, stores = [], onClose, onCurrentUserChanged }) {
   const [users, setUsers] = useState([]);
   const [modal, setModal] = useState(null); // null | { } | { user }
   const [error, setError] = useState('');
@@ -24,16 +25,7 @@ export default function AccountManager({ currentUser, onClose, onCurrentUserChan
   const isSuperAdmin = currentUser?.role === 'superadmin';
   const isManager = currentUser?.role === 'manager';
 
-  const [logins, setLogins] = useState(null); // null = not loaded
   const [loginsOpen, setLoginsOpen] = useState(false);
-
-  const loadLogins = async () => {
-    try {
-      setLogins(await getLoginLogs());
-    } catch (e) {
-      setError(e.message);
-    }
-  };
 
   const load = async () => {
     try {
@@ -65,7 +57,9 @@ export default function AccountManager({ currentUser, onClose, onCurrentUserChan
         const body = {
           username: form.username,
           display_name: form.display_name,
-          role: form.role
+          role: form.role,
+          home_store_id: form.home_store_id === '' ? 0 : Number(form.home_store_id),
+          allowed_store_ids: form.allowed_store_ids || []
         };
         if (form.password) body.password = form.password;
         const res = await updateUser(modal.user.id, body);
@@ -149,10 +143,7 @@ export default function AccountManager({ currentUser, onClose, onCurrentUserChan
           <div className="flex items-center gap-2">
             {isAdmin && (
               <button
-                onClick={() => {
-                  setLoginsOpen((o) => !o);
-                  if (!logins) loadLogins();
-                }}
+                onClick={() => setLoginsOpen((o) => !o)}
                 className="btn-ghost"
               >
                 {loginsOpen ? 'Hide Login Activity' : 'Login Activity'}
@@ -192,33 +183,8 @@ export default function AccountManager({ currentUser, onClose, onCurrentUserChan
         {loginsOpen && (
           <div className="mx-6 mb-4 rounded-xl border border-line bg-surface-2/40 p-4">
             <h3 className="text-sm font-semibold text-ink">Login Activity</h3>
-            <p className="mb-3 text-xs text-ink-faint">Who logged in and when.</p>
-            {!logins ? (
-              <p className="text-sm text-ink-faint">Loading…</p>
-            ) : logins.length === 0 ? (
-              <p className="text-sm text-ink-faint">No logins recorded yet.</p>
-            ) : (
-              <div className="max-h-64 overflow-y-auto rounded-lg border border-line bg-surface">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-surface-2 text-ink-faint">
-                    <tr>
-                      <th className="px-3 py-2">Username</th>
-                      <th className="px-3 py-2">IP</th>
-                      <th className="px-3 py-2">Logged in</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[var(--hairline)]">
-                    {logins.map((l) => (
-                      <tr key={l.id}>
-                        <td className="px-3 py-2 font-medium text-ink-dim">{l.username}</td>
-                        <td className="px-3 py-2 font-mono text-ink-faint">{l.ip || '—'}</td>
-                        <td className="px-3 py-2 text-ink-faint">{l.logged_in}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            <p className="mb-3 text-xs text-ink-faint">Who logged in, which store, and from where.</p>
+            <LoginHistoryTab />
           </div>
         )}
 
@@ -318,6 +284,7 @@ export default function AccountManager({ currentUser, onClose, onCurrentUserChan
           isSuperAdmin={isSuperAdmin}
           viewerRole={currentUser?.role}
           canResetPassword={modal.user ? canResetPassword(modal.user) : true}
+          stores={stores}
           onSave={handleSave}
           onClose={() => setModal(null)}
         />
@@ -326,7 +293,7 @@ export default function AccountManager({ currentUser, onClose, onCurrentUserChan
   );
 }
 
-function UserModal({ editing, onSave, onClose, viewerRole, isSuperAdmin, canResetPassword }) {
+function UserModal({ editing, onSave, onClose, viewerRole, isSuperAdmin, canResetPassword, stores }) {
   const viewerIsManager = viewerRole === 'manager';
   const viewerIsAdmin = viewerRole === 'admin';
   const allowedRoles = viewerIsManager
@@ -339,12 +306,23 @@ function UserModal({ editing, onSave, onClose, viewerRole, isSuperAdmin, canRese
         username: editing.username,
         password: '',
         display_name: editing.display_name || '',
-        role: allowedRoles.includes(editing.role) ? editing.role : allowedRoles[0]
+        role: allowedRoles.includes(editing.role) ? editing.role : allowedRoles[0],
+        home_store_id: editing.home_store_id != null ? String(editing.home_store_id) : '',
+        allowed_store_ids: Array.isArray(editing.allowed_store_ids) ? editing.allowed_store_ids.map(Number) : []
       }
     : { ...EMPTY, role: viewerIsManager || viewerIsAdmin ? allowedRoles[0] : EMPTY.role });
   const [error, setError] = useState('');
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+
+  // Checkbox list "stores this account may sign in from" — empty = any store.
+  const toggleAllowed = (storeId) => {
+    setForm((f) => {
+      const ids = f.allowed_store_ids || [];
+      const has = ids.includes(storeId);
+      return { ...f, allowed_store_ids: has ? ids.filter((x) => x !== storeId) : [...ids, storeId] };
+    });
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -356,11 +334,18 @@ function UserModal({ editing, onSave, onClose, viewerRole, isSuperAdmin, canRese
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade">
-      <div className="w-full max-w-md rounded-2xl border border-line bg-surface p-6 shadow-pop animate-rise">
-        <h3 className="font-display text-base font-semibold tracking-tight text-ink">
-          {editing ? `Edit ${editing.username}` : 'Create Account'}
-        </h3>
-        <form onSubmit={submit} className="mt-4 space-y-4">
+      <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-pop animate-rise">
+        <div className="flex items-center justify-between border-b border-line px-6 py-4">
+          <h3 className="font-display text-base font-semibold tracking-tight text-ink">
+            {editing ? `Edit ${editing.username}` : 'Create Account'}
+          </h3>
+          <button type="button" onClick={onClose} className="text-ink-faint hover:text-ink transition-colors" aria-label="Close">
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <form onSubmit={submit} className="space-y-4 overflow-y-auto px-6 py-5">
           <div>
             <label className="flabel">Username</label>
             <input
@@ -421,7 +406,7 @@ function UserModal({ editing, onSave, onClose, viewerRole, isSuperAdmin, canRese
                 </option>
               ))}
             </select>
-            <p className="mt-1 text-xs text-ink-faint">
+<p className="mt-1 text-xs text-ink-faint">
               Staff view inventory · Manager can edit/transfer ·{' '}
               {viewerIsManager
                 ? 'Managers can manage staff, but password reset is only for admins & the super admin'
@@ -430,6 +415,58 @@ function UserModal({ editing, onSave, onClose, viewerRole, isSuperAdmin, canRese
                   : 'The super admin manages every account.'}
             </p>
           </div>
+
+          <div>
+            <label className="flabel">Home store</label>
+            <select
+              value={form.home_store_id}
+              onChange={set('home_store_id')}
+              className="field mt-1.5"
+            >
+              <option value="">No home store</option>
+              {stores.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.store_name}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-ink-faint">
+              Used by Login History: sign-ins from any other store are flagged red.
+            </p>
+          </div>
+
+          {!viewerIsManager && (
+            <div>
+              <label className="flabel">Allowed login stores</label>
+              <div className="mt-1.5 grid grid-cols-2 gap-1.5 rounded-lg border border-line bg-surface-2 p-2">
+                {stores.map((s) => {
+                  const checked = (form.allowed_store_ids || []).includes(s.id);
+                  return (
+                    <label
+                      key={s.id}
+                      className={`flex cursor-pointer items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs transition-colors duration-150 ${
+                        checked
+                          ? 'border-accent-line bg-accent-soft text-ink'
+                          : 'border-line bg-surface text-ink-dim hover:text-ink'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleAllowed(s.id)}
+                        className="accent-[var(--accent)]"
+                      />
+                      {s.store_name}
+                    </label>
+                  );
+                })}
+              </div>
+              <p className="mt-1 text-xs text-ink-faint">
+                Leave none checked = this account may sign in from any store. Checked = only those stores.
+                Sign-in attempts from other locations are rejected.
+              </p>
+            </div>
+          )}
 
           {error && (
             <p className="rounded-lg border border-stock-risk/25 bg-stock-risk/10 px-3 py-2 text-sm text-stock-risk">{error}</p>

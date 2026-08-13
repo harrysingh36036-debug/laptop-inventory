@@ -59,6 +59,8 @@ const TABS = {
   TransferLogs: ['id', 'laptop_id', 'from_store_id', 'to_store_id', 'changed_at'],
   Sales: ['id', 'laptop_id', 'serial_number', 'brand_model', 'store_id', 'sale_price',
     'cost_price', 'profit', 'sold_at', 'sold_by'],
+  Repairs: ['id', 'laptop_id', 'serial_number', 'brand_model', 'issue', 'vendor', 'cost',
+    'status', 'notes', 'created_by', 'created_at', 'updated_at'],
   Users: ['id', 'username', 'password_hash', 'display_name', 'role', 'created_at'],
   Settings: ['key', 'value'],
   LoginLogs: ['id', 'user_id', 'username', 'ip', 'user_agent', 'logged_in']
@@ -128,6 +130,7 @@ let state = {
   laptops: [],
   logs: [],
   sales: [],
+  repairs: [],
   users: [],
   settings: {},
   logins: []
@@ -258,19 +261,20 @@ function parseRows(tab) {
 
 async function refreshFromSheets() {
   if (!sheets && MODE === 'sheets') return null;
-  const [stores, brands, laptops, logs, sales, users, settingValues, logins] = await Promise.all([
+  const [stores, brands, laptops, logs, sales, repairs, users, settingValues, logins] = await Promise.all([
     parseRows('Stores'),
     parseRows('Brands'),
     parseRows('Laptops'),
     parseRows('TransferLogs'),
     parseRows('Sales'),
+    parseRows('Repairs'),
     parseRows('Users'),
     readTab('Settings'),
     parseRows('LoginLogs')
   ]);
   const settings = { ...DEFAULT_SETTINGS };
   settingValues.slice(1).forEach(([k, v]) => { if (k) settings[k] = String(v ?? ''); });
-  return { stores, brands, laptops, logs, sales, users, settings, logins };
+  return { stores, brands, laptops, logs, sales, repairs, users, settings, logins };
 }
 
 async function fullReload() {
@@ -292,12 +296,13 @@ function rebuildIndexes() {
   map('Laptops', state.laptops);
   map('TransferLogs', state.logs);
   map('Sales', state.sales);
+  map('Repairs', state.repairs);
   map('Users', state.users);
   map('LoginLogs', state.logins);
 }
 
 function nextId(tab) {
-  const rows = tab === 'Stores' ? state.stores : tab === 'Brands' ? state.brands : tab === 'Laptops' ? state.laptops : tab === 'TransferLogs' ? state.logs : tab === 'Sales' ? state.sales : state.users;
+  const rows = tab === 'Stores' ? state.stores : tab === 'Brands' ? state.brands : tab === 'Laptops' ? state.laptops : tab === 'TransferLogs' ? state.logs : tab === 'Sales' ? state.sales : tab === 'Repairs' ? state.repairs : state.users;
   return rows.reduce((m, r) => Math.max(m, Number(r.id) || 0), 0) + 1;
 }
 
@@ -599,6 +604,139 @@ function getSalesSummary() {
   );
 }
 
+// --- Repairs ----------------------------------------------------------------
+const REPAIR_STATUSES = ['Pending', 'In Progress', 'Repaired'];
+
+function repairRow(r) {
+  if (!r) return undefined;
+  return {
+    id: r.id,
+    laptop_id: r.laptop_id,
+    serial_number: r.serial_number,
+    brand_model: r.brand_model,
+    issue: r.issue,
+    vendor: r.vendor,
+    cost: r.cost == null || r.cost === '' ? 0 : Number(r.cost),
+    status: r.status || 'Pending',
+    notes: r.notes,
+    created_by: r.created_by,
+    created_at: r.created_at,
+    updated_at: r.updated_at
+  };
+}
+
+const repairToRow = (r) => [
+  r.id, r.laptop_id, r.serial_number, r.brand_model, r.issue, r.vendor, r.cost,
+  r.status, r.notes, r.created_by, r.created_at, r.updated_at
+];
+
+function getRepairs() {
+  return state.repairs
+    .map(repairRow)
+    .sort((a, b) => (b.updated_at || '').localeCompare(a.updated_at || '') || b.id - a.id);
+}
+
+function getRepair(id) {
+  return repairRow(state.repairs.find((x) => x.id === id));
+}
+
+function createRepair(data) {
+  const issue = (data.issue || '').trim();
+  if (!issue) return { error: 'issue is required' };
+  const id = nextId('Repairs');
+  const repair = {
+    id,
+    laptop_id: data.laptop_id != null && data.laptop_id !== '' ? Number(data.laptop_id) : null,
+    serial_number: (data.serial_number || '').trim() || null,
+    brand_model: (data.brand_model || '').trim() || null,
+    issue,
+    vendor: (data.vendor || '').trim() || null,
+    cost: data.cost != null && data.cost !== '' ? Number(data.cost) : 0,
+    status: 'Pending',
+    notes: (data.notes || '').trim() || null,
+    created_by: (data.created_by || '').trim() || null,
+    created_at: now(),
+    updated_at: now()
+  };
+  state.repairs.unshift(repair);
+  rowIndex.Repairs[id] = nextRow.Repairs;
+  nextRow.Repairs++;
+  schedule(() => appendRow('Repairs', repairToRow(repair)));
+  return { repair: getRepair(id) };
+}
+
+function updateRepair(id, data) {
+  const repair = state.repairs.find((x) => x.id === id);
+  if (!repair) return { error: 'Repair record not found' };
+  const issue = data.issue != null ? String(data.issue).trim() : repair.issue;
+  if (!issue) return { error: 'issue is required' };
+  const status = data.status != null ? String(data.status).trim() : repair.status;
+  if (!REPAIR_STATUSES.includes(status)) return { error: 'Invalid repair status' };
+  repair.laptop_id = data.laptop_id !== undefined && data.laptop_id !== null && data.laptop_id !== '' ? Number(data.laptop_id) : repair.laptop_id;
+  repair.serial_number = data.serial_number !== undefined ? (String(data.serial_number).trim() || null) : repair.serial_number;
+  repair.brand_model = data.brand_model !== undefined ? (String(data.brand_model).trim() || null) : repair.brand_model;
+  repair.issue = issue;
+  repair.vendor = data.vendor !== undefined ? (String(data.vendor).trim() || null) : repair.vendor;
+  repair.cost = data.cost !== undefined && data.cost !== null && data.cost !== '' ? Number(data.cost) : repair.cost;
+  repair.status = status;
+  repair.notes = data.notes !== undefined ? (String(data.notes).trim() || null) : repair.notes;
+  repair.updated_at = now();
+  schedule(() => writeRow('Repairs', rowIndex.Repairs[id], repairToRow(repair)));
+  return { repair: getRepair(id) };
+}
+
+function deleteRepair(id) {
+  const repair = state.repairs.find((x) => x.id === id);
+  if (!repair) return { error: 'Repair record not found' };
+  const row = rowIndex.Repairs[id];
+  state.repairs = state.repairs.filter((x) => x.id !== id);
+  delete rowIndex.Repairs[id];
+  schedule(() => clearRow('Repairs', row));
+  return { ok: true, id };
+}
+
+function getRepairsSummary() {
+  return state.repairs.reduce(
+    (acc, r) => ({
+      total: acc.total + 1,
+      pending: acc.pending + (r.status === 'Pending' ? 1 : 0),
+      in_progress: acc.in_progress + (r.status === 'In Progress' ? 1 : 0),
+      repaired: acc.repaired + (r.status === 'Repaired' ? 1 : 0),
+      total_cost: acc.total_cost + (Number(r.cost) || 0)
+    }),
+    { total: 0, pending: 0, in_progress: 0, repaired: 0, total_cost: 0 }
+  );
+}
+
+// --- Purchases (ledger over Laptops) ----------------------------------------
+function getPurchases() {
+  return state.laptops
+    .map(laptopRow)
+    .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || '') || b.id - a.id);
+}
+
+function getPurchasesSummary() {
+  const nowMonth = now().slice(0, 7);
+  const totals = state.laptops.reduce(
+    (acc, l) => ({
+      total_units: acc.total_units + 1,
+      total_rate: acc.total_rate + (Number(l.purchase_rate) || 0),
+      total_charges: acc.total_charges + (Number(l.extra_charges) || 0),
+      month_units: acc.month_units + ((l.created_at || '').startsWith(nowMonth) ? 1 : 0),
+      month_value: acc.month_value + ((l.created_at || '').startsWith(nowMonth) ? (Number(l.purchase_rate) || 0) + (Number(l.extra_charges) || 0) : 0)
+    }),
+    { total_units: 0, total_rate: 0, total_charges: 0, month_units: 0, month_value: 0 }
+  );
+  return {
+    total_units: totals.total_units,
+    total_rate: totals.total_rate,
+    total_charges: totals.total_charges,
+    total_value: totals.total_rate + totals.total_charges,
+    month_units: totals.month_units,
+    month_value: totals.month_value
+  };
+}
+
 // --- Settings ---------------------------------------------------------------
 function getSettings() {
   return { ...state.settings };
@@ -837,6 +975,14 @@ module.exports = {
   getSales,
   getSalesSummary,
   sellLaptop,
+  getRepairs,
+  getRepair,
+  createRepair,
+  updateRepair,
+  deleteRepair,
+  getRepairsSummary,
+  getPurchases,
+  getPurchasesSummary,
   getSettings,
   setSettings,
   createUser,

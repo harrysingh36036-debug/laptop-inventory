@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { DEFAULT_LABELS } from '../labels.jsx';
 import { getPermissions, savePermissions } from '../api';
+import LoginHistoryTab from './LoginHistoryTab';
 
 // Description rows for the customizable button/label texts.
 const LABEL_FIELDS = [
@@ -166,7 +167,8 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
 
   const TABS = [['stores', 'Stores']].concat(
     isAdmin ? [['labels', 'Buttons & Labels']] : [],
-    (isAdmin || isSuperAdmin) ? [['permissions', 'Roles & Permissions']] : []
+    (isAdmin || isSuperAdmin) ? [['permissions', 'Roles & Permissions']] : [],
+    (isAdmin || isSuperAdmin) ? [['logins', 'Login History']] : []
   );
 
   return (
@@ -316,6 +318,8 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
             )}
           </div>
         )}
+
+        {tab === 'logins' && <LoginHistoryTab />}
       </div>
     </div>
   );

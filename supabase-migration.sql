@@ -13,6 +13,7 @@ CREATE TABLE public.profiles (
   username     text NOT NULL UNIQUE,
   display_name text NOT NULL DEFAULT '',
   role         text NOT NULL DEFAULT 'staff' CHECK (role IN ('superadmin','admin','manager','staff')),
+  home_store_id bigint REFERENCES public.stores (id),
   created_at   timestamptz NOT NULL DEFAULT now()
 );
 
@@ -35,6 +36,7 @@ CREATE TABLE public.loginlogs (
   username   text NOT NULL,
   ip         text,
   user_agent text,
+  store_id   bigint REFERENCES public.stores (id),
   logged_in  timestamptz NOT NULL DEFAULT now()
 );
 ALTER TABLE public.loginlogs ENABLE ROW LEVEL SECURITY;
@@ -62,6 +64,8 @@ ALTER TABLE public.sales       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.settings    ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "stores_read"  ON public.stores      FOR SELECT TO authenticated USING (true);
+-- Public read of store names only, so the login screen can offer a store picker.
+CREATE POLICY "stores_read_anon" ON public.stores FOR SELECT TO anon USING (true);
 CREATE POLICY "brands_read"  ON public.brands      FOR SELECT TO authenticated USING (true);
 CREATE POLICY "laptops_read" ON public.laptops     FOR SELECT TO authenticated USING (true);
 CREATE POLICY "logs_read"    ON public.transferlogs FOR SELECT TO authenticated USING (true);
@@ -440,20 +444,24 @@ DECLARE
   v_cur public.laptops%ROWTYPE;
   v_from public.stores%ROWTYPE;
   v_to public.stores%ROWTYPE;
+  v_username text;
 BEGIN
   IF NOT public.app_perm('transferLaptops') THEN RAISE EXCEPTION 'Insufficient permissions'; END IF;
+  SELECT username INTO v_username FROM public.profiles WHERE id = auth.uid();
   SELECT * INTO v_cur FROM public.laptops WHERE id = p_laptop_id;
   IF v_cur.id IS NULL THEN RAISE EXCEPTION 'Laptop not found'; END IF;
   SELECT * INTO v_to FROM public.stores WHERE id = p_to_store;
   IF v_to.id IS NULL THEN RAISE EXCEPTION 'Destination store not found'; END IF;
   SELECT * INTO v_from FROM public.stores WHERE id = v_cur.current_store_id;
-  INSERT INTO public.transferlogs (laptop_id, from_store_id, to_store_id) VALUES (p_laptop_id, v_cur.current_store_id, p_to_store);
+  INSERT INTO public.transferlogs (laptop_id, from_store_id, to_store_id, transferred_by)
+  VALUES (p_laptop_id, v_cur.current_store_id, p_to_store, COALESCE(v_username, 'system'));
   UPDATE public.laptops SET current_store_id = p_to_store, updated_at = now() WHERE id = p_laptop_id;
   RETURN jsonb_build_object(
     'ok', true,
     'laptop', public.app_laptop_json(p_laptop_id),
     'from', to_jsonb(v_from),
-    'to', to_jsonb(v_to)
+    'to', to_jsonb(v_to),
+    'transferred_by', COALESCE(v_username, 'system')
   );
 END $$;
 
@@ -525,7 +533,7 @@ END $$;
 -- ---------------------------------------------------------------------------
 -- 11. Users (auth.users + profiles), login logging, lists
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.app_create_user(p_username text, p_password text, p_display_name text, p_role text)
+CREATE OR REPLACE FUNCTION public.app_create_user(p_username text, p_password text, p_display_name text, p_role text, p_store_id bigint DEFAULT NULL)
 RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
 AS $$
@@ -543,6 +551,7 @@ BEGIN
   IF v_name !~ '^[a-z0-9._-]{3,32}$' THEN RAISE EXCEPTION 'Username must be 3-32 chars: letters, numbers, . _ -'; END IF;
   IF COALESCE(p_password,'') = '' OR length(p_password) < 6 THEN RAISE EXCEPTION 'Password must be at least 6 characters'; END IF;
   IF EXISTS (SELECT 1 FROM public.profiles WHERE username = v_name) THEN RAISE EXCEPTION 'Username already taken'; END IF;
+  IF v_store_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM public.stores WHERE id = v_store_id) THEN RAISE EXCEPTION 'Invalid home store'; END IF;
   v_email := v_name || '@laptop.inventory';
   INSERT INTO auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, is_sso_user, is_anonymous, created_at, updated_at)
   VALUES (v_uid, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', v_email,
@@ -550,14 +559,14 @@ BEGIN
           '{}'::jsonb, false, false, now(), now());
   INSERT INTO auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
   VALUES (gen_random_uuid(), v_uid, v_email, jsonb_build_object('sub', v_uid::text, 'email', v_email), 'email', now(), now(), now());
-  INSERT INTO public.profiles (id, username, display_name, role)
-  VALUES (v_uid, v_name, COALESCE(btrim(p_display_name), v_name), COALESCE(p_role,'staff'));
+  INSERT INTO public.profiles (id, username, display_name, role, home_store_id)
+  VALUES (v_uid, v_name, COALESCE(btrim(p_display_name), v_name), COALESCE(p_role,'staff'), v_store_id);
   RETURN jsonb_build_object('user', jsonb_build_object(
     'id', v_uid, 'username', v_name, 'display_name', COALESCE(btrim(p_display_name), v_name),
-    'role', COALESCE(p_role,'staff'), 'created_at', to_char(now(), 'YYYY-MM-DD HH24:MI:SS')));
+    'role', COALESCE(p_role,'staff'), 'home_store_id', v_store_id, 'created_at', to_char(now(), 'YYYY-MM-DD HH24:MI:SS')));
 END $$;
 
-CREATE OR REPLACE FUNCTION public.app_update_user(p_id uuid, p_username text, p_password text, p_display_name text, p_role text)
+CREATE OR REPLACE FUNCTION public.app_update_user(p_id uuid, p_username text, p_password text, p_display_name text, p_role text, p_store_id bigint DEFAULT NULL)
 RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
 AS $$
@@ -602,10 +611,19 @@ BEGIN
     IF v_role = 'manager' AND p_role IN ('admin','superadmin') THEN RAISE EXCEPTION 'Managers cannot assign admin roles'; END IF;
     UPDATE public.profiles SET role = p_role WHERE id = p_id;
   END IF;
+  IF p_store_id IS NOT NULL THEN
+    IF p_store_id = 0 THEN
+      UPDATE public.profiles SET home_store_id = NULL WHERE id = p_id;
+    ELSIF NOT EXISTS (SELECT 1 FROM public.stores WHERE id = p_store_id) THEN
+      RAISE EXCEPTION 'Invalid home store';
+    ELSE
+      UPDATE public.profiles SET home_store_id = p_store_id WHERE id = p_id;
+    END IF;
+  END IF;
   SELECT * INTO v_cur FROM public.profiles WHERE id = p_id;
   RETURN jsonb_build_object('user', jsonb_build_object(
     'id', v_cur.id, 'username', v_cur.username, 'display_name', v_cur.display_name,
-    'role', v_cur.role, 'created_at', to_char(v_cur.created_at, 'YYYY-MM-DD HH24:MI:SS')));
+    'role', v_cur.role, 'home_store_id', v_cur.home_store_id, 'created_at', to_char(v_cur.created_at, 'YYYY-MM-DD HH24:MI:SS')));
 END $$;
 
 CREATE OR REPLACE FUNCTION public.app_delete_user(p_id uuid)
@@ -629,9 +647,11 @@ BEGIN
   IF v_role NOT IN ('admin','superadmin','manager') THEN RETURN '[]'::jsonb; END IF;
   SELECT COALESCE(jsonb_agg(jsonb_build_object(
       'id', p.id, 'username', p.username, 'display_name', p.display_name,
-      'role', p.role, 'created_at', to_char(p.created_at, 'YYYY-MM-DD HH24:MI:SS'))
+      'role', p.role, 'home_store_id', p.home_store_id, 'home_store_name', s.store_name,
+      'created_at', to_char(p.created_at, 'YYYY-MM-DD HH24:MI:SS'))
       ORDER BY p.id), '[]'::jsonb) INTO v_out
   FROM public.profiles p
+  LEFT JOIN public.stores s ON s.id = p.home_store_id
   WHERE (v_role = 'manager' AND p.role NOT IN ('admin','superadmin'))
      OR (v_role = 'admin' AND p.role <> 'superadmin')
      OR v_role = 'superadmin';
@@ -647,13 +667,22 @@ BEGIN
   IF public.app_role() NOT IN ('admin','superadmin') THEN RETURN '[]'::jsonb; END IF;
   SELECT COALESCE(jsonb_agg(jsonb_build_object(
       'id', l.id, 'user_id', l.user_id, 'username', l.username, 'ip', l.ip,
-      'user_agent', l.user_agent, 'logged_in', to_char(l.logged_in, 'YYYY-MM-DD HH24:MI:SS'))
+      'user_agent', l.user_agent, 'store_id', l.store_id,
+      'store_name', ls.store_name, 'home_store_id', p.home_store_id,
+      'home_store_name', hs.store_name,
+      'match', CASE WHEN p.home_store_id IS NULL THEN NULL
+                    ELSE (l.store_id = p.home_store_id) END,
+      'logged_in', to_char(l.logged_in, 'YYYY-MM-DD HH24:MI:SS'))
       ORDER BY l.logged_in DESC), '[]'::jsonb) INTO v_out
-  FROM public.loginlogs l LIMIT p_limit;
+  FROM public.loginlogs l
+  LEFT JOIN public.stores ls ON ls.id = l.store_id
+  LEFT JOIN public.profiles p ON p.id = l.user_id
+  LEFT JOIN public.stores hs ON hs.id = p.home_store_id
+  LIMIT p_limit;
   RETURN v_out;
 END $$;
 
-CREATE OR REPLACE FUNCTION public.app_record_login(p_ip text, p_user_agent text)
+CREATE OR REPLACE FUNCTION public.app_record_login(p_store_id bigint DEFAULT NULL, p_ip text DEFAULT NULL, p_user_agent text DEFAULT NULL)
 RETURNS void
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
 AS $$
@@ -661,7 +690,8 @@ DECLARE v_uid uuid := auth.uid(); v_username text;
 BEGIN
   SELECT username INTO v_username FROM public.profiles WHERE id = v_uid;
   IF v_username IS NOT NULL THEN
-    INSERT INTO public.loginlogs (user_id, username, ip, user_agent) VALUES (v_uid, v_username, p_ip, p_user_agent);
+    INSERT INTO public.loginlogs (user_id, username, ip, user_agent, store_id)
+    VALUES (v_uid, v_username, p_ip, p_user_agent, NULLIF(p_store_id, 0));
   END IF;
 END $$;
 
@@ -707,6 +737,7 @@ BEGIN
       'id', tl.id, 'laptop_id', tl.laptop_id, 'from_store_id', tl.from_store_id, 'to_store_id', tl.to_store_id,
       'brand_model', l.brand_model, 'serial_number', l.serial_number,
       'from_store_name', fs.store_name, 'to_store_name', ts.store_name,
+      'transferred_by', tl.transferred_by,
       'changed_at', to_char(tl.changed_at, 'YYYY-MM-DD HH24:MI:SS'))
       ORDER BY tl.changed_at DESC), '[]'::jsonb) INTO v_out
   FROM public.transferlogs tl
@@ -723,6 +754,9 @@ END $$;
 GRANT USAGE ON SCHEMA public TO authenticated;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO authenticated;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO authenticated;
+-- Public read of just the store list, so the login screen can show a store picker.
+GRANT USAGE ON SCHEMA public TO anon;
+GRANT SELECT ON public.stores TO anon;
 
 -- ---------------------------------------------------------------------------
 -- 14. Seed: superadmin + admin (only if no profiles exist)
@@ -782,3 +816,41 @@ UPDATE auth.users SET
 --     Apply supabase-update.sql on top of this file — it is idempotent and
 --     contains every CREATE OR REPLACE from v2.
 -- ---------------------------------------------------------------------------
+
+-- ---------------------------------------------------------------------------
+-- 10b. Super admin can delete a sale (undo)
+-- ---------------------------------------------------------------------------
+
+-- ---------------------------------------------------------------------------
+-- Super admin can delete a sale record (undo). Also returns the laptop to
+-- In Stock so it can be sold again.
+-- ---------------------------------------------------------------------------
+
+CREATE OR REPLACE FUNCTION public.app_delete_sale(p_sale_id bigint)
+RETURNS jsonb
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+AS $$
+DECLARE
+  v_row public.sales%ROWTYPE;
+  v_laptop_id bigint;
+  v_store bigint;
+BEGIN
+  IF public.app_role() <> 'superadmin' THEN RAISE EXCEPTION 'Only the super admin can delete sales'; END IF;
+  SELECT * INTO v_row FROM public.sales WHERE id = p_sale_id;
+  IF v_row.id IS NULL THEN RAISE EXCEPTION 'Sale not found'; END IF;
+  v_laptop_id := v_row.laptop_id;
+  v_store := v_row.store_id;
+  DELETE FROM public.sales WHERE id = p_sale_id;
+  -- If the laptop still exists and is still marked Sold, return it to stock.
+  UPDATE public.laptops
+     SET status = 'In Stock', updated_at = now()
+   WHERE id = v_laptop_id AND status = 'Sold';
+  RETURN jsonb_build_object(
+    'ok', true,
+    'deleted_sale_id', p_sale_id,
+    'laptop_id', v_laptop_id,
+    'store_id', v_store
+  );
+END $$;
+
+GRANT EXECUTE ON FUNCTION public.app_delete_sale(bigint) TO authenticated;

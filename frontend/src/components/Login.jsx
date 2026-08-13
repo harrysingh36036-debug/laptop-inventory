@@ -1,16 +1,24 @@
-import { useState } from 'react';
-import { login } from '../api';
+import { useEffect, useState } from 'react';
+import { login, getStores } from '../api';
 
 export default function Login({ onSuccess }) {
-  const [form, setForm] = useState({ username: '', password: '' });
+  const [form, setForm] = useState({ username: '', password: '', storeId: '' });
+  const [stores, setStores] = useState([]);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    getStores()
+      .then(setStores)
+      .catch(() => setStores([]));
+  }, []);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
   const submit = async (e) => {
     e.preventDefault();
     setError('');
+    if (!form.storeId) return setError('Please select the store you are signing in from.');
     setBusy(true);
     try {
       const res = await login(form);
@@ -65,6 +73,22 @@ export default function Login({ onSuccess }) {
                 minLength={6}
                 className="field mt-1.5"
               />
+            </div>
+
+            <div>
+              <label className="flabel">Which store are you at?</label>
+              <select
+                value={form.storeId}
+                onChange={set('storeId')}
+                className="field mt-1.5"
+              >
+                <option value="">Select store…</option>
+                {stores.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.store_name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {error && (

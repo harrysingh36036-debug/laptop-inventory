@@ -113,6 +113,22 @@ CREATE TABLE IF NOT EXISTS LoginLogs (
   logged_in  TEXT NOT NULL DEFAULT ${NOW},
   CONSTRAINT fk_login_user FOREIGN KEY (user_id) REFERENCES Users(id)
 );
+CREATE TABLE IF NOT EXISTS Repairs (
+  id            BIGSERIAL PRIMARY KEY,
+  laptop_id     BIGINT,
+  serial_number TEXT,
+  brand_model   TEXT,
+  issue         TEXT NOT NULL,
+  vendor        TEXT,
+  cost          NUMERIC NOT NULL DEFAULT 0,
+  status        TEXT NOT NULL DEFAULT 'Pending'
+                CHECK (status IN ('Pending','In Progress','Repaired')),
+  notes         TEXT,
+  created_by    TEXT,
+  created_at    TEXT NOT NULL DEFAULT ${NOW},
+  updated_at    TEXT NOT NULL DEFAULT ${NOW},
+  CONSTRAINT fk_repair_laptop FOREIGN KEY (laptop_id) REFERENCES Laptops(id) ON DELETE SET NULL
+);
 `;
 
 const q = (sql, params = []) => pool.query(sql, params).then((r) => r.rows);
@@ -524,6 +540,145 @@ async function getSalesSummary() {
 }
 
 // ---------------------------------------------------------------------------
+// Repairs
+// ---------------------------------------------------------------------------
+const REPAIR_STATUSES = ['Pending', 'In Progress', 'Repaired'];
+
+function repairRow(r) {
+  if (!r) return undefined;
+  return {
+    id: r.id,
+    laptop_id: r.laptop_id,
+    serial_number: r.serial_number,
+    brand_model: r.brand_model,
+    issue: r.issue,
+    vendor: r.vendor,
+    cost: r.cost == null ? 0 : Number(r.cost),
+    status: r.status,
+    notes: r.notes,
+    created_by: r.created_by,
+    created_at: r.created_at,
+    updated_at: r.updated_at
+  };
+}
+
+async function getRepairs() {
+  const rows = await q('SELECT * FROM Repairs ORDER BY updated_at DESC, id DESC');
+  return rows.map(repairRow);
+}
+
+async function getRepair(id) {
+  const r = await q('SELECT * FROM Repairs WHERE id = $1', [id]);
+  return repairRow(r[0]);
+}
+
+async function createRepair(data) {
+  const issue = (data.issue || '').trim();
+  if (!issue) return { error: 'issue is required' };
+  const r = await q(
+    `INSERT INTO Repairs (laptop_id, serial_number, brand_model, issue, vendor, cost, notes, created_by)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+    [
+      data.laptop_id != null && data.laptop_id !== '' ? Number(data.laptop_id) : null,
+      (data.serial_number || '').trim() || null,
+      (data.brand_model || '').trim() || null,
+      issue,
+      (data.vendor || '').trim() || null,
+      data.cost != null && data.cost !== '' ? Number(data.cost) : 0,
+      (data.notes || '').trim() || null,
+      (data.created_by || '').trim() || null
+    ]
+  );
+  return { repair: repairRow(r[0]) };
+}
+
+async function updateRepair(id, data) {
+  const rows = await q('SELECT * FROM Repairs WHERE id = $1', [id]);
+  if (!rows.length) return { error: 'Repair record not found' };
+  const repair = rows[0];
+  const issue = data.issue != null ? String(data.issue).trim() : repair.issue;
+  if (!issue) return { error: 'issue is required' };
+  const status = data.status != null ? String(data.status).trim() : repair.status;
+  if (!REPAIR_STATUSES.includes(status)) return { error: 'Invalid repair status' };
+  const r = await q(
+    `UPDATE Repairs SET laptop_id=$1, serial_number=$2, brand_model=$3, issue=$4, vendor=$5, cost=$6, status=$7, notes=$8, updated_at=${NOW}
+     WHERE id=$9 RETURNING *`,
+    [
+      data.laptop_id !== undefined && data.laptop_id !== null && data.laptop_id !== '' ? Number(data.laptop_id) : repair.laptop_id,
+      data.serial_number !== undefined ? (String(data.serial_number).trim() || null) : repair.serial_number,
+      data.brand_model !== undefined ? (String(data.brand_model).trim() || null) : repair.brand_model,
+      issue,
+      data.vendor !== undefined ? (String(data.vendor).trim() || null) : repair.vendor,
+      data.cost !== undefined && data.cost !== null && data.cost !== '' ? Number(data.cost) : repair.cost,
+      status,
+      data.notes !== undefined ? (String(data.notes).trim() || null) : repair.notes,
+      id
+    ]
+  );
+  return { repair: repairRow(r[0]) };
+}
+
+async function deleteRepair(id) {
+  const r = await q('SELECT id FROM Repairs WHERE id = $1', [id]);
+  if (!r.length) return { error: 'Repair record not found' };
+  await q('DELETE FROM Repairs WHERE id = $1', [id]);
+  return { ok: true, id };
+}
+
+async function getRepairsSummary() {
+  const r = (await q(
+    `SELECT COUNT(*)::int AS total,
+            COUNT(*) FILTER (WHERE status = 'Pending')::int AS pending,
+            COUNT(*) FILTER (WHERE status = 'In Progress')::int AS in_progress,
+            COUNT(*) FILTER (WHERE status = 'Repaired')::int AS repaired,
+            COALESCE(SUM(COALESCE(cost, 0)), 0) AS total_cost
+     FROM Repairs`
+  ))[0];
+  return {
+    total: r.total || 0,
+    pending: r.pending || 0,
+    in_progress: r.in_progress || 0,
+    repaired: r.repaired || 0,
+    total_cost: Number(r.total_cost) || 0
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Purchases (ledger over Laptops)
+// ---------------------------------------------------------------------------
+async function getPurchases() {
+  const rows = await q(
+    `SELECT l.*, s.store_name AS current_store_name
+     FROM Laptops l LEFT JOIN Stores s ON s.id = l.current_store_id
+     ORDER BY l.created_at DESC, l.id DESC`
+  );
+  return rows.map((r) => ({ ...r, purchase_rate: r.purchase_rate == null ? null : Number(r.purchase_rate), extra_charges: r.extra_charges == null ? null : Number(r.extra_charges) }));
+}
+
+async function getPurchasesSummary() {
+  const r = (await q(
+    `SELECT COUNT(*)::int AS total_units,
+            COALESCE(SUM(COALESCE(purchase_rate, 0)), 0) AS total_rate,
+            COALESCE(SUM(COALESCE(extra_charges, 0)), 0) AS total_charges,
+            COALESCE(SUM(COALESCE(purchase_rate, 0) + COALESCE(extra_charges, 0)), 0) AS total_value
+     FROM Laptops`
+  ))[0];
+  const m = (await q(
+    `SELECT COUNT(*)::int AS month_units,
+            COALESCE(SUM(COALESCE(purchase_rate, 0) + COALESCE(extra_charges, 0)), 0) AS month_value
+     FROM Laptops WHERE created_at >= to_char(date_trunc('month', now()), 'YYYY-MM-DD HH24:MI:SS')`
+  ))[0];
+  return {
+    total_units: r.total_units || 0,
+    total_rate: Number(r.total_rate) || 0,
+    total_charges: Number(r.total_charges) || 0,
+    total_value: Number(r.total_value) || 0,
+    month_units: m.month_units || 0,
+    month_value: Number(m.month_value) || 0
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Users (auth)
 // ---------------------------------------------------------------------------
 function publicUser(u) {
@@ -680,6 +835,14 @@ module.exports = {
   getSales,
   getSalesSummary,
   sellLaptop,
+  getRepairs,
+  getRepair,
+  createRepair,
+  updateRepair,
+  deleteRepair,
+  getRepairsSummary,
+  getPurchases,
+  getPurchasesSummary,
   getSettings,
   setSettings,
   createUser,

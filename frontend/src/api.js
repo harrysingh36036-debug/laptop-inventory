@@ -80,6 +80,8 @@ function safeUser(profile) {
     username: profile.username,
     display_name: profile.display_name || '',
     role: profile.role,
+    home_store_id: profile.home_store_id ?? null,
+    allowed_store_ids: profile.allowed_store_ids ?? null,
     created_at: profile.created_at
   };
 }
@@ -87,11 +89,17 @@ function safeUser(profile) {
 async function profileForUserId(id) {
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, username, display_name, role, created_at')
+    .select('id, username, display_name, role, home_store_id, allowed_store_ids, created_at')
     .eq('id', id)
     .maybeSingle();
   if (error) throw unwrap(error);
   return data;
+}
+
+// NULL/empty = account may sign in from any store; otherwise only listed stores.
+function allowedStores(profile) {
+  const ids = profile?.allowed_store_ids;
+  return Array.isArray(ids) && ids.length > 0 ? ids.map(Number) : null;
 }
 
 // ---------------------------------- Auth -----------------------------------
@@ -99,7 +107,8 @@ export const register = () => {
   throw new Error('Self-registration is disabled. Ask an admin or manager to create your account.');
 };
 
-export const login = async ({ username, password }) => {
+export const login = async ({ username, password, storeId }) => {
+  const store = storeId ? Number(storeId) : null;
   const { data, error } = await supabase.auth.signInWithPassword({
     email: toEmail(username),
     password
@@ -107,7 +116,23 @@ export const login = async ({ username, password }) => {
   if (error) throw new Error(error.message || 'Invalid username or password');
   const user = await profileForUserId(data.user.id);
   const profile = safeUser(user);
+  // Enforce "which locations this account may sign in from" — admin-configured.
+const allowed = allowedStores(user);
+  if (allowed && (!store || !allowed.includes(store))) {
+    await supabase.auth.signOut().catch(() => {});
+    throw new Error('This account is not allowed to sign in from this store.');
+  }
   setToken(data.session.access_token);
+  // Record the login (which store the user signed in from) for the audit log.
+  try {
+    await supabase.rpc('app_record_login', {
+      p_store_id: store,
+      p_ip: null,
+      p_user_agent: navigator?.userAgent || null
+    });
+  } catch {
+    /* non-fatal: audit log must not block sign-in */
+  }
   return { token: data.session.access_token, user: profile };
 };
 
@@ -130,10 +155,20 @@ export const createUser = async (data) => {
     p_username: data.username,
     p_password: data.password,
     p_display_name: data.display_name || '',
-    p_role: data.role || 'staff'
+    p_role: data.role || 'staff',
+    p_store_id: data.home_store_id ? Number(data.home_store_id) : null,
+    p_allowed_store_ids: buildAllowedStoreIds(data)
   });
   return result.user;
 };
+
+function buildAllowedStoreIds(data) {
+  if (data.allowed_store_ids === undefined) return null;
+  const ids = Array.isArray(data.allowed_store_ids)
+    ? data.allowed_store_ids
+    : (data.allowed_store_ids || '').toString().split(',').filter(Boolean);
+  return ids.map(Number);
+}
 
 export const updateUser = async (id, data) => {
   const result = await rpc('app_update_user', {
@@ -141,7 +176,10 @@ export const updateUser = async (id, data) => {
     p_username: data.username || null,
     p_password: data.password || null,
     p_display_name: data.display_name || null,
-    p_role: data.role || null
+    p_role: data.role || null,
+    p_store_id: data.home_store_id === undefined ? null
+      : (data.home_store_id ? Number(data.home_store_id) : 0),
+    p_allowed_store_ids: data.allowed_store_ids === undefined ? null : buildAllowedStoreIds(data)
   });
   const {
     data: { session }
@@ -191,6 +229,9 @@ export const sellLaptop = async (id, salePrice, customerId = null) =>
     p_customer_id: customerId
   });
 
+// Super admin only (enforced server-side).
+export const deleteSale = (saleId) => rpc('app_delete_sale', { p_sale_id: saleId });
+
 // Current user's username, used as the "sold_by" audit value.
 async function currentUsername() {
   try {
@@ -225,6 +266,37 @@ export const bulkDeleteVendors = (ids) => rpc('app_bulk_delete_vendors', { p_ids
 // ----------------------------------- Sales ---------------------------------
 export const getSales = () => rpc('app_get_sales');
 export const getSalesSummary = () => rpc('app_sales_summary');
+
+// --------------------------------- Repairs ---------------------------------
+export const getRepairs = () => rpc('app_get_repairs');
+export const getRepairsSummary = () => rpc('app_repairs_summary');
+export const createRepair = (data) =>
+  rpc('app_create_repair', {
+    p_laptop_id: data.laptop_id ? Number(data.laptop_id) : null,
+    p_serial_number: data.serial_number || '',
+    p_brand_model: data.brand_model || '',
+    p_issue: data.issue || '',
+    p_vendor: data.vendor || '',
+    p_cost: data.cost === '' || data.cost == null ? 0 : Number(data.cost),
+    p_notes: data.notes || ''
+  });
+export const updateRepair = (id, data) =>
+  rpc('app_update_repair', {
+    p_id: id,
+    p_laptop_id: data.laptop_id === undefined || data.laptop_id === null || data.laptop_id === '' ? null : Number(data.laptop_id),
+    p_serial_number: data.serial_number ?? null,
+    p_brand_model: data.brand_model ?? null,
+    p_issue: data.issue ?? null,
+    p_vendor: data.vendor ?? null,
+    p_cost: data.cost === undefined || data.cost === null || data.cost === '' ? null : Number(data.cost),
+    p_status: data.status ?? null,
+    p_notes: data.notes ?? null
+  });
+export const deleteRepair = (id) => rpc('app_delete_repair', { p_id: id });
+
+// -------------------------------- Purchases --------------------------------
+export const getPurchases = () => rpc('app_get_purchases');
+export const getPurchasesSummary = () => rpc('app_purchases_summary');
 
 // --------------------------------- Customers -------------------------------
 export const getCustomers = () => rpc('app_get_customers');

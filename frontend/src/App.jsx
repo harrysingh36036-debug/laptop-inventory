@@ -8,10 +8,16 @@ import {
   updateLaptop,
   deleteLaptop,
   sellLaptop,
+  getRepairs,
+  getRepairsSummary,
+  createRepair,
+  updateRepair,
+  deleteRepair,
+  getPurchases,
+  getPurchasesSummary,
   getBrands,
   getVendors,
   getCustomers,
-  getInventoryStats,
   addCustomer,
   getToken,
   setToken,
@@ -28,7 +34,7 @@ import Login from './components/Login';
 import StoreFilter from './components/StoreFilter';
 import Toolbar from './components/Toolbar';
 import LaptopTable from './components/LaptopTable';
-import HistoryLog from './components/HistoryLog';
+import Toast from './components/Toast';
 import InventoryModal from './components/InventoryModal';
 import SalesTab from './components/SalesTab';
 import AccountManager from './components/AccountManager';
@@ -36,10 +42,13 @@ import AdminSettings from './components/AdminSettings';
 import BrandsManager from './components/BrandsManager';
 import VendorsManager from './components/VendorsManager';
 import CustomersManager from './components/CustomersManager';
-import InventoryStats from './components/InventoryStats';
 import SellModal from './components/SellModal';
 import TransferHistoryTab from './components/TransferHistoryTab';
-import Toast from './components/Toast';
+import DashboardTab from './components/DashboardTab';
+import ReportsTab from './components/ReportsTab';
+import PurchasesTab from './components/PurchasesTab';
+import RepairsTab from './components/RepairsTab';
+import RepairModal from './components/RepairModal';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -52,12 +61,22 @@ export default function App() {
   const [brands, setBrands] = useState([]);
   const [vendors, setVendors] = useState([]);
   const [customers, setCustomers] = useState([]);
+  const [purchases, setPurchases] = useState([]);
+  const [purchasesSummary, setPurchasesSummary] = useState(null);
+  const [repairs, setRepairs] = useState([]);
+  const [repairsSummary, setRepairsSummary] = useState(null);
 
   // Filters / state
   const [storeId, setStoreId] = useState('');
   const [status, setStatus] = useState('');
   const [search, setSearch] = useState('');
-  const [tab, setTab] = useState('inventory');
+  const [tab, setTab] = useState('dashboard');
+
+  // Inventory pagination: 9 rows/page on mobile, 16 on desktop (user-selectable).
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(() =>
+    typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches ? 9 : 16
+  );
 
   // Toast / sync notifications
   const [toast, setToast] = useState(null);
@@ -65,6 +84,8 @@ export default function App() {
 
   // Modals: null = closed
   const [invModal, setInvModal] = useState(null);
+  const [repairModal, setRepairModal] = useState(null); // null | {} | { repair }
+  const [repairLaptopOptions, setRepairLaptopOptions] = useState([]);
   const [accountsOpen, setAccountsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [brandsOpen, setBrandsOpen] = useState(false);
@@ -143,10 +164,34 @@ export default function App() {
       setBrands(b);
       getVendors().then(setVendors).catch(() => {});
       getCustomers().then(setCustomers).catch(() => {});
+      reloadPurchases();
+      reloadRepairs();
     };
     load().catch((e) => notify(e.message, 'error'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
+
+  // Purchases ledger: track totals for the dashboard square + Purchases tab.
+  const reloadPurchases = useCallback(async () => {
+    try {
+      const [list, sum] = await Promise.all([getPurchases(), getPurchasesSummary()]);
+      setPurchases(list);
+      setPurchasesSummary(sum);
+    } catch (e) {
+      /* transient */
+    }
+  }, []);
+
+  // Repairs: list + counts, refreshed on every realtime change.
+  const reloadRepairs = useCallback(async () => {
+    try {
+      const [list, sum] = await Promise.all([getRepairs(), getRepairsSummary()]);
+      setRepairs(list);
+      setRepairsSummary(sum);
+    } catch (e) {
+      /* transient */
+    }
+  }, []);
 
   // ---- Refetch laptops whenever a filter changes ---------------------------
   const refresh = useCallback(async () => {
@@ -161,6 +206,11 @@ export default function App() {
   useEffect(() => {
     if (user) refresh();
   }, [refresh, user]);
+
+  // Jump back to page 1 whenever the filter set or page size changes.
+  useEffect(() => {
+    setPage(1);
+  }, [storeId, status, search, pageSize]);
 
   // ---- Real-time socket listeners -----------------------------------------
   useEffect(() => {
@@ -195,6 +245,7 @@ export default function App() {
     const onCreate = (laptop) => {
       setLaptops((prev) => (prev.some((l) => l.id === laptop.id) ? prev : [laptop, ...prev]));
       notify(`In real time: ${laptop.brand_model} added to inventory`, 'success');
+      reloadPurchases();
     };
 
     const onUpdate = (laptop) => {
@@ -211,6 +262,7 @@ export default function App() {
     const onDelete = ({ id }) => {
       setLaptops((prev) => prev.filter((l) => l.id !== id));
       notify('In real time: a laptop was removed from inventory', 'info');
+      reloadPurchases();
     };
 
     socket.on('laptop:created', onCreate);
@@ -222,6 +274,7 @@ export default function App() {
         return fresh.length ? [...fresh, ...prev] : prev;
       });
       notify(`In real time: ${(list || []).length} units added to inventory`, 'success');
+      reloadPurchases();
     };
     socket.on('laptop:bulk', onBulk);
 
@@ -229,6 +282,9 @@ export default function App() {
       notify(`In real time: ${sale?.brand_model} sold for ₹${Number(sale?.sale_price || 0).toLocaleString('en-IN')}`, 'success');
     };
     socket.on('sale:new', onSale);
+
+    const onRepairsChanged = () => reloadRepairs();
+    socket.on('repairs:updated', onRepairsChanged);
 
     const reloadBrands = async () => {
       try {
@@ -271,6 +327,8 @@ export default function App() {
         setLogs(lg);
         setLabels(st);
         getBrands().then(setBrands).catch(() => {});
+        reloadPurchases();
+        reloadRepairs();
         notify('Data refreshed', 'info');
       } catch (e) {
         /* ignore transient errors */
@@ -285,6 +343,7 @@ export default function App() {
       socket.off('laptop:created', onCreate);
       socket.off('laptop:bulk', onBulk);
       socket.off('sale:new', onSale);
+      socket.off('repairs:updated', onRepairsChanged);
       socket.off('brands:updated', reloadBrands);
       socket.off('laptop:updated', onUpdate);
       socket.off('laptop:deleted', onDelete);
@@ -308,6 +367,10 @@ export default function App() {
     setStores([]);
     setLaptops([]);
     setLogs([]);
+    setPurchases([]);
+    setPurchasesSummary(null);
+    setRepairs([]);
+    setRepairsSummary(null);
     setStoreId('');
     setStatus('');
     setSearch('');
@@ -355,9 +418,56 @@ export default function App() {
       }
       setInvModal(null);
       await refresh();
+      reloadPurchases();
       return '';
     } catch (e) {
       return e.message;
+    }
+  };
+
+  // ---- Repair create / update / delete -------------------------------------
+  const openRepairModal = (repair) => {
+    getLaptops()
+      .then(setRepairLaptopOptions)
+      .catch(() => setRepairLaptopOptions([]));
+    setRepairModal(repair ? { repair } : {});
+  };
+
+  const handleRepairSave = async (form) => {
+    try {
+      const payload = {
+        laptop_id: form.laptop_id ? Number(form.laptop_id) : null,
+        serial_number: form.serial_number,
+        brand_model: form.brand_model,
+        issue: form.issue,
+        vendor: form.vendor,
+        cost: form.cost === '' || form.cost == null ? 0 : Number(form.cost),
+        status: form.status,
+        notes: form.notes
+      };
+      if (repairModal?.repair) {
+        await updateRepair(repairModal.repair.id, payload);
+        notify('Repair updated', 'success');
+      } else {
+        await createRepair(payload);
+        notify('Repair added', 'success');
+      }
+      setRepairModal(null);
+      await reloadRepairs();
+      return '';
+    } catch (e) {
+      return e.message;
+    }
+  };
+
+  const handleRepairDelete = async (repair) => {
+    if (!window.confirm(`Delete repair of "${repair.brand_model || repair.serial_number || '#' + repair.id}"? This cannot be undone.`)) return;
+    try {
+      await deleteRepair(repair.id);
+      notify('Repair removed', 'success');
+      await reloadRepairs();
+    } catch (e) {
+      notify(e.message, 'error');
     }
   };
 
@@ -382,6 +492,7 @@ export default function App() {
         'success'
       );
       await refresh();
+      reloadPurchases();
       getCustomers().then(setCustomers).catch(() => {});
     } catch (e) {
       notify(e.message, 'error');
@@ -405,6 +516,7 @@ export default function App() {
       await deleteLaptop(id);
       notify('Laptop removed', 'success');
       await refresh();
+      reloadPurchases();
     } catch (e) {
       notify(e.message, 'error');
     }
@@ -460,6 +572,12 @@ export default function App() {
       ? laptops.length
       : laptops.filter((l) => l.current_store_id === id).length;
 
+  // Client-side pagination of the (already filtered) inventory list.
+  const totalPages = Math.max(1, Math.ceil(laptops.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const from = laptops.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const pageRows = laptops.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
   if (!authReady) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-page">
@@ -479,21 +597,27 @@ export default function App() {
         <header className="sticky top-0 z-40 border-b border-line bg-[#0e0f13]/80 backdrop-blur-md">
           <div className="mx-auto max-w-[1440px] px-4 h-14 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
-              <span className="h-6 w-6 rounded-md bg-accent-soft flex items-center justify-center">
-                <svg className="h-3.5 w-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </span>
-              <div className="min-w-0">
-                <h1 className="truncate font-display text-sm font-semibold tracking-tight">{labels.appTitle || 'Laptop Inventory Tracker'}</h1>
-                <p className="hidden sm:block text-[11px] text-ink-faint">
-                  {labels.appSubtitle || 'Real-time location tracking across 7 retail stores'}
-                </p>
-              </div>
+              <button
+                onClick={() => setTab('dashboard')}
+                className="flex items-center gap-3 min-w-0 text-left transition-opacity duration-150 hover:opacity-80"
+                title="Go to dashboard"
+              >
+                <span className="h-6 w-6 rounded-md bg-accent-soft flex items-center justify-center">
+                  <svg className="h-3.5 w-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </span>
+                <div className="min-w-0">
+                  <h1 className="truncate font-display text-sm font-semibold tracking-tight">{labels.appTitle || 'Laptop Inventory Tracker'}</h1>
+                  <p className="hidden sm:block text-[11px] text-ink-faint">
+                    {labels.appSubtitle || 'Real-time location tracking across 7 retail stores'}
+                  </p>
+                </div>
+              </button>
             </div>
-          <div className="flex items-center gap-2 text-xs">
+          <div className="flex items-center justify-end gap-2 text-xs min-w-0">
             <span
-              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-medium ${
+              className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 font-medium ${
                 connected
                   ? 'border-stock-ok/25 bg-stock-ok/10 text-stock-ok'
                   : 'border-stock-risk/25 bg-stock-risk/10 text-stock-risk'
@@ -505,8 +629,8 @@ export default function App() {
               <span className="hidden sm:inline">{connected ? 'Live · synced' : 'Reconnecting…'}</span>
             </span>
 
-            <div className="flex items-center gap-1 rounded-full border border-line bg-surface p-1">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-accent-soft font-display text-xs font-semibold text-accent">
+            <div className="flex items-center gap-1 overflow-x-auto rounded-full border border-line bg-surface p-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent-soft font-display text-xs font-semibold text-accent">
                 {(user.display_name || user.username).slice(0, 1)}
               </span>
               <span className="hidden md:block leading-tight px-1">
@@ -519,6 +643,14 @@ export default function App() {
                   className="rounded-full px-2.5 py-1 font-medium text-ink-dim hover:bg-surface-3 hover:text-ink transition-colors"
                 >
                   Accounts
+                </button>
+              )}
+              {tab !== 'dashboard' && (
+                <button
+                  onClick={() => setTab('dashboard')}
+                  className="rounded-full bg-accent-soft px-2.5 py-1 font-medium text-accent hover:bg-accent/20 transition-colors"
+                >
+                  Dashboard
                 </button>
               )}
               {!isAdmin && canCreateStaff && (
@@ -572,64 +704,17 @@ export default function App() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1440px] px-4 py-6 space-y-6">
-        {/* Tab switcher */}
-        <div className="inline-flex items-center gap-1 rounded-xl border border-line bg-surface p-1">
-          <button
-            onClick={() => setTab('inventory')}
-            className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-colors duration-150 ${
-              tab === 'inventory'
-                ? 'bg-surface-3 text-ink shadow-[0_1px_2px_rgba(0,0,0,0.4)]'
-                : 'text-ink-dim hover:text-ink'
-            }`}
-          >
-            Inventory
-          </button>
-          <button
-            onClick={() => setTab('sales')}
-            className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-colors duration-150 ${
-              tab === 'sales'
-                ? 'bg-surface-3 text-ink shadow-[0_1px_2px_rgba(0,0,0,0.4)]'
-                : 'text-ink-dim hover:text-ink'
-            }`}
-          >
-            Sales & Profit
-          </button>
-          {canManageCustomers && (
-            <button
-              onClick={() => setTab('customers')}
-              className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-colors duration-150 ${
-                tab === 'customers'
-                  ? 'bg-surface-3 text-ink shadow-[0_1px_2px_rgba(0,0,0,0.4)]'
-                  : 'text-ink-dim hover:text-ink'
-              }`}
-            >
-              Customers
-            </button>
-          )}
-          <button
-            onClick={() => setTab('stats')}
-            className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-colors duration-150 ${
-              tab === 'stats'
-                ? 'bg-surface-3 text-ink shadow-[0_1px_2px_rgba(0,0,0,0.4)]'
-                : 'text-ink-dim hover:text-ink'
-            }`}
-          >
-             Brand &amp; Stock View
-          </button>
-          <button
-            onClick={() => setTab('transfers')}
-            className={`rounded-lg px-4 py-1.5 text-sm font-medium transition-colors duration-150 ${
-              tab === 'transfers'
-                ? 'bg-surface-3 text-ink shadow-[0_1px_2px_rgba(0,0,0,0.4)]'
-                : 'text-ink-dim hover:text-ink'
-            }`}
-          >
-            Transfer History
-          </button>
-        </div>
-
-        {tab === 'inventory' ? (
+<main className="mx-auto max-w-[1440px] px-4 py-6 space-y-6">
+        {tab === 'dashboard' ? (
+          <DashboardTab
+            laptops={laptops}
+            logs={logs}
+            customers={customers}
+            purchases={purchases}
+            repairs={repairs}
+            onNavigate={setTab}
+          />
+        ) : tab === 'inventory' ? (
         <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
           <aside className="lg:sticky lg:top-6 self-start">
             <StoreFilter
@@ -655,7 +740,7 @@ export default function App() {
               )}
             </div>
             <LaptopTable
-              laptops={laptops}
+              laptops={pageRows}
               stores={stores}
               canEdit={canEditInventory}
               canTransfer={canTransfer}
@@ -666,24 +751,80 @@ export default function App() {
               onEdit={(laptop) => setInvModal({ laptop })}
               onDelete={handleDelete}
             />
+            {laptops.length > 0 && (
+              <div className="flex flex-wrap items-center justify-between gap-3 px-1">
+                <div className="flex items-center gap-2 text-xs text-ink-dim">
+                  <span className="text-ink-faint">Rows per page</span>
+                  {[9, 16].map((n) => (
+                    <button
+                      key={n}
+                      onClick={() => setPageSize(n)}
+                      className={`rounded-full border px-2.5 py-1 font-medium transition-colors ${
+                        pageSize === n
+                          ? 'border-accent-line bg-accent-soft text-accent'
+                          : 'border-line bg-surface text-ink-dim hover:text-ink'
+                      }`}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                  <span className="ml-2 font-mono text-ink-faint">
+                    Showing {from}–{Math.min(laptops.length, currentPage * pageSize)} of {laptops.length}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setPage(currentPage - 1)}
+                    disabled={currentPage <= 1}
+                    className="btn-ghost disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    ← Prev
+                  </button>
+                  <span className="font-mono text-xs text-ink-dim">
+                    Page {currentPage} / {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setPage(currentPage + 1)}
+                    disabled={currentPage >= totalPages}
+                    className="btn-ghost disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Next →
+                  </button>
+                </div>
+              </div>
+            )}
           </section>
         </div>
+        ) : tab === 'purchases' ? (
+          <PurchasesTab
+            purchases={purchases}
+            summary={purchasesSummary}
+            canEditInventory={canEditInventory}
+            onAddPurchase={() => setInvModal({})}
+            onEditLaptop={(laptop) => setInvModal({ laptop })}
+          />
+        ) : tab === 'repairs' ? (
+          <RepairsTab
+            repairs={repairs}
+            canEditInventory={canEditInventory}
+            onAdd={() => openRepairModal(null)}
+            onEdit={(repair) => openRepairModal(repair)}
+            onDelete={handleRepairDelete}
+          />
         ) : tab === 'sales' ? (
-          <SalesTab stores={stores} />
+          <SalesTab stores={stores} isSuperAdmin={isSuperAdmin} onNotify={notify} />
         ) : tab === 'customers' ? (
           <div className="space-y-4">
             <p className="text-sm text-ink-dim">Manage your customers. Linked to sales when a laptop is sold to them.</p>
             <CustomersManager onNotify={notify} />
           </div>
-         ) : tab === 'stats' ? (
-          <InventoryStats stores={stores} />
+) : tab === 'stats' ? (
+          <ReportsTab stores={stores} logs={logs} laptops={laptops} />
         ) : tab === 'transfers' ? (
           <TransferHistoryTab stores={stores} />
         ) : (
-          <SalesTab stores={stores} />
+          <SalesTab stores={stores} isSuperAdmin={isSuperAdmin} onNotify={notify} />
         )}
-
-        <HistoryLog logs={logs} />
       </main>
 
       {invModal && (
@@ -694,6 +835,15 @@ export default function App() {
           editing={invModal.laptop}
           onSave={handleSave}
           onClose={() => setInvModal(null)}
+        />
+      )}
+
+      {repairModal && (
+        <RepairModal
+          editing={repairModal.repair}
+          laptops={repairLaptopOptions}
+          onSave={handleRepairSave}
+          onClose={() => setRepairModal(null)}
         />
       )}
 
@@ -732,6 +882,7 @@ export default function App() {
       {accountsOpen && (isAdmin || canCreateStaff) && (
         <AccountManager
           currentUser={user}
+          stores={stores}
           onClose={() => setAccountsOpen(false)}
           onCurrentUserChanged={handleCurrentUserChanged}
         />
