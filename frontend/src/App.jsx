@@ -680,7 +680,49 @@ export default function App() {
         <header className="sticky top-0 z-40 border-b border-line bg-[#0e0f13]/80 backdrop-blur-md">
           <div className="mx-auto max-w-[1440px] px-4 h-14 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
-            {/* 3-dot menu */}
+            <button
+              onClick={() => setTab('dashboard')}
+              className="flex items-center gap-3 min-w-0 text-left transition-opacity duration-150 hover:opacity-80"
+              title="Go to dashboard"
+            >
+              <span className="h-6 w-6 rounded-md bg-accent-soft flex items-center justify-center">
+                <svg className="h-3.5 w-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </span>
+              <div className="min-w-0">
+                <h1 className="truncate font-display text-sm font-semibold tracking-tight">{labels.appTitle || 'Laptop Inventory Tracker'}</h1>
+                <p className="hidden sm:block text-[11px] text-ink-faint">
+                  {labels.appSubtitle || 'Real-time location tracking across 7 retail stores'}
+                </p>
+              </div>
+            </button>
+          </div>
+          <div className="flex items-center justify-end gap-2 text-xs min-w-0">
+            <span
+              className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 font-medium ${
+                connected
+                  ? 'border-stock-ok/25 bg-stock-ok/10 text-stock-ok'
+                  : 'border-stock-risk/25 bg-stock-risk/10 text-stock-risk'
+              }`}
+            >
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${connected ? 'bg-stock-ok' : 'bg-stock-risk animate-pulse'}`}
+              />
+              <span className="hidden sm:inline">{connected ? 'Live · synced' : 'Reconnecting…'}</span>
+            </span>
+
+            <span className="flex items-center gap-1 rounded-full border border-line bg-surface p-1">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent-soft font-display text-xs font-semibold text-accent">
+                {(user.display_name || user.username).slice(0, 1)}
+              </span>
+              <span className="hidden md:block leading-tight px-1">
+                <span className="block max-w-[120px] truncate text-xs font-medium text-ink">{user.display_name || user.username}</span>
+                <span className="block text-[10px] uppercase tracking-wide text-ink-faint">{user.role}</span>
+              </span>
+            </span>
+
+            {/* 3-dot menu — top-right corner */}
             <div className="relative shrink-0" ref={menuRef}>
               <button
                 onClick={() => setMenuOpen((o) => !o)}
@@ -727,48 +769,6 @@ export default function App() {
                 </div>
               )}
             </div>
-
-            <button
-              onClick={() => setTab('dashboard')}
-              className="flex items-center gap-3 min-w-0 text-left transition-opacity duration-150 hover:opacity-80"
-              title="Go to dashboard"
-            >
-              <span className="h-6 w-6 rounded-md bg-accent-soft flex items-center justify-center">
-                <svg className="h-3.5 w-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </span>
-              <div className="min-w-0">
-                <h1 className="truncate font-display text-sm font-semibold tracking-tight">{labels.appTitle || 'Laptop Inventory Tracker'}</h1>
-                <p className="hidden sm:block text-[11px] text-ink-faint">
-                  {labels.appSubtitle || 'Real-time location tracking across 7 retail stores'}
-                </p>
-              </div>
-            </button>
-          </div>
-          <div className="flex items-center justify-end gap-2 text-xs min-w-0">
-            <span
-              className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 font-medium ${
-                connected
-                  ? 'border-stock-ok/25 bg-stock-ok/10 text-stock-ok'
-                  : 'border-stock-risk/25 bg-stock-risk/10 text-stock-risk'
-              }`}
-            >
-              <span
-                className={`h-1.5 w-1.5 rounded-full ${connected ? 'bg-stock-ok' : 'bg-stock-risk animate-pulse'}`}
-              />
-              <span className="hidden sm:inline">{connected ? 'Live · synced' : 'Reconnecting…'}</span>
-            </span>
-
-            <span className="flex items-center gap-1 rounded-full border border-line bg-surface p-1">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent-soft font-display text-xs font-semibold text-accent">
-                {(user.display_name || user.username).slice(0, 1)}
-              </span>
-              <span className="hidden md:block leading-tight px-1">
-                <span className="block max-w-[120px] truncate text-xs font-medium text-ink">{user.display_name || user.username}</span>
-                <span className="block text-[10px] uppercase tracking-wide text-ink-faint">{user.role}</span>
-              </span>
-            </span>
           </div>
         </div>
       </header>
