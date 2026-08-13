@@ -700,7 +700,7 @@ export default function App() {
               </button>
 
               {menuOpen && (
-                <div className="absolute left-0 top-full z-50 mt-2 w-56 rounded-2xl border border-line bg-surface p-1.5 shadow-pop animate-rise">
+                <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-2xl border border-line bg-surface p-1.5 shadow-pop animate-rise">
                   <p className="px-3 pb-1 pt-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
                     {(user.display_name || user.username).slice(0, 1)} — {user.role}
                   </p>
