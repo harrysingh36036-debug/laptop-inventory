@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { DEFAULT_LABELS } from '../labels.jsx';
 import { getPermissions, savePermissions } from '../api';
-import LoginHistoryTab from './LoginHistoryTab';
+import DangerConfirmModal from './DangerConfirmModal';
 
 // Description rows for the customizable button/label texts.
 const LABEL_FIELDS = [
@@ -38,7 +38,6 @@ const LABEL_FIELDS = [
 const PERMISSION_FIELDS = [
   ['editInventory', 'Add / edit / remove laptops'],
   ['transferLaptops', 'Transfer laptops between stores'],
-  ['createStaff', 'Create staff accounts'],
   ['renameStores', 'Rename stores'],
   ['editLabels', 'Edit buttons & labels'],
   ['manageVendors', 'Manage vendors (add / edit / delete)'],
@@ -81,6 +80,7 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
   const [edits, setEdits] = useState({}); // storeId -> draft name
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
+  const [delStore, setDelStore] = useState(null); // { id, name } scheduled for deletion
 
   const [tab, setTab] = useState('stores');
 
@@ -117,11 +117,18 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
     flash('Store renamed');
   };
 
-  const removeOne = async (id, name) => {
-    if (!window.confirm(`Remove "${name}"?`)) return;
-    const err = await onDeleteStore(id);
-    if (err) return flash(err);
+  const removeOne = (id, name) => {
+    setDelStore({ id, name });
+  };
+
+  const confirmDeleteStore = async (pwd, remarks) => {
+    const s = delStore;
+    if (!s) return '';
+    const err = await onDeleteStore(s.id, pwd, remarks);
+    if (err) return err;
+    setDelStore(null);
     flash('Store removed');
+    return '';
   };
 
   // ---- Permissions tab (admin only) --------------------------------------
@@ -167,8 +174,7 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
 
   const TABS = [['stores', 'Stores']].concat(
     isAdmin ? [['labels', 'Buttons & Labels']] : [],
-    (isAdmin || isSuperAdmin) ? [['permissions', 'Roles & Permissions']] : [],
-    (isAdmin || isSuperAdmin) ? [['logins', 'Login History']] : []
+    (isAdmin || isSuperAdmin) ? [['permissions', 'Roles & Permissions']] : []
   );
 
   return (
@@ -318,9 +324,16 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
             )}
           </div>
         )}
-
-        {tab === 'logins' && <LoginHistoryTab />}
       </div>
+
+      {delStore && (
+        <DangerConfirmModal
+          title="Remove this store?"
+          warning={`"${delStore.name}" will be permanently removed as a store location. This cannot be undone.`}
+          onConfirm={confirmDeleteStore}
+          onClose={() => setDelStore(null)}
+        />
+      )}
     </div>
   );
 }

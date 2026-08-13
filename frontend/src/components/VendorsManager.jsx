@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getVendors, addVendor, updateVendor, deleteVendor, bulkDeleteVendors } from '../api';
+import DangerConfirmModal from './DangerConfirmModal';
 
 const EMPTY = { name: '', contact: '' };
 
@@ -10,6 +11,7 @@ export default function VendorsManager({ onNotify }) {
   const [editingId, setEditingId] = useState(null);
   const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState(new Set());
+  const [danger, setDanger] = useState(null); // { kind:'one', v } | { kind:'bulk', ids, names }
 
   const load = async () => {
     try {
@@ -56,14 +58,24 @@ export default function VendorsManager({ onNotify }) {
     }
   };
 
-  const remove = async (v) => {
-    if (!window.confirm(`Delete vendor "${v.name}"? Existing laptops keep the name already entered.`)) return;
+  const confirmDelete = async (pwd, remarks) => {
+    if (!danger) return '';
+    setBusy(true);
     try {
-      await deleteVendor(v.id);
-      onNotify?.('Vendor deleted', 'success');
+      if (danger.kind === 'one') {
+        await deleteVendor(danger.v.id, pwd, remarks);
+        onNotify?.('Vendor deleted', 'success');
+      } else {
+        const res = await bulkDeleteVendors(danger.ids, pwd, remarks);
+        onNotify?.(`${res?.deleted ?? danger.ids.length} vendor(s) deleted`, 'success');
+      }
+      setDanger(null);
       await load();
+      return '';
     } catch (err) {
-      onNotify?.(err.message, 'error');
+      return err.message;
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -83,17 +95,7 @@ export default function VendorsManager({ onNotify }) {
   const bulkRemove = async () => {
     if (selected.size === 0) return;
     const names = vendors.filter((v) => selected.has(v.id)).map((v) => v.name);
-    if (!window.confirm(`Delete ${selected.size} vendor(s)?\n\n${names.join(', ')}`)) return;
-    setBusy(true);
-    try {
-      const res = await bulkDeleteVendors([...selected]);
-      onNotify?.(`${res?.deleted ?? selected.size} vendor(s) deleted`, 'success');
-      await load();
-    } catch (err) {
-      onNotify?.(err.message, 'error');
-    } finally {
-      setBusy(false);
-    }
+    setDanger({ kind: 'bulk', ids: [...selected], names });
   };
 
   if (loading) return <p className="text-sm text-ink-faint">Loading vendors…</p>;
@@ -183,7 +185,7 @@ export default function VendorsManager({ onNotify }) {
                 <td className="px-4 py-2.5">
                   <div className="flex items-center justify-end gap-2">
                     <button onClick={() => startEdit(v)} className="btn-ghost">Edit</button>
-                    <button onClick={() => remove(v)} className="btn-danger">Delete</button>
+                    <button onClick={() => setDanger({ kind: 'one', v })} className="btn-danger">Delete</button>
                   </div>
                 </td>
               </tr>
@@ -191,6 +193,19 @@ export default function VendorsManager({ onNotify }) {
           </tbody>
         </table>
       </div>
+
+      {danger && (
+        <DangerConfirmModal
+          title={danger.kind === 'one' ? 'Delete this vendor?' : `Delete ${danger.ids.length} vendors?`}
+          warning={
+            danger.kind === 'one'
+              ? `"${danger.v.name}" will be removed. Existing laptops keep the name already entered.`
+              : `These vendors will be removed: ${danger.names.join(', ')}`
+          }
+          onConfirm={confirmDelete}
+          onClose={() => setDanger(null)}
+        />
+      )}
     </div>
   );
 }

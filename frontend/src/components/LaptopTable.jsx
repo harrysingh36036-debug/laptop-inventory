@@ -5,7 +5,7 @@ import StatusChip from './StatusChip';
 
 export default function LaptopTable({
   laptops, stores, onTransfer, onEdit, onDelete, onSell,
-  canEdit = true, canTransfer = true, canSell = false, canManageCustomers = false
+  canEdit = true, canTransfer = true, canSell = false, canManageCustomers = false, rowId
 }) {
   const t = useLabels();
   const [pending, setPending] = useState({}); // { laptopId: toStoreId }
@@ -53,12 +53,12 @@ export default function LaptopTable({
             )}
             {laptops.map((l) => {
               const sel = pending[l.id] ?? '';
-              const spec = [l.storage_size, l.storage_type, l.processor_type, l.generation].filter(Boolean).join(' · ');
+              const spec = [l.product_line, l.ram, l.processor_type, l.storage_size, l.storage_type].filter(Boolean).join(' · ');
               const gfx = l.graphics === 'yes' ? `GPU: ${l.graphics_type || '—'}${l.graphics_model ? ` ${l.graphics_model}` : ''}` : '';
                const isSold = l.status === 'Sold';
                return (
                  <React.Fragment key={l.id}>
-                   <tr className="group transition-colors duration-150 hover:bg-surface-2/60">
+                   <tr className="group transition-colors duration-150 hover:bg-surface-2/60" data-row={rowId ? rowId(l) : undefined}>
                    <td className={td}>
                      <p className="font-medium text-ink">{l.brand_model}</p>
                      {l.purchased_from && (

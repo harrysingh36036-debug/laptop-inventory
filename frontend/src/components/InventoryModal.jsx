@@ -3,11 +3,14 @@ import { useLabels } from '../labels.jsx';
 
 const STATUSES = ['In Stock', 'In Transit'];
 const SIZES = ['256 GB', '512 GB', '1 TB', '2 TB', '4 TB', '8 TB'];
+const RAMS = ['4 GB', '8 GB', '12 GB', '16 GB', '24 GB', '32 GB', '64 GB'];
 
 const EMPTY = {
   brand: '',
+  product_line: '',
   brand_model: '',
   processor_type: '',
+  ram: '',
   generation: '',
   storage_type: '',
   storage_size: '',
@@ -33,8 +36,10 @@ export default function InventoryModal({ stores, brands = [], vendors = [], edit
       editing
         ? {
             brand: editing.brand || '',
+            product_line: editing.product_line || '',
             brand_model: editing.brand_model || '',
             processor_type: editing.processor_type || '',
+            ram: editing.ram || '',
             generation: editing.generation || '',
             storage_type: editing.storage_type || '',
             storage_size: editing.storage_size || '',
@@ -120,8 +125,14 @@ export default function InventoryModal({ stores, brands = [], vendors = [], edit
               )}
             </div>
             <div>
+              <label className={label}>Product Line</label>
+              <input value={form.product_line} onChange={set('product_line')} placeholder="e.g. Inspiron"
+                className={input()} />
+              <p className="mt-1 text-xs text-ink-faint">Series / family, e.g. Inspiron, ThinkPad, Pavilion.</p>
+            </div>
+            <div>
               <label className={label}>Model</label>
-              <input value={form.brand_model} onChange={set('brand_model')} placeholder="e.g. Spectre x360"
+              <input value={form.brand_model} onChange={set('brand_model')} placeholder="e.g. 15 3520"
                 className={input()} />
             </div>
             <div>
@@ -130,12 +141,22 @@ export default function InventoryModal({ stores, brands = [], vendors = [], edit
                 className={input()} />
             </div>
             <div>
-              <label className={label}>Generation</label>
-              <input value={form.generation} onChange={set('generation')} placeholder="e.g. 13th"
-                className={input()} />
+              <label className={label}>RAM</label>
+              <input
+                value={form.ram}
+                onChange={set('ram')}
+                list="ram-sizes"
+                placeholder="e.g. 16 GB"
+                className={input()}
+              />
+              <datalist id="ram-sizes">
+                {RAMS.map((r) => (
+                  <option key={r} value={r} />
+                ))}
+              </datalist>
             </div>
             <div>
-              <label className={label}>Storage Type</label>
+              <label className={label}>SSD / Storage Type</label>
               <select value={form.storage_type} onChange={set('storage_type')} className={input()}>
                 <option value="">Select…</option>
                 <option value="SSD">SSD</option>

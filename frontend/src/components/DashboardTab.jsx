@@ -1,4 +1,6 @@
-﻿import { useRef } from 'react';
+﻿import { useMemo, useRef, useState } from 'react';
+import StatusChip from './StatusChip';
+import { inr } from '../utils';
 
 const CARDS = [
   {
@@ -81,8 +83,72 @@ const CARDS = [
   }
 ];
 
-export default function DashboardTab({ laptops = [], logs = [], customers = [], purchases = [], repairs = [], onNavigate }) {
+export default function DashboardTab({ laptops = [], logs = [], customers = [], purchases = [], repairs = [], onNavigate, onFocusLaptop }) {
   const refs = useRef({});
+  const all = laptops;
+
+  // ---- Master search: text + filters (works on ALL laptops) ----------------
+  const [q, setQ] = useState('');
+  const [brandF, setBrandF] = useState('');
+  const [lineF, setLineF] = useState('');
+  const [ramF, setRamF] = useState('');
+  const [storageF, setStorageF] = useState('');
+  const [statusF, setStatusF] = useState('');
+  const [minPrice, setMinPrice] = useState('');
+  const [maxPrice, setMaxPrice] = useState('');
+
+  const brands = useMemo(() => {
+    const s = new Set((all || []).map((l) => l?.brand).filter(Boolean));
+    return [...s].sort();
+  }, [all]);
+
+  const productLines = useMemo(() => {
+    const s = new Set((all || []).map((l) => l?.product_line).filter(Boolean));
+    return [...s].sort();
+  }, [all]);
+
+  const rams = useMemo(() => {
+    const s = new Set((all || []).map((l) => l?.ram).filter(Boolean));
+    return [...s].sort((a, b) => (Number.parseInt(a) || 0) - (Number.parseInt(b) || 0));
+  }, [all]);
+
+  const results = useMemo(() => {
+    const text = q.trim().toLowerCase();
+    const min = minPrice === '' ? null : Number(minPrice);
+    const max = maxPrice === '' ? null : Number(maxPrice);
+    return (all || []).filter((l) => {
+      if (text) {
+        const hay = [l?.brand, l?.product_line, l?.brand_model, l?.serial_number, l?.processor_type, l?.ram, l?.generation, l?.storage_type, l?.storage_size, l?.current_store_name]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        if (!hay.includes(text)) return false;
+      }
+      if (brandF && l?.brand !== brandF) return false;
+      if (lineF && l?.product_line !== lineF) return false;
+      if (ramF && l?.ram !== ramF) return false;
+      if (storageF && l?.storage_type !== storageF) return false;
+      if (statusF && l?.status !== statusF) return false;
+      const rate = Number(l?.purchase_rate) || 0;
+      if (min != null && rate < min) return false;
+      if (max != null && rate > max) return false;
+      return true;
+    });
+  }, [all, q, brandF, lineF, ramF, storageF, statusF, minPrice, maxPrice]);
+
+  const filtersActive =
+    q.trim() !== '' || brandF !== '' || lineF !== '' || ramF !== '' || storageF !== '' || statusF !== '' || minPrice !== '' || maxPrice !== '';
+
+  const clearFilters = () => {
+    setQ('');
+    setBrandF('');
+    setLineF('');
+    setRamF('');
+    setStorageF('');
+    setStatusF('');
+    setMinPrice('');
+    setMaxPrice('');
+  };
 
   const soldCount = laptops.filter((l) => l?.status === 'Sold').length;
   const inStockCount = laptops.filter((l) => l?.status === 'In Stock').length;
@@ -142,6 +208,109 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
           <p className="mt-1 text-sm text-ink-faint">
             Pick a module — everything updates in real time.
           </p>
+        </div>
+
+        {/* Master search */}
+        <div className="mb-6 rounded-2xl border border-line bg-surface p-4 shadow-soft animate-rise">
+          <div className="grid gap-3">
+            <div className="relative">
+              <svg
+                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint"
+                fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
+              </svg>
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Master search — brand, product line, model, serial, processor, RAM, configuration…"
+                className="field pl-9"
+              />
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <select value={brandF} onChange={(e) => setBrandF(e.target.value)} className="field w-auto min-w-[130px] flex-1 sm:flex-none">
+                <option value="">All brands</option>
+                {brands.map((b) => (
+                  <option key={b} value={b}>{b}</option>
+                ))}
+              </select>
+              <select value={lineF} onChange={(e) => setLineF(e.target.value)} className="field w-auto min-w-[130px] flex-1 sm:flex-none">
+                <option value="">All product lines</option>
+                {productLines.map((b) => (
+                  <option key={b} value={b}>{b}</option>
+                ))}
+              </select>
+              <select value={ramF} onChange={(e) => setRamF(e.target.value)} className="field w-auto min-w-[110px] flex-1 sm:flex-none">
+                <option value="">All RAM</option>
+                {rams.map((b) => (
+                  <option key={b} value={b}>{b}</option>
+                ))}
+              </select>
+              <select value={storageF} onChange={(e) => setStorageF(e.target.value)} className="field w-auto min-w-[110px] flex-1 sm:flex-none">
+                <option value="">Any storage</option>
+                <option value="SSD">SSD</option>
+                <option value="HDD">HDD</option>
+              </select>
+              <select value={statusF} onChange={(e) => setStatusF(e.target.value)} className="field w-auto min-w-[120px] flex-1 sm:flex-none">
+                <option value="">Any status</option>
+                <option value="In Stock">In Stock</option>
+                <option value="In Transit">In Transit</option>
+                <option value="Sold">Sold</option>
+              </select>
+              <input
+                type="number" min="0" value={minPrice}
+                onChange={(e) => setMinPrice(e.target.value)}
+                placeholder="Min ₹"
+                className="field w-auto min-w-[110px] flex-1 sm:flex-none"
+              />
+              <input
+                type="number" min="0" value={maxPrice}
+                onChange={(e) => setMaxPrice(e.target.value)}
+                placeholder="Max ₹"
+                className="field w-auto min-w-[110px] flex-1 sm:flex-none"
+              />
+              {filtersActive && (
+                <button onClick={clearFilters} className="btn-ghost">
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+
+          {filtersActive && (
+            <div className="mt-3 border-t border-line pt-3 animate-fade">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">
+                {results.length} match{results.length === 1 ? '' : 'es'} — click a result to open it in Inventory
+              </p>
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {results.slice(0, 24).map((l) => (
+                  <button
+                    key={l.id}
+                    onClick={() => onFocusLaptop?.(l)}
+                    className="group flex items-center justify-between gap-3 rounded-xl border border-line bg-surface-2/60 px-3 py-2.5 text-left transition-colors duration-150 hover:border-accent-line hover:bg-accent-soft/20"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-medium text-ink">{l.brand_model}</span>
+                      <span className="block truncate font-mono text-[11px] text-ink-faint">
+                        {l.serial_number} · {l.current_store_name || 'Unassigned'}
+                      </span>
+                    </span>
+                    <span className="flex shrink-0 items-center gap-2">
+                      <StatusChip status={l.status} />
+                      <span className="font-mono text-[11px] text-ink-dim">
+                        {l.purchase_rate != null ? inr(l.purchase_rate) : '—'}
+                      </span>
+                    </span>
+                  </button>
+                ))}
+                {results.length > 24 && (
+                  <p className="col-span-full text-xs text-ink-faint">
+                    +{results.length - 24} more — narrow your search
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-5">

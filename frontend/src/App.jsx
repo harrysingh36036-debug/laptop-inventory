@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import {
   getStores,
   getLaptops,
@@ -35,9 +35,9 @@ import StoreFilter from './components/StoreFilter';
 import Toolbar from './components/Toolbar';
 import LaptopTable from './components/LaptopTable';
 import Toast from './components/Toast';
+import DangerConfirmModal from './components/DangerConfirmModal';
 import InventoryModal from './components/InventoryModal';
 import SalesTab from './components/SalesTab';
-import AccountManager from './components/AccountManager';
 import AdminSettings from './components/AdminSettings';
 import BrandsManager from './components/BrandsManager';
 import VendorsManager from './components/VendorsManager';
@@ -49,6 +49,54 @@ import ReportsTab from './components/ReportsTab';
 import PurchasesTab from './components/PurchasesTab';
 import RepairsTab from './components/RepairsTab';
 import RepairModal from './components/RepairModal';
+
+const MENU_ICONS = {
+  dashboard: (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h5a1 1 0 011 1v5a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm9 0a1 1 0 011-1h5a1 1 0 011 1v5a1 1 0 01-1 1h-5a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h5a1 1 0 011 1v5a1 1 0 01-1 1H5a1 1 0 01-1-1v-5zm9 0a1 1 0 011-1h5a1 1 0 011 1v5a1 1 0 01-1 1h-5a1 1 0 01-1-1v-5z" />
+    </svg>
+  ),
+  settings: (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+    </svg>
+  ),
+  brands: (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+    </svg>
+  ),
+  vendors: (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+    </svg>
+  ),
+  stores: (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6" />
+    </svg>
+  ),
+  logout: (
+    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+    </svg>
+  )
+};
+
+function MenuRow({ label, icon, onClick, danger = false }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm font-medium transition-colors duration-150 ${
+        danger ? 'text-stock-risk hover:bg-stock-risk/10' : 'text-ink-dim hover:bg-surface-2 hover:text-ink'
+      }`}
+    >
+      <span className={`shrink-0 ${danger ? 'text-stock-risk' : 'text-accent'}`}>{MENU_ICONS[icon]}</span>
+      {label}
+    </button>
+  );
+}
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -86,12 +134,37 @@ export default function App() {
   const [invModal, setInvModal] = useState(null);
   const [repairModal, setRepairModal] = useState(null); // null | {} | { repair }
   const [repairLaptopOptions, setRepairLaptopOptions] = useState([]);
-  const [accountsOpen, setAccountsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [brandsOpen, setBrandsOpen] = useState(false);
   const [vendorsOpen, setVendorsOpen] = useState(false);
   const [customersOpen, setCustomersOpen] = useState(false);
   const [sellTarget, setSellTarget] = useState(null); // laptop about to be sold
+  const [delTarget, setDelTarget] = useState(null); // { id, label } scheduled for deletion
+  const [repairDelTarget, setRepairDelTarget] = useState(null); // repair scheduled for deletion
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  // Close the 3-dot menu on outside click / Escape.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDown = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false);
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') setMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [menuOpen]);
+
+  const pick = (action) => {
+    setMenuOpen(false);
+    action();
+  };
 
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
   const isSuperAdmin = user?.role === 'superadmin';
@@ -112,7 +185,6 @@ export default function App() {
   const can = (perm) => (isAdmin ? true : !!myPerms[perm]);
   const canEditInventory = can('editInventory');
   const canTransfer = can('transferLaptops');
-  const canCreateStaff = can('createStaff');
   const canRenameStores = can('renameStores');
   // Vendor / Customer management is granted by the super admin — even for admins.
   const canManageVendors = isSuperAdmin || !!((rolePerms || {})[user?.role] || {})['manageVendors'];
@@ -392,8 +464,10 @@ export default function App() {
     try {
       const payload = {
         brand: form.brand,
+        product_line: form.product_line,
         brand_model: form.brand_model,
         processor_type: form.processor_type,
+        ram: form.ram,
         generation: form.generation,
         storage_type: form.storage_type,
         storage_size: form.storage_size,
@@ -460,14 +534,21 @@ export default function App() {
     }
   };
 
-  const handleRepairDelete = async (repair) => {
-    if (!window.confirm(`Delete repair of "${repair.brand_model || repair.serial_number || '#' + repair.id}"? This cannot be undone.`)) return;
+  const handleRepairDelete = (repair) => {
+    setRepairDelTarget(repair);
+  };
+
+  const handleRepairDeleteConfirm = async (pwd, remarks) => {
+    const r = repairDelTarget;
+    if (!r) return '';
     try {
-      await deleteRepair(repair.id);
+      await deleteRepair(r.id, pwd, remarks);
       notify('Repair removed', 'success');
+      setRepairDelTarget(null);
       await reloadRepairs();
+      return '';
     } catch (e) {
-      notify(e.message, 'error');
+      return e.message;
     }
   };
 
@@ -511,20 +592,22 @@ export default function App() {
   };
 
   const handleDelete = async (id, brand) => {
-    if (!window.confirm(`Remove "${brand}" from inventory?`)) return;
-    try {
-      await deleteLaptop(id);
-      notify('Laptop removed', 'success');
-      await refresh();
-      reloadPurchases();
-    } catch (e) {
-      notify(e.message, 'error');
-    }
+    setDelTarget({ id, label: brand });
   };
 
-  const handleCurrentUserChanged = (updatedUser, token) => {
-    setUser(updatedUser);
-    if (token) setToken(token);
+  const handleDeleteConfirm = async (pwd, remarks) => {
+    const t = delTarget;
+    if (!t) return '';
+    try {
+      await deleteLaptop(t.id, pwd, remarks);
+      notify('Laptop removed', 'success');
+      setDelTarget(null);
+      await refresh();
+      reloadPurchases();
+      return '';
+    } catch (e) {
+      return e.message;
+    }
   };
 
   // ---- Admin: settings & store management ----------------------------------
@@ -554,9 +637,9 @@ export default function App() {
     }
   };
 
-  const handleDeleteStore = async (id) => {
+  const handleDeleteStore = async (id, password = '', remarks = '') => {
     try {
-      await deleteStore(id);
+      await deleteStore(id, password, remarks);
       const [s, st] = await Promise.all([getStores(), getSettings()]);
       setStores(s);
       setLabels(st);
@@ -597,24 +680,72 @@ export default function App() {
         <header className="sticky top-0 z-40 border-b border-line bg-[#0e0f13]/80 backdrop-blur-md">
           <div className="mx-auto max-w-[1440px] px-4 h-14 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
+            {/* 3-dot menu */}
+            <div className="relative shrink-0" ref={menuRef}>
               <button
-                onClick={() => setTab('dashboard')}
-                className="flex items-center gap-3 min-w-0 text-left transition-opacity duration-150 hover:opacity-80"
-                title="Go to dashboard"
+                onClick={() => setMenuOpen((o) => !o)}
+                aria-label="Menu"
+                aria-expanded={menuOpen}
+                className={`flex h-9 w-9 items-center justify-center rounded-full border transition-colors duration-150 ${
+                  menuOpen
+                    ? 'border-accent-line bg-accent-soft text-accent'
+                    : 'border-line bg-surface text-ink-dim hover:bg-surface-2 hover:text-ink'
+                }`}
               >
-                <span className="h-6 w-6 rounded-md bg-accent-soft flex items-center justify-center">
-                  <svg className="h-3.5 w-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                  </svg>
-                </span>
-                <div className="min-w-0">
-                  <h1 className="truncate font-display text-sm font-semibold tracking-tight">{labels.appTitle || 'Laptop Inventory Tracker'}</h1>
-                  <p className="hidden sm:block text-[11px] text-ink-faint">
-                    {labels.appSubtitle || 'Real-time location tracking across 7 retail stores'}
-                  </p>
-                </div>
+                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 16 16">
+                  <circle cx="8" cy="3" r="1.5" />
+                  <circle cx="8" cy="8" r="1.5" />
+                  <circle cx="8" cy="13" r="1.5" />
+                </svg>
               </button>
+
+              {menuOpen && (
+                <div className="absolute left-0 top-full z-50 mt-2 w-56 rounded-2xl border border-line bg-surface p-1.5 shadow-pop animate-rise">
+                  <p className="px-3 pb-1 pt-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
+                    {(user.display_name || user.username).slice(0, 1)} — {user.role}
+                  </p>
+                  <div className="mb-1 border-b border-line" />
+                  <MenuRow
+                    label="Dashboard"
+                    icon="dashboard"
+                    onClick={() => pick(() => setTab('dashboard'))}
+                  />
+                  {isAdmin && (
+                    <MenuRow label="Settings" icon="settings" onClick={() => pick(() => setSettingsOpen(true))} />
+                  )}
+                  {isAdmin && (
+                    <MenuRow label="Brands" icon="brands" onClick={() => pick(() => setBrandsOpen(true))} />
+                  )}
+                  {canManageVendors && (
+                    <MenuRow label="Vendors" icon="vendors" onClick={() => pick(() => setVendorsOpen(true))} />
+                  )}
+                  {!isAdmin && canRenameStores && (
+                    <MenuRow label="Stores" icon="stores" onClick={() => pick(() => setSettingsOpen(true))} />
+                  )}
+                  <div className="my-1 border-t border-line" />
+                  <MenuRow label="Sign out" icon="logout" danger onClick={handleLogout} />
+                </div>
+              )}
             </div>
+
+            <button
+              onClick={() => setTab('dashboard')}
+              className="flex items-center gap-3 min-w-0 text-left transition-opacity duration-150 hover:opacity-80"
+              title="Go to dashboard"
+            >
+              <span className="h-6 w-6 rounded-md bg-accent-soft flex items-center justify-center">
+                <svg className="h-3.5 w-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </span>
+              <div className="min-w-0">
+                <h1 className="truncate font-display text-sm font-semibold tracking-tight">{labels.appTitle || 'Laptop Inventory Tracker'}</h1>
+                <p className="hidden sm:block text-[11px] text-ink-faint">
+                  {labels.appSubtitle || 'Real-time location tracking across 7 retail stores'}
+                </p>
+              </div>
+            </button>
+          </div>
           <div className="flex items-center justify-end gap-2 text-xs min-w-0">
             <span
               className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 font-medium ${
@@ -629,7 +760,7 @@ export default function App() {
               <span className="hidden sm:inline">{connected ? 'Live · synced' : 'Reconnecting…'}</span>
             </span>
 
-            <div className="flex items-center gap-1 overflow-x-auto rounded-full border border-line bg-surface p-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <span className="flex items-center gap-1 rounded-full border border-line bg-surface p-1">
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent-soft font-display text-xs font-semibold text-accent">
                 {(user.display_name || user.username).slice(0, 1)}
               </span>
@@ -637,69 +768,7 @@ export default function App() {
                 <span className="block max-w-[120px] truncate text-xs font-medium text-ink">{user.display_name || user.username}</span>
                 <span className="block text-[10px] uppercase tracking-wide text-ink-faint">{user.role}</span>
               </span>
-              {isAdmin && (
-                <button
-                  onClick={() => setAccountsOpen(true)}
-                  className="rounded-full px-2.5 py-1 font-medium text-ink-dim hover:bg-surface-3 hover:text-ink transition-colors"
-                >
-                  Accounts
-                </button>
-              )}
-              {tab !== 'dashboard' && (
-                <button
-                  onClick={() => setTab('dashboard')}
-                  className="rounded-full bg-accent-soft px-2.5 py-1 font-medium text-accent hover:bg-accent/20 transition-colors"
-                >
-                  Dashboard
-                </button>
-              )}
-              {!isAdmin && canCreateStaff && (
-                <button
-                  onClick={() => setAccountsOpen(true)}
-                  className="rounded-full px-2.5 py-1 font-medium text-ink-dim hover:bg-surface-3 hover:text-ink transition-colors"
-                >
-                  Accounts
-                </button>
-              )}
-              {isAdmin && (
-                <button
-                  onClick={() => setSettingsOpen(true)}
-                  className="rounded-full px-2.5 py-1 font-medium text-ink-dim hover:bg-surface-3 hover:text-ink transition-colors"
-                >
-                  Settings
-                </button>
-              )}
-              {isAdmin && (
-                <button
-                  onClick={() => setBrandsOpen(true)}
-                  className="rounded-full px-2.5 py-1 font-medium text-ink-dim hover:bg-surface-3 hover:text-ink transition-colors"
-                >
-                  Brands
-                </button>
-              )}
-              {canManageVendors && (
-                <button
-                  onClick={() => setVendorsOpen(true)}
-                  className="rounded-full px-2.5 py-1 font-medium text-ink-dim hover:bg-surface-3 hover:text-ink transition-colors"
-                >
-                  Vendors
-                </button>
-              )}
-              {!isAdmin && canRenameStores && (
-                <button
-                  onClick={() => setSettingsOpen(true)}
-                  className="rounded-full px-2.5 py-1 font-medium text-ink-dim hover:bg-surface-3 hover:text-ink transition-colors"
-                >
-                  Stores
-                </button>
-              )}
-              <button
-                onClick={handleLogout}
-                className="rounded-full border border-line px-2.5 py-1 font-medium text-ink-dim hover:text-stock-risk hover:border-stock-risk/40 transition-colors"
-              >
-                Sign out
-              </button>
-            </div>
+            </span>
           </div>
         </div>
       </header>
@@ -812,7 +881,7 @@ export default function App() {
             onDelete={handleRepairDelete}
           />
         ) : tab === 'sales' ? (
-          <SalesTab stores={stores} isSuperAdmin={isSuperAdmin} onNotify={notify} />
+          <SalesTab stores={stores} isSuperAdmin={isSuperAdmin} canSeeCustomer={isAdmin} onNotify={notify} />
         ) : tab === 'customers' ? (
           <div className="space-y-4">
             <p className="text-sm text-ink-dim">Manage your customers. Linked to sales when a laptop is sold to them.</p>
@@ -823,7 +892,7 @@ export default function App() {
         ) : tab === 'transfers' ? (
           <TransferHistoryTab stores={stores} />
         ) : (
-          <SalesTab stores={stores} isSuperAdmin={isSuperAdmin} onNotify={notify} />
+          <SalesTab stores={stores} isSuperAdmin={isSuperAdmin} canSeeCustomer={isAdmin} onNotify={notify} />
         )}
       </main>
 
@@ -835,6 +904,24 @@ export default function App() {
           editing={invModal.laptop}
           onSave={handleSave}
           onClose={() => setInvModal(null)}
+        />
+      )}
+
+      {delTarget && (
+        <DangerConfirmModal
+          title="Delete this laptop?"
+          warning={`"${delTarget.label}" will be permanently removed from inventory along with its transfer history. This cannot be undone.`}
+          onConfirm={handleDeleteConfirm}
+          onClose={() => setDelTarget(null)}
+        />
+      )}
+
+      {repairDelTarget && (
+        <DangerConfirmModal
+          title="Delete this repair?"
+          warning={`The repair record for "${repairDelTarget.brand_model || repairDelTarget.serial_number || '#' + repairDelTarget.id}" will be permanently removed. This cannot be undone.`}
+          onConfirm={handleRepairDeleteConfirm}
+          onClose={() => setRepairDelTarget(null)}
         />
       )}
 
@@ -878,16 +965,6 @@ export default function App() {
           </div>
         </div>
       )}
-
-      {accountsOpen && (isAdmin || canCreateStaff) && (
-        <AccountManager
-          currentUser={user}
-          stores={stores}
-          onClose={() => setAccountsOpen(false)}
-          onCurrentUserChanged={handleCurrentUserChanged}
-        />
-      )}
-
       {settingsOpen && (isAdmin || canRenameStores) && (
         <AdminSettings
           stores={stores}

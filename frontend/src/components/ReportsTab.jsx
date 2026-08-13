@@ -1,7 +1,12 @@
 import { useEffect, useState } from 'react';
-import { getSales, getSalesSummary } from '../api';
+import { getSales, getSalesSummary, getDailyReport, getDailyStoreSales } from '../api';
+import { inr } from '../utils';
 import InventoryStats from './InventoryStats';
 import SearchBox from './SearchBox';
+
+function escapeHtml(v) {
+  return String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
 
 function csvEscape(v) {
   const s = String(v ?? '');
@@ -25,6 +30,11 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [] }) {
   const [sales, setSales] = useState([]);
   const [summary, setSummary] = useState(null);
   const [search, setSearch] = useState('');
+  const [reportDate, setReportDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [daily, setDaily] = useState(null); // app_daily_report payload
+  const [storeSales, setStoreSales] = useState(null); // app_daily_store_sales payload
+  const [dailyLoading, setDailyLoading] = useState(false);
+  const [dailyError, setDailyError] = useState('');
   const storeName = (id) => stores.find((s) => s.id === id)?.store_name;
 
   useEffect(() => {
@@ -42,15 +52,36 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [] }) {
     return () => { alive = false; };
   }, []);
 
+  useEffect(() => {
+    if (!reportDate) return;
+    let alive = true;
+    setDailyLoading(true);
+    setDailyError('');
+    (async () => {
+      try {
+        const [r, ss] = await Promise.all([getDailyReport(reportDate), getDailyStoreSales(reportDate)]);
+        if (!alive) return;
+        setDaily(r || null);
+        setStoreSales(ss || null);
+      } catch (e) {
+        if (!alive) return;
+        setDailyError(e.message);
+      } finally {
+        if (alive) setDailyLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, [reportDate]);
+
   const downloadInventory = () => {
     const rows = [
-      ['SKU', 'Brand', 'Model', 'Serial', 'Store', 'Status', 'Processor', 'Generation', 'Storage', 'Purchase Rate', 'Vendor', 'Created At']
+      ['SKU', 'Brand', 'Product Line', 'Model', 'Serial', 'Store', 'Status', 'Processor', 'RAM', 'Generation', 'Storage', 'Purchase Rate', 'Vendor', 'Created At']
     ];
     (laptops || []).forEach((l) =>
       rows.push([
-        l.id, l.brand, l.brand_model, l.serial_number,
+        l.id, l.brand, l.product_line || '', l.brand_model, l.serial_number,
         storeName(l.current_store_id) || l.current_store_id || '',
-        l.status, l.processor_type, l.generation,
+        l.status, l.processor_type, l.ram || '', l.generation || '',
         l.storage_size ? `${l.storage_size} ${l.storage_type || ''}`.trim() : (l.storage_type || ''),
         l.purchase_rate, l.purchased_from || '', l.created_at || ''
       ])
@@ -97,6 +128,73 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [] }) {
       ['Generated At', `${new Date().toISOString().slice(0, 19).replace('T', ' ')} UTC`]
     ];
     saveCsv(`profit-summary-${new Date().toISOString().slice(0, 10)}.csv`, rows);
+  };
+
+  // Printable daily report (per-store status + store-wise sales).
+  const printDailyReport = () => {
+    if (!daily && !storeSales) return;
+    const d = daily || { date: reportDate, stores: [], totals: {} };
+    const ss = storeSales || { date: reportDate, stores: [], totals: {} };
+    const w = window.open('', '_blank', 'width=760,height=900');
+    if (!w) return;
+    const rows = (d.stores || [])
+      .map(
+        (st) => `<tr>
+        <td>${escapeHtml(st.store_name)}</td>
+        <td class="num">${st.in_store ?? 0}</td>
+        <td class="num">${st.sold_on ?? 0}</td>
+        <td class="num">${st.transferred_out_on ?? 0}</td>
+        <td class="num">${st.transferred_in_on ?? 0}</td>
+        <td class="num">${st.out_total ?? 0}</td>
+        <td>${(st.models || []).map((m) => `${escapeHtml(m.model)} × ${m.count}`).join(', ') || '—'}</td>
+      </tr>`
+      )
+      .join('');
+    const t = d.totals || {};
+    const srows = (ss.stores || [])
+      .map(
+        (st) => `<tr>
+        <td>${escapeHtml(st.store_name)}</td>
+        <td class="num">${st.units ?? 0}</td>
+        <td class="num">₹ ${Number(st.amount || 0).toLocaleString('en-IN')}</td>
+        <td class="num">₹ ${Number(st.profit || 0).toLocaleString('en-IN')}</td>
+      </tr>`
+      )
+      .join('');
+    const st = ss.totals || {};
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Daily Report — ${escapeHtml(d.date)}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1d24; padding: 28px; }
+  h1 { font-size: 20px; }
+  .meta { color: #6b7280; font-size: 12px; margin: 2px 0 18px; }
+  h2 { font-size: 14px; margin: 22px 0 8px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th, td { text-align: left; padding: 7px 8px; border: 1px solid #e2e6ee; vertical-align: top; }
+  th { background: #f4f6fa; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+  .num { text-align: right; white-space: nowrap; }
+  tfoot td { font-weight: 700; background: #f8fafc; }
+  .foot { margin-top: 24px; text-align: center; color: #9aa3b2; font-size: 11px; }
+</style></head><body>
+  <h1>Daily Report</h1>
+  <p class="meta">${escapeHtml(d.date)} · generated ${new Date().toLocaleString()}</p>
+  <h2>Store status — in / out</h2>
+  <table>
+    <thead><tr><th>Store</th><th>In Store</th><th>Sold</th><th>Transferred Out</th><th>Transferred In</th><th>Out Total</th><th>Models</th></tr></thead>
+    <tbody>${rows}</tbody>
+    <tfoot><tr><td>Totals</td><td class="num">${t.in_store ?? 0}</td><td class="num">${t.sold_on ?? 0}</td><td class="num">${t.transferred_out_on ?? 0}</td><td class="num">${t.transferred_in_on ?? 0}</td><td class="num">${t.out_total ?? 0}</td><td></td></tr></tfoot>
+  </table>
+  <h2>Store-wise sales</h2>
+  <table>
+    <thead><tr><th>Store</th><th>Units</th><th>Amount</th><th>Profit</th></tr></thead>
+    <tbody>${srows}</tbody>
+    <tfoot><tr><td>Totals</td><td class="num">${st.units ?? 0}</td><td class="num">₹ ${Number(st.amount || 0).toLocaleString('en-IN')}</td><td class="num">₹ ${Number(st.profit || 0).toLocaleString('en-IN')}</td></tr></tfoot>
+  </table>
+  <p class="foot">Laptop Inventory · daily report</p>
+</body></html>`);
+    w.document.close();
+    w.focus();
+    setTimeout(() => w.print(), 250);
   };
 
   const reports = [
@@ -177,6 +275,130 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [] }) {
           </div>
         ))}
       </div>
+
+      {/* Daily report */}
+      <section className="panel p-5" id="daily-report">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-display text-base font-semibold tracking-tight text-ink">Daily report</h2>
+            <p className="text-xs text-ink-faint">Per-store system in / out and store-wise sales for one day.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={reportDate}
+              onChange={(e) => setReportDate(e.target.value)}
+              className="field max-w-[170px]"
+            />
+            <button onClick={printDailyReport} disabled={dailyLoading || (!daily && !storeSales)} className="btn-ghost disabled:opacity-40">
+              Print
+            </button>
+          </div>
+        </div>
+
+        {dailyError && (
+          <p className="mt-4 rounded-lg border border-stock-risk/30 bg-stock-risk/10 px-3 py-2 text-sm text-stock-risk">{dailyError}</p>
+        )}
+        {dailyLoading && <p className="mt-4 text-sm text-ink-faint">Loading daily report…</p>}
+
+        {!dailyLoading && daily && (
+          <div className="mt-5 space-y-6">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[720px] text-left text-sm">
+                <thead>
+                  <tr className="border-b border-line">
+                    <th className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Store</th>
+                    <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-faint">In Store</th>
+                    <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Sold</th>
+                    <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Transferred Out</th>
+                    <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Transferred In</th>
+                    <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Out Total</th>
+                    <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Models</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--hairline)]">
+                  {(daily.stores || []).map((st) => (
+                    <tr key={st.store_id} className="transition-colors duration-150 hover:bg-surface-2/60">
+                      <td className="px-3 py-2.5 font-medium text-ink">{st.store_name}</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-xs text-ink">{st.in_store ?? 0}</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-xs text-ink-dim">{st.sold_on ?? 0}</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-xs text-ink-dim">{st.transferred_out_on ?? 0}</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-xs text-ink-dim">{st.transferred_in_on ?? 0}</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-xs font-medium text-accent">{st.out_total ?? 0}</td>
+                      <td className="px-3 py-2.5 text-[11px] text-ink-dim">
+                        {(st.models || []).map((m) => (
+                          <span key={m.model} className="mr-1.5 inline-block rounded-md border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] text-ink-dim">
+                            {m.model} × {m.count}
+                          </span>
+                        ))}
+                        {(st.models || []).length === 0 && <span className="text-ink-faint">—</span>}
+                      </td>
+                    </tr>
+                  ))}
+                  {(daily.stores || []).length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="px-3 py-8 text-center text-sm text-ink-faint">No stores on this date.</td>
+                    </tr>
+                  )}
+                </tbody>
+                {daily.totals && (
+                  <tfoot>
+                    <tr className="border-t border-line">
+                      <td className="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-ink">Totals</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-ink">{daily.totals.in_store ?? 0}</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-ink-dim">{daily.totals.sold_on ?? 0}</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-ink-dim">{daily.totals.transferred_out_on ?? 0}</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-ink-dim">{daily.totals.transferred_in_on ?? 0}</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-accent">{daily.totals.out_total ?? 0}</td>
+                      <td />
+                    </tr>
+                  </tfoot>
+                )}
+              </table>
+            </div>
+
+            {storeSales && (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[480px] text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-line">
+                      <th className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Store</th>
+                      <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Units</th>
+                      <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Amount</th>
+                      <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Profit</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--hairline)]">
+                    {(storeSales.stores || []).map((st) => (
+                      <tr key={st.store_id} className="transition-colors duration-150 hover:bg-surface-2/60">
+                        <td className="px-3 py-2.5 font-medium text-ink">{st.store_name}</td>
+                        <td className="px-3 py-2.5 text-right font-mono text-xs text-ink-dim">{st.units ?? 0}</td>
+                        <td className="px-3 py-2.5 text-right font-mono text-xs text-ink">{inr(st.amount)}</td>
+                        <td className="px-3 py-2.5 text-right font-mono text-xs text-ink-dim">{inr(st.profit)}</td>
+                      </tr>
+                    ))}
+                    {(storeSales.stores || []).length === 0 && (
+                      <tr>
+                        <td colSpan={4} className="px-3 py-8 text-center text-sm text-ink-faint">No sales on this date.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                  {storeSales.totals && (
+                    <tfoot>
+                      <tr className="border-t border-line">
+                        <td className="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-ink">Totals</td>
+                        <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-ink">{storeSales.totals.units ?? 0}</td>
+                        <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-ink">{inr(storeSales.totals.amount)}</td>
+                        <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-ink-dim">{inr(storeSales.totals.profit)}</td>
+                      </tr>
+                    </tfoot>
+                  )}
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
 
       <InventoryStats stores={stores} laptops={laptops} search={search} />
     </div>

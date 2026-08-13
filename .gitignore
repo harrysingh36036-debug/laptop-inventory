@@ -9,3 +9,4 @@ frontend/dist/
 backend/.env
 backend/supabase-url.txt
 frontend/.env
+frontend/vite.log

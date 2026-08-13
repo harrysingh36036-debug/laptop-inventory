@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getBrands, addBrand, updateBrand, deleteBrand } from '../api';
+import DangerConfirmModal from './DangerConfirmModal';
 
 const EMPTY = { name: '', serial_prefix: '' };
 
@@ -9,6 +10,7 @@ export default function BrandsManager({ onNotify }) {
   const [form, setForm] = useState(EMPTY);
   const [editingId, setEditingId] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [danger, setDanger] = useState(null); // brand scheduled for deletion
 
   const load = async () => {
     try {
@@ -50,14 +52,16 @@ export default function BrandsManager({ onNotify }) {
     }
   };
 
-  const remove = async (b) => {
-    if (!window.confirm(`Delete brand "${b.name}"? Existing laptops keep their brand name, but new units won't use it.`)) return;
+  const confirmDelete = async (pwd, remarks) => {
+    if (!danger) return '';
     try {
-      await deleteBrand(b.id);
+      await deleteBrand(danger.id, pwd, remarks);
       onNotify?.('Brand deleted', 'success');
+      setDanger(null);
       await load();
+      return '';
     } catch (err) {
-      onNotify?.(err.message, 'error');
+      return err.message;
     }
   };
 
@@ -132,7 +136,7 @@ export default function BrandsManager({ onNotify }) {
                 <td className="px-4 py-2.5">
                   <div className="flex items-center justify-end gap-2">
                     <button onClick={() => startEdit(b)} className="btn-ghost">Edit</button>
-                    <button onClick={() => remove(b)} className="btn-danger">Delete</button>
+                    <button onClick={() => setDanger(b)} className="btn-danger">Delete</button>
                   </div>
                 </td>
               </tr>
@@ -140,6 +144,15 @@ export default function BrandsManager({ onNotify }) {
           </tbody>
         </table>
       </div>
+
+      {danger && (
+        <DangerConfirmModal
+          title="Delete this brand?"
+          warning={`"${danger.name}" will be removed. Existing laptops keep their brand name, but new units won't use it.`}
+          onConfirm={confirmDelete}
+          onClose={() => setDanger(null)}
+        />
+      )}
     </div>
   );
 }

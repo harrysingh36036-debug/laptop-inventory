@@ -1,6 +1,7 @@
 import { useEffect, useState, Fragment } from 'react';
 import { inr, formatTime } from '../utils';
 import { getCustomers, getSales, addCustomer, updateCustomer, deleteCustomer, bulkDeleteCustomers } from '../api';
+import DangerConfirmModal from './DangerConfirmModal';
 
 const EMPTY = { name: '', phone: '', email: '', address: '', notes: '' };
 
@@ -17,6 +18,7 @@ export default function CustomersManager({ onNotify }) {
   const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState(new Set());
   const [openCustomer, setOpenCustomer] = useState(null);
+  const [danger, setDanger] = useState(null); // { kind:'one', c } | { kind:'bulk', ids, names }
 
   const purchasesFor = (c) => (sales || []).filter((s) => s.customer_id === c.id || s.customer_name === c.name);
 
@@ -73,14 +75,24 @@ export default function CustomersManager({ onNotify }) {
     }
   };
 
-  const remove = async (c) => {
-    if (!window.confirm(`Delete customer "${c.name}"?`)) return;
+  const confirmDelete = async (pwd, remarks) => {
+    if (!danger) return '';
+    setBusy(true);
     try {
-      await deleteCustomer(c.id);
-      onNotify?.('Customer deleted', 'success');
+      if (danger.kind === 'one') {
+        await deleteCustomer(danger.c.id, pwd, remarks);
+        onNotify?.('Customer deleted', 'success');
+      } else {
+        const res = await bulkDeleteCustomers(danger.ids, pwd, remarks);
+        onNotify?.(`${res?.deleted ?? danger.ids.length} customer(s) deleted`, 'success');
+      }
+      setDanger(null);
       await load();
+      return '';
     } catch (err) {
-      onNotify?.(err.message, 'error');
+      return err.message;
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -102,17 +114,7 @@ export default function CustomersManager({ onNotify }) {
   const bulkRemove = async () => {
     if (selected.size === 0) return;
     const names = customers.filter((c) => selected.has(c.id)).map((c) => c.name);
-    if (!window.confirm(`Delete ${selected.size} customer(s)?\n\n${names.join(', ')}`)) return;
-    setBusy(true);
-    try {
-      const res = await bulkDeleteCustomers([...selected]);
-      onNotify?.(`${res?.deleted ?? selected.size} customer(s) deleted`, 'success');
-      await load();
-    } catch (err) {
-      onNotify?.(err.message, 'error');
-    } finally {
-      setBusy(false);
-    }
+    setDanger({ kind: 'bulk', ids: [...selected], names });
   };
 
   if (loading) return <p className="text-sm text-ink-faint">Loading customers…</p>;
@@ -250,7 +252,7 @@ export default function CustomersManager({ onNotify }) {
                         {openCustomer === c.id ? '▲ Hide purchases' : purchasesFor(c).length > 0 ? `▼ ${purchasesFor(c).length} purchase${purchasesFor(c).length === 1 ? '' : 's'}` : '—'}
                       </button>
                       <button onClick={() => startEdit(c)} className="btn-ghost">Edit</button>
-                      <button onClick={() => remove(c)} className="btn-danger">Delete</button>
+                      <button onClick={() => setDanger({ kind: 'one', c })} className="btn-danger">Delete</button>
                     </div>
                   </td>
                 </tr>
@@ -294,6 +296,19 @@ export default function CustomersManager({ onNotify }) {
           </table>
         </div>
       </div>
+
+      {danger && (
+        <DangerConfirmModal
+          title={danger.kind === 'one' ? 'Delete this customer?' : `Delete ${danger.ids.length} customers?`}
+          warning={
+            danger.kind === 'one'
+              ? `"${danger.c.name}" will be permanently removed, but linked sales stay in the records.`
+              : `These customers will be permanently removed: ${danger.names.join(', ')}`
+          }
+          onConfirm={confirmDelete}
+          onClose={() => setDanger(null)}
+        />
+      )}
     </div>
   );
 }

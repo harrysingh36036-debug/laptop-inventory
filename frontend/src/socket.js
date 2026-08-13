@@ -134,7 +134,6 @@ function handleChange(table, event, row) {
         to: { store_name: to },
         transferred_by: row.transferred_by
       });
-      _emit('log:new', row);
     });
     return;
   }
@@ -173,10 +172,6 @@ function handleChange(table, event, row) {
       if (row.key === 'role_permissions') _emit('permissions:updated');
     });
     return;
-  }
-
-  if (table === 'loginlogs' && event === 'insert') {
-    _emit('log:new', row);
   }
 
   if (table === 'profiles') {

@@ -123,16 +123,6 @@ const allowed = allowedStores(user);
     throw new Error('This account is not allowed to sign in from this store.');
   }
   setToken(data.session.access_token);
-  // Record the login (which store the user signed in from) for the audit log.
-  try {
-    await supabase.rpc('app_record_login', {
-      p_store_id: store,
-      p_ip: null,
-      p_user_agent: navigator?.userAgent || null
-    });
-  } catch {
-    /* non-fatal: audit log must not block sign-in */
-  }
   return { token: data.session.access_token, user: profile };
 };
 
@@ -147,50 +137,7 @@ export const getMe = async () => {
   return { user: profile };
 };
 
-// ------------------------------- Account mgmt ------------------------------
-export const getUsers = () => rpc('app_get_users')
-
-export const createUser = async (data) => {
-  const result = await rpc('app_create_user', {
-    p_username: data.username,
-    p_password: data.password,
-    p_display_name: data.display_name || '',
-    p_role: data.role || 'staff',
-    p_store_id: data.home_store_id ? Number(data.home_store_id) : null,
-    p_allowed_store_ids: buildAllowedStoreIds(data)
-  });
-  return result.user;
-};
-
-function buildAllowedStoreIds(data) {
-  if (data.allowed_store_ids === undefined) return null;
-  const ids = Array.isArray(data.allowed_store_ids)
-    ? data.allowed_store_ids
-    : (data.allowed_store_ids || '').toString().split(',').filter(Boolean);
-  return ids.map(Number);
-}
-
-export const updateUser = async (id, data) => {
-  const result = await rpc('app_update_user', {
-    p_id: id,
-    p_username: data.username || null,
-    p_password: data.password || null,
-    p_display_name: data.display_name || null,
-    p_role: data.role || null,
-    p_store_id: data.home_store_id === undefined ? null
-      : (data.home_store_id ? Number(data.home_store_id) : 0),
-    p_allowed_store_ids: data.allowed_store_ids === undefined ? null : buildAllowedStoreIds(data)
-  });
-  const {
-    data: { session }
-  } = await supabase.auth.getSession();
-  // app_update_user returns { user: {...} }: unwrap it like the old API did.
-  return { user: result.user, token: session?.access_token || null };
-};
-
-export const deleteUser = (id) => rpc('app_delete_user', { p_id: id });
-export const bulkDeleteUsers = (ids) => rpc('app_bulk_delete_users', { p_ids: ids });
-export const getLoginLogs = () => rpc('app_get_login_logs');
+// ------------------------------- Inventory -------------------------------
 
 // --------------------------------- Inventory -------------------------------
 export const getStores = () => table('stores');
@@ -219,7 +166,8 @@ export const createLaptopsBulk = (data, quantity) =>
 export const updateLaptop = (id, data) =>
   rpc('app_update_laptop', { p_id: id, p_data: data });
 
-export const deleteLaptop = (id) => rpc('app_delete_laptop', { p_id: id });
+export const deleteLaptop = (id, password = '', remarks = '') =>
+  rpc('app_delete_laptop', { p_id: id, p_password: password, p_remarks: remarks });
 
 export const sellLaptop = async (id, salePrice, customerId = null) =>
   rpc('app_sell_laptop', {
@@ -230,7 +178,8 @@ export const sellLaptop = async (id, salePrice, customerId = null) =>
   });
 
 // Super admin only (enforced server-side).
-export const deleteSale = (saleId) => rpc('app_delete_sale', { p_sale_id: saleId });
+export const deleteSale = (saleId, password = '', remarks = '') =>
+  rpc('app_delete_sale', { p_sale_id: saleId, p_password: password, p_remarks: remarks });
 
 // Current user's username, used as the "sold_by" audit value.
 async function currentUsername() {
@@ -252,7 +201,8 @@ export const updateBrand = (id, data) =>
     p_name: data.name,
     p_serial_prefix: data.serial_prefix || ''
   });
-export const deleteBrand = (id) => rpc('app_delete_brand', { p_id: id });
+export const deleteBrand = (id, password = '', remarks = '') =>
+  rpc('app_delete_brand', { p_id: id, p_password: password, p_remarks: remarks });
 
 // ---------------------------------- Vendors --------------------------------
 export const getVendors = () => table('vendors');
@@ -260,12 +210,18 @@ export const addVendor = (data) =>
   rpc('app_add_vendor', { p_name: data.name, p_contact: data.contact || '' });
 export const updateVendor = (id, data) =>
   rpc('app_update_vendor', { p_id: id, p_name: data.name, p_contact: data.contact || '' });
-export const deleteVendor = (id) => rpc('app_delete_vendor', { p_id: id });
-export const bulkDeleteVendors = (ids) => rpc('app_bulk_delete_vendors', { p_ids: ids });
+export const deleteVendor = (id, password = '', remarks = '') =>
+  rpc('app_delete_vendor', { p_id: id, p_password: password, p_remarks: remarks });
+export const bulkDeleteVendors = (ids, password = '', remarks = '') =>
+  rpc('app_bulk_delete_vendors', { p_ids: ids, p_password: password, p_remarks: remarks });
 
 // ----------------------------------- Sales ---------------------------------
 export const getSales = () => rpc('app_get_sales');
 export const getSalesSummary = () => rpc('app_sales_summary');
+
+// ---------------------------- Daily reports --------------------------------
+export const getDailyReport = (date) => rpc('app_daily_report', { p_date: date });
+export const getDailyStoreSales = (date) => rpc('app_daily_store_sales', { p_date: date });
 
 // --------------------------------- Repairs ---------------------------------
 export const getRepairs = () => rpc('app_get_repairs');
@@ -278,6 +234,7 @@ export const createRepair = (data) =>
     p_issue: data.issue || '',
     p_vendor: data.vendor || '',
     p_cost: data.cost === '' || data.cost == null ? 0 : Number(data.cost),
+    p_charge: data.charge === '' || data.charge == null ? 0 : Number(data.charge),
     p_notes: data.notes || ''
   });
 export const updateRepair = (id, data) =>
@@ -289,10 +246,12 @@ export const updateRepair = (id, data) =>
     p_issue: data.issue ?? null,
     p_vendor: data.vendor ?? null,
     p_cost: data.cost === undefined || data.cost === null || data.cost === '' ? null : Number(data.cost),
+    p_charge: data.charge === undefined || data.charge === null || data.charge === '' ? null : Number(data.charge),
     p_status: data.status ?? null,
     p_notes: data.notes ?? null
   });
-export const deleteRepair = (id) => rpc('app_delete_repair', { p_id: id });
+export const deleteRepair = (id, password = '', remarks = '') =>
+  rpc('app_delete_repair', { p_id: id, p_password: password, p_remarks: remarks });
 
 // -------------------------------- Purchases --------------------------------
 export const getPurchases = () => rpc('app_get_purchases');
@@ -317,8 +276,10 @@ export const updateCustomer = (id, data) =>
     p_address: data.address || '',
     p_notes: data.notes || ''
   });
-export const deleteCustomer = (id) => rpc('app_delete_customer', { p_id: id });
-export const bulkDeleteCustomers = (ids) => rpc('app_bulk_delete_customers', { p_ids: ids });
+export const deleteCustomer = (id, password = '', remarks = '') =>
+  rpc('app_delete_customer', { p_id: id, p_password: password, p_remarks: remarks });
+export const bulkDeleteCustomers = (ids, password = '', remarks = '') =>
+  rpc('app_bulk_delete_customers', { p_ids: ids, p_password: password, p_remarks: remarks });
 
 // --------------------------------- Settings --------------------------------
 export const getSettings = () => rpc('app_get_settings');
@@ -358,4 +319,5 @@ export const savePermissions = (perms) =>
 // ------------------------------- Store mgmt --------------------------------
 export const addStore = (name) => rpc('app_add_store', { p_store_name: name });
 export const renameStore = (id, name) => rpc('app_rename_store', { p_store_id: id, p_store_name: name });
-export const deleteStore = (id) => rpc('app_delete_store', { p_store_id: id });
+export const deleteStore = (id, password = '', remarks = '') =>
+  rpc('app_delete_store', { p_store_id: id, p_password: password, p_remarks: remarks });
