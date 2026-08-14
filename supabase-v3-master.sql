@@ -460,7 +460,7 @@ DROP TABLE IF EXISTS public.loginlogs;
 DO $$
 BEGIN
   EXECUTE 'ALTER PUBLICATION supabase_realtime DROP TABLE public.loginlogs';
-EXCEPTION WHEN undefined_object OR duplicate_object THEN NULL;
+EXCEPTION WHEN undefined_object OR duplicate_object OR undefined_table THEN NULL;
 END $$;
 
 GRANT EXECUTE ON FUNCTION public.app_daily_report(date) TO authenticated;

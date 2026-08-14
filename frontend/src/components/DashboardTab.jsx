@@ -155,7 +155,7 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
   const inTransitCount = laptops.filter((l) => l?.status === 'In Transit').length;
 
   const purchaseValue = (purchases || []).reduce(
-    (sum, p) => sum + (Number(p?.purchase_rate) || 0) + (Number(p?.extra_charges) || 0),
+    (sum, p) => sum + (Number(p?.purchase_rate) || 0) * (Number(p?.quantity) || 1) + (Number(p?.extra_charges) || 0),
     0
   );
   const repairPending = (repairs || []).filter((r) => r?.status === 'Pending').length;

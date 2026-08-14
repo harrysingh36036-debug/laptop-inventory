@@ -15,6 +15,9 @@ import {
   deleteRepair,
   getPurchases,
   getPurchasesSummary,
+  createPurchase,
+  updatePurchase,
+  deletePurchase,
   getBrands,
   getVendors,
   getCustomers,
@@ -49,6 +52,7 @@ import ReportsTab from './components/ReportsTab';
 import PurchasesTab from './components/PurchasesTab';
 import RepairsTab from './components/RepairsTab';
 import RepairModal from './components/RepairModal';
+import PurchaseModal from './components/PurchaseModal';
 
 const MENU_ICONS = {
   dashboard: (
@@ -132,6 +136,8 @@ export default function App() {
 
   // Modals: null = closed
   const [invModal, setInvModal] = useState(null);
+  const [purchaseModal, setPurchaseModal] = useState(null); // null | {} | { purchase }
+  const [purchaseDelTarget, setPurchaseDelTarget] = useState(null);
   const [repairModal, setRepairModal] = useState(null); // null | {} | { repair }
   const [repairLaptopOptions, setRepairLaptopOptions] = useState([]);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -552,6 +558,60 @@ export default function App() {
     }
   };
 
+  // ---- Purchase ledger create / update / delete -----------------------------
+  const handlePurchaseSave = async (form) => {
+    try {
+      const payload = {
+        purchased_at: form.purchased_at || '',
+        brand: form.brand,
+        brand_model: form.brand_model,
+        serial_number: form.serial_number,
+        processor: form.processor,
+        generation: form.generation,
+        ram: form.ram,
+        storage: form.storage,
+        graphics: form.graphics,
+        purchased_from: form.purchased_from,
+        purchase_rate: form.purchase_rate === '' || form.purchase_rate == null ? 0 : Number(form.purchase_rate),
+        extra_charges: form.extra_charges === '' || form.extra_charges == null ? 0 : Number(form.extra_charges),
+        quantity: Number(form.quantity) || 1,
+        current_store_id: form.current_store_id ? Number(form.current_store_id) : null,
+        status: form.status || 'In Stock',
+        comment: form.comment
+      };
+      if (purchaseModal?.purchase) {
+        await updatePurchase(purchaseModal.purchase.id, payload);
+        notify('Purchase updated', 'success');
+      } else {
+        await createPurchase(payload);
+        notify('Purchase recorded', 'success');
+      }
+      setPurchaseModal(null);
+      await reloadPurchases();
+      return '';
+    } catch (e) {
+      return e.message;
+    }
+  };
+
+  const handlePurchaseDelete = (purchase) => {
+    setPurchaseDelTarget(purchase);
+  };
+
+  const handlePurchaseDeleteConfirm = async (pwd, remarks) => {
+    const r = purchaseDelTarget;
+    if (!r) return '';
+    try {
+      await deletePurchase(r.id, pwd, remarks);
+      notify('Purchase removed', 'success');
+      setPurchaseDelTarget(null);
+      await reloadPurchases();
+      return '';
+    } catch (e) {
+      return e.message;
+    }
+  };
+
   // ---- Sell a laptop --------------------------------------------------------
   const handleSell = (laptop) => {
     setSellTarget(laptop);
@@ -870,8 +930,9 @@ export default function App() {
             purchases={purchases}
             summary={purchasesSummary}
             canEditInventory={canEditInventory}
-            onAddPurchase={() => setInvModal({})}
-            onEditLaptop={(laptop) => setInvModal({ laptop })}
+            onAddPurchase={() => setPurchaseModal({})}
+            onEditPurchase={(purchase) => setPurchaseModal({ purchase })}
+            onDeletePurchase={handlePurchaseDelete}
           />
         ) : tab === 'repairs' ? (
           <RepairsTab
@@ -906,6 +967,24 @@ export default function App() {
           isAdmin={isAdmin}
           onSave={handleSave}
           onClose={() => setInvModal(null)}
+        />
+      )}
+
+      {purchaseModal && (
+        <PurchaseModal
+          stores={stores}
+          editing={purchaseModal.purchase}
+          onSave={handlePurchaseSave}
+          onClose={() => setPurchaseModal(null)}
+        />
+      )}
+
+      {purchaseDelTarget && (
+        <DangerConfirmModal
+          title="Delete this purchase record?"
+          warning={`The purchase record for "${purchaseDelTarget.brand_model || purchaseDelTarget.brand || '#' + purchaseDelTarget.id}" will be permanently removed from the ledger. This cannot be undone.`}
+          onConfirm={handlePurchaseDeleteConfirm}
+          onClose={() => setPurchaseDelTarget(null)}
         />
       )}
 

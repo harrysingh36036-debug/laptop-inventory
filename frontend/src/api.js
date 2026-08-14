@@ -253,9 +253,13 @@ export const updateRepair = (id, data) =>
 export const deleteRepair = (id, password = '', remarks = '') =>
   rpc('app_delete_repair', { p_id: id, p_password: password, p_remarks: remarks });
 
-// -------------------------------- Purchases --------------------------------
+// -------------------------------- Purchases (ledger) --------------------------------
 export const getPurchases = () => rpc('app_get_purchases');
 export const getPurchasesSummary = () => rpc('app_purchases_summary');
+export const createPurchase = (data) => rpc('app_create_purchase', { p_data: data });
+export const updatePurchase = (id, data) => rpc('app_update_purchase', { p_id: id, p_data: data });
+export const deletePurchase = (id, password = '', remarks = '') =>
+  rpc('app_delete_purchase', { p_id: id, p_password: password, p_remarks: remarks });
 
 // --------------------------------- Customers -------------------------------
 export const getCustomers = () => rpc('app_get_customers');
