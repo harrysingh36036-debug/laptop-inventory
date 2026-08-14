@@ -97,7 +97,7 @@ export default function SellModal({ open, laptop, customers, onSave, onAddCustom
           ) : (
             <div className="space-y-3">
               <FormRow label="Name" value={newForm.name} onChange={(name) => setNewForm({ ...newForm, name })} placeholder="e.g. Priya Sharma" required />
-              <FormRow label="Phone" value={newForm.phone} onChange={(phone) => setNewForm({ ...newForm, phone })} placeholder="e.g. 98xxxxxxxx" />
+              <FormRow label="Phone" value={newForm.phone} onChange={(phone) => setNewForm({ ...newForm, phone })} placeholder="e.g. 98xxxxxxxx" maxLength={12} />
               <FormRow label="Email" value={newForm.email} onChange={(email) => setNewForm({ ...newForm, email })} placeholder="e.g. name@example.com" />
               <FormRow label="Address" value={newForm.address} onChange={(address) => setNewForm({ ...newForm, address })} placeholder="Shipping / billing address" />
             </div>
@@ -115,7 +115,7 @@ export default function SellModal({ open, laptop, customers, onSave, onAddCustom
   );
 }
 
-function FormRow({ label, value, onChange, placeholder, required }) {
+function FormRow({ label, value, onChange, placeholder, required, maxLength }) {
   return (
     <div>
       <label className="flabel">{label}{required && ' *'}</label>
@@ -123,6 +123,7 @@ function FormRow({ label, value, onChange, placeholder, required }) {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        maxLength={maxLength}
         className="field mt-1 w-full"
       />
     </div>

@@ -1,5 +1,6 @@
-﻿import { useMemo, useRef, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import StatusChip from './StatusChip';
+import { getSalesSummary } from '../api';
 import { inr } from '../utils';
 
 const CARDS = [
@@ -85,7 +86,20 @@ const CARDS = [
 
 export default function DashboardTab({ laptops = [], logs = [], customers = [], purchases = [], repairs = [], onNavigate, onFocusLaptop }) {
   const refs = useRef({});
+  const [soldCount, setSoldCount] = useState(0);
   const all = laptops;
+
+  useEffect(() => {
+    let active = true;
+    getSalesSummary()
+      .then((s) => {
+        if (active && s) setSoldCount(Number(s.count) || 0);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
 
   // ---- Master search: text + filters (works on ALL laptops) ----------------
   const [q, setQ] = useState('');
@@ -150,7 +164,6 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
     setMaxPrice('');
   };
 
-  const soldCount = laptops.filter((l) => l?.status === 'Sold').length;
   const inStockCount = laptops.filter((l) => l?.status === 'In Stock').length;
   const inTransitCount = laptops.filter((l) => l?.status === 'In Transit').length;
 

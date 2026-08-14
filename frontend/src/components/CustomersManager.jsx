@@ -141,6 +141,7 @@ export default function CustomersManager({ onNotify }) {
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
               placeholder="e.g. 98xxxxxxxx"
+              maxLength={12}
               className={input}
             />
           </div>
