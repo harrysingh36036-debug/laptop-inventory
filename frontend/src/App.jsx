@@ -522,6 +522,8 @@ export default function App() {
         issue: form.issue,
         vendor: form.vendor,
         cost: form.cost === '' || form.cost == null ? 0 : Number(form.cost),
+        charge: form.charge === '' || form.charge == null ? 0 : Number(form.charge),
+        store_id: form.store_id === '' || form.store_id == null ? null : Number(form.store_id),
         status: form.status,
         notes: form.notes
       };
@@ -1010,6 +1012,8 @@ export default function App() {
         <RepairModal
           editing={repairModal.repair}
           laptops={repairLaptopOptions}
+          stores={stores}
+          homeStoreId={user?.home_store_id ?? null}
           onSave={handleRepairSave}
           onClose={() => setRepairModal(null)}
         />

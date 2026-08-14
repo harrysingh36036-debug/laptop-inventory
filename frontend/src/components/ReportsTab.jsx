@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getSales, getSalesSummary, getDailyReport, getDailyStoreSales } from '../api';
+import { getSales, getSalesSummary, getDailyReport, getDailyStoreSales, getRepairsByStore } from '../api';
 import { inr } from '../utils';
 import InventoryStats from './InventoryStats';
 import SearchBox from './SearchBox';
@@ -35,6 +35,7 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
   const [storeSales, setStoreSales] = useState(null); // app_daily_store_sales payload
   const [dailyLoading, setDailyLoading] = useState(false);
   const [dailyError, setDailyError] = useState('');
+  const [repairByStore, setRepairByStore] = useState(null); // app_repairs_by_store payload
   const storeName = (id) => stores.find((s) => s.id === id)?.store_name;
 
   // Store filter: admins pick any store; managers are locked to their home store.
@@ -61,15 +62,26 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
     (a, s) => ({ units: a.units + (s.units || 0), amount: a.amount + (s.amount || 0), profit: a.profit + (s.profit || 0) }),
     { units: 0, amount: 0, profit: 0 }
   );
+  const repairRows = applyStore(repairByStore?.stores || []);
+  const repairTotals = repairRows.reduce(
+    (a, s) => ({
+      count: a.count + (s.count || 0),
+      total_cost: a.total_cost + (s.total_cost || 0),
+      total_charge: a.total_charge + (s.total_charge || 0),
+      profit: a.profit + (s.profit || 0)
+    }),
+    { count: 0, total_cost: 0, total_charge: 0, profit: 0 }
+  );
 
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
-        const [s, sum] = await Promise.all([getSales(), getSalesSummary()]);
+        const [s, sum, rb] = await Promise.all([getSales(), getSalesSummary(), getRepairsByStore().catch(() => null)]);
         if (!alive) return;
         setSales(s || []);
         setSummary(sum || null);
+        setRepairByStore(rb || null);
       } catch {
         /* reports stay usable with whatever loaded */
       }
@@ -153,6 +165,29 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
       ['Generated At', `${new Date().toISOString().slice(0, 19).replace('T', ' ')} UTC`]
     ];
     saveCsv(`profit-summary-${new Date().toISOString().slice(0, 10)}.csv`, rows);
+  };
+
+  const downloadRepairs = () => {
+    const rows = [
+      ['Store', 'Repairs', 'Item Cost (₹)', 'Charged to Customer (₹)', 'Profit (₹)']
+    ];
+    (repairRows || []).forEach((st) =>
+      rows.push([
+        st.store_name || `#${st.store_id}`,
+        String(st.count ?? 0),
+        String(st.total_cost ?? 0),
+        String(st.total_charge ?? 0),
+        String(st.profit ?? 0)
+      ])
+    );
+    rows.push([
+      'Totals',
+      String(repairTotals.count),
+      String(repairTotals.total_cost),
+      String(repairTotals.total_charge),
+      String(repairTotals.profit)
+    ]);
+    saveCsv(`repair-report-${new Date().toISOString().slice(0, 10)}.csv`, rows);
   };
 
   // Printable daily report (per-store status + store-wise sales).
@@ -265,6 +300,18 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
       icon: (
         <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.6">
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+      )
+    },
+    {
+      title: 'Repair Report',
+      desc: 'Store-wise repairs · item cost vs charged to customer',
+      stat: repairByStore ? `Charged ₹${Number(repairByStore?.totals?.total_charge || 0).toLocaleString('en-IN')}` : '',
+      disabled: !repairRows.length,
+      action: downloadRepairs,
+      icon: (
+        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.6">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085" />
         </svg>
       )
     }
@@ -433,6 +480,59 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
           </div>
         )}
       </section>
+
+      {/* Store-wise repairs */}
+      {repairByStore && (
+        <section className="panel p-5" id="store-repairs">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="font-display text-base font-semibold tracking-tight text-ink">Store-wise repairs</h2>
+              <p className="text-xs text-ink-faint">Item cost spent vs amount charged to customers, per store.</p>
+            </div>
+            <button onClick={downloadRepairs} disabled={!repairRows.length} className="btn-ghost disabled:opacity-40">
+              Download CSV
+            </button>
+          </div>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[640px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-line">
+                  <th className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Store</th>
+                  <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Repairs</th>
+                  <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Item Cost</th>
+                  <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Charged to Customer</th>
+                  <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Profit</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--hairline)]">
+                {repairRows.map((st) => (
+                  <tr key={st.store_id} className="transition-colors duration-150 hover:bg-surface-2/60">
+                    <td className="px-3 py-2.5 font-medium text-ink">{st.store_name}</td>
+                    <td className="px-3 py-2.5 text-right font-mono text-xs text-ink-dim">{st.count ?? 0}</td>
+                    <td className="px-3 py-2.5 text-right font-mono text-xs text-ink-dim">{inr(st.total_cost)}</td>
+                    <td className="px-3 py-2.5 text-right font-mono text-xs text-ink">{inr(st.total_charge)}</td>
+                    <td className="px-3 py-2.5 text-right font-mono text-xs text-ink-dim">{inr(st.profit)}</td>
+                  </tr>
+                ))}
+                {repairRows.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-3 py-8 text-center text-sm text-ink-faint">No repairs recorded yet.</td>
+                  </tr>
+                )}
+              </tbody>
+              <tfoot>
+                <tr className="border-t border-line">
+                  <td className="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-ink">Totals</td>
+                  <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-ink">{repairTotals.count}</td>
+                  <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-ink-dim">{inr(repairTotals.total_cost)}</td>
+                  <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-ink">{inr(repairTotals.total_charge)}</td>
+                  <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-ink-dim">{inr(repairTotals.profit)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </section>
+      )}
 
       <InventoryStats stores={stores} laptops={laptops} search={search} />
     </div>

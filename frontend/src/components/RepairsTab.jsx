@@ -30,7 +30,7 @@ export default function RepairsTab({
   const q = search.trim().toLowerCase();
   const filtered = q
     ? repairs.filter((r) =>
-        [r.brand_model, r.serial_number, r.issue, r.vendor, r.status, r.created_by]
+        [r.brand_model, r.serial_number, r.issue, r.vendor, r.status, r.created_by, r.store_name]
           .filter(Boolean)
           .some((v) => String(v).toLowerCase().includes(q))
       )
@@ -42,9 +42,11 @@ export default function RepairsTab({
       pending: acc.pending + (r.status === 'Pending' ? 1 : 0),
       in_progress: acc.in_progress + (r.status === 'In Progress' ? 1 : 0),
       repaired: acc.repaired + (r.status === 'Repaired' ? 1 : 0),
-      total_cost: acc.total_cost + (Number(r.cost) || 0)
+      total_cost: acc.total_cost + (Number(r.cost) || 0),
+      total_charge: acc.total_charge + (Number(r.charge) || 0),
+      total_profit: acc.total_profit + ((Number(r.charge) || 0) - (Number(r.cost) || 0))
     }),
-    { total: 0, pending: 0, in_progress: 0, repaired: 0, total_cost: 0 }
+    { total: 0, pending: 0, in_progress: 0, repaired: 0, total_cost: 0, total_charge: 0, total_profit: 0 }
   );
 
   const cards = [
@@ -52,7 +54,9 @@ export default function RepairsTab({
     { label: 'Pending', value: String(summary.pending) },
     { label: 'In Progress', value: String(summary.in_progress) },
     { label: 'Repaired', value: String(summary.repaired) },
-    { label: 'Repair Cost Spent', value: inr(summary.total_cost), accent: true }
+    { label: 'Item Cost Spent', value: inr(summary.total_cost) },
+    { label: 'Charged to Customers', value: inr(summary.total_charge), accent: true },
+    { label: 'Repair Profit', value: inr(summary.total_profit) }
   ];
 
   const th = 'px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint';
@@ -73,7 +77,7 @@ export default function RepairsTab({
         )}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-4">
         {cards.map((c) => (
           <div key={c.label} className="panel p-5">
             <p className="text-xs uppercase tracking-wide text-ink-faint">{c.label}</p>
@@ -89,14 +93,17 @@ export default function RepairsTab({
           <h2 className="font-display text-sm font-semibold tracking-tight text-ink">Repairs</h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[980px] text-left text-sm">
+          <table className="w-full min-w-[1280px] text-left text-sm">
             <thead>
               <tr className="border-b border-line">
                 <th className={th}>Serial</th>
                 <th className={th}>Laptop</th>
+                <th className={th}>Store</th>
                 <th className={th}>Issue</th>
                 <th className={th}>Repair Shop</th>
-                <th className={th}>Cost</th>
+                <th className={th}>Item Cost</th>
+                <th className={th}>Charged to CX</th>
+                <th className={th}>Profit</th>
                 <th className={th}>Status</th>
                 <th className={th}>Updated</th>
                 <th className={th}>Recorded By</th>
@@ -106,7 +113,7 @@ export default function RepairsTab({
             <tbody className="divide-y divide-[var(--hairline)]">
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={canEditInventory ? 9 : 8} className="px-4 py-12 text-center text-sm text-ink-faint">
+                  <td colSpan={canEditInventory ? 12 : 11} className="px-4 py-12 text-center text-sm text-ink-faint">
                     {q ? 'No repairs match your search.' : 'No repairs recorded yet.'}
                   </td>
                 </tr>
@@ -117,12 +124,15 @@ export default function RepairsTab({
                     <span className="mono-chip">{r.serial_number || '—'}</span>
                   </td>
                   <td className={`${td} font-medium text-ink`}>{r.brand_model || <span className="text-ink-faint">—</span>}</td>
-                  <td className={`${td} max-w-[260px] text-xs text-ink-dim`}>
+                  <td className={`${td} text-xs text-ink-dim`}>{r.store_name || <span className="text-ink-faint">—</span>}</td>
+                  <td className={`${td} max-w-[240px] text-xs text-ink-dim`}>
                     <p className="line-clamp-2" title={r.issue}>{r.issue}</p>
                     {r.notes && <p className="mt-0.5 text-[11px] text-ink-faint line-clamp-1" title={r.notes}>{r.notes}</p>}
                   </td>
                   <td className={`${td} text-xs text-ink-dim`}>{r.vendor || <span className="text-ink-faint">—</span>}</td>
                   <td className={`${td} font-mono text-xs text-ink-dim`}>{inr(r.cost)}</td>
+                  <td className={`${td} font-mono text-xs text-ink-dim`}>{inr(r.charge)}</td>
+                  <td className={`${td} font-mono text-xs ${(Number(r.profit) || 0) > 0 ? 'text-stock-ok' : 'text-ink-faint'}`}>{inr(r.profit)}</td>
                   <td className={td}><StatusChip status={r.status} /></td>
                   <td className={`${td} font-mono text-[11px] text-ink-faint`}>{formatTime(r.updated_at || r.created_at)}</td>
                   <td className={`${td} text-xs text-ink-dim`}>{r.created_by || '—'}</td>

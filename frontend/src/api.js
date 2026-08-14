@@ -235,6 +235,7 @@ export const getDailyStoreSales = (date) => rpc('app_daily_store_sales', { p_dat
 // --------------------------------- Repairs ---------------------------------
 export const getRepairs = () => rpc('app_get_repairs');
 export const getRepairsSummary = () => rpc('app_repairs_summary');
+export const getRepairsByStore = () => rpc('app_repairs_by_store');
 export const createRepair = (data) =>
   rpc('app_create_repair', {
     p_laptop_id: data.laptop_id ? Number(data.laptop_id) : null,
@@ -244,6 +245,7 @@ export const createRepair = (data) =>
     p_vendor: data.vendor || '',
     p_cost: data.cost === '' || data.cost == null ? 0 : Number(data.cost),
     p_charge: data.charge === '' || data.charge == null ? 0 : Number(data.charge),
+    p_store_id: data.store_id === '' || data.store_id == null ? null : Number(data.store_id),
     p_notes: data.notes || ''
   });
 export const updateRepair = (id, data) =>
@@ -256,6 +258,7 @@ export const updateRepair = (id, data) =>
     p_vendor: data.vendor ?? null,
     p_cost: data.cost === undefined || data.cost === null || data.cost === '' ? null : Number(data.cost),
     p_charge: data.charge === undefined || data.charge === null || data.charge === '' ? null : Number(data.charge),
+    p_store_id: data.store_id === undefined || data.store_id === null || data.store_id === '' ? null : Number(data.store_id),
     p_status: data.status ?? null,
     p_notes: data.notes ?? null
   });

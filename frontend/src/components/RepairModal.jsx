@@ -10,11 +10,13 @@ const empty = {
   issue: '',
   vendor: '',
   cost: '',
+  charge: '',
+  store_id: '',
   status: 'Pending',
   notes: ''
 };
 
-export default function RepairModal({ editing = null, laptops = [], onSave, onClose }) {
+export default function RepairModal({ editing = null, laptops = [], stores = [], homeStoreId = null, onSave, onClose }) {
   const [form, setForm] = useState(
     editing
       ? {
@@ -24,10 +26,12 @@ export default function RepairModal({ editing = null, laptops = [], onSave, onCl
           issue: editing.issue || '',
           vendor: editing.vendor || '',
           cost: editing.cost ?? '',
+          charge: editing.charge ?? '',
+          store_id: editing.store_id ?? (homeStoreId ? String(homeStoreId) : ''),
           status: editing.status || 'Pending',
           notes: editing.notes || ''
         }
-      : empty
+      : { ...empty, store_id: homeStoreId ? String(homeStoreId) : '' }
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -44,6 +48,7 @@ export default function RepairModal({ editing = null, laptops = [], onSave, onCl
   const submit = async (e) => {
     e.preventDefault();
     if (!form.issue.trim()) return setError('Issue description is required');
+    if (stores.length > 0 && !form.store_id) return setError('Please select a store');
     setBusy(true);
     setError('');
     const err = await onSave(form);
@@ -69,6 +74,25 @@ export default function RepairModal({ editing = null, laptops = [], onSave, onCl
         </div>
 
         <div className="space-y-4">
+          {stores.length > 0 && (
+            <div>
+              <label className={label} htmlFor="repair-store">Store *</label>
+              <select
+                id="repair-store"
+                value={form.store_id}
+                onChange={set('store_id')}
+                className={input}
+              >
+                <option value="">— Select store —</option>
+                {stores.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.store_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div>
             <label className={label} htmlFor="repair-laptop">Laptop (optional)</label>
             <select
@@ -104,9 +128,19 @@ export default function RepairModal({ editing = null, laptops = [], onSave, onCl
               <input id="repair-vendor" value={form.vendor} onChange={set('vendor')} className={input} placeholder="e.g. City Tech Services" />
             </div>
             <div>
-              <label className={label} htmlFor="repair-cost">Cost (₹)</label>
+              <label className={label} htmlFor="repair-cost">Item Cost (₹)</label>
               <input id="repair-cost" value={form.cost} onChange={set('cost')} type="number" min="0" step="any" className={input} placeholder="0" />
             </div>
+          </div>
+
+          <div>
+            <label className={label} htmlFor="repair-charge">Charged to Customer (₹)</label>
+            <input id="repair-charge" value={form.charge} onChange={set('charge')} type="number" min="0" step="any" className={input} placeholder="0" />
+            {Number(form.cost) > 0 && Number(form.charge) >= 0 && (
+              <p className="mt-1 text-xs text-ink-faint">
+                Profit: {inr((Number(form.charge) || 0) - (Number(form.cost) || 0))}
+              </p>
+            )}
           </div>
 
           <div>
@@ -126,6 +160,9 @@ export default function RepairModal({ editing = null, laptops = [], onSave, onCl
           {error && <p className="text-sm text-stock-risk">{error}</p>}
           {editing?.cost != null && !form.cost && (
             <p className="text-xs text-ink-faint">Currently {inr(editing.cost)} — leave the field empty to keep it.</p>
+          )}
+          {editing?.charge != null && !form.charge && (
+            <p className="text-xs text-ink-faint">Currently charged {inr(editing.charge)} — leave the field empty to keep it.</p>
           )}
 
           <div className="flex items-center justify-end gap-2 pt-2">
