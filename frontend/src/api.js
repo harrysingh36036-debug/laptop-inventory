@@ -142,6 +142,15 @@ export const getMe = async () => {
 // --------------------------------- Inventory -------------------------------
 export const getStores = () => table('stores');
 
+// ------------------------------- Users (admin) -------------------------------
+export const getUsers = () => rpc('app_get_users');
+export const updateUser = (id, data = {}) =>
+  rpc('app_update_user', {
+    p_id: id,
+    p_role: data.role || null,
+    p_store_id: data.store_id === null || data.store_id === undefined ? null : Number(data.store_id)
+  });
+
 export const getLaptops = (params = {}) =>
   rpc('app_get_laptops', {
     p_store_id: params.storeId ? Number(params.storeId) : null,

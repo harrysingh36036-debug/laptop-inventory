@@ -950,7 +950,7 @@ export default function App() {
             <CustomersManager onNotify={notify} />
           </div>
 ) : tab === 'stats' ? (
-          <ReportsTab stores={stores} logs={logs} laptops={laptops} />
+          <ReportsTab stores={stores} logs={logs} laptops={laptops} isAdmin={isAdmin} homeStoreId={user?.home_store_id ?? null} />
         ) : tab === 'transfers' ? (
           <TransferHistoryTab stores={stores} />
         ) : (

@@ -26,7 +26,7 @@ function saveCsv(filename, rows) {
   a.parentNode && a.parentNode.removeChild(a);
 }
 
-export default function ReportsTab({ stores = [], logs = [], laptops = [] }) {
+export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdmin = false, homeStoreId = null }) {
   const [sales, setSales] = useState([]);
   const [summary, setSummary] = useState(null);
   const [search, setSearch] = useState('');
@@ -36,6 +36,31 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [] }) {
   const [dailyLoading, setDailyLoading] = useState(false);
   const [dailyError, setDailyError] = useState('');
   const storeName = (id) => stores.find((s) => s.id === id)?.store_name;
+
+  // Store filter: admins pick any store; managers are locked to their home store.
+  const [storeFilter, setStoreFilter] = useState('all');
+  const visibleStores = isAdmin ? stores : stores.filter((s) => s.id === homeStoreId);
+  const effectiveFilter = isAdmin ? storeFilter : homeStoreId ? String(homeStoreId) : 'all';
+  const applyStore = (rows = []) =>
+    effectiveFilter === 'all' ? rows : rows.filter((r) => String(r.store_id) === effectiveFilter);
+
+  // Rows + totals after the store filter (so totals match the visible stores).
+  const dailyStores = applyStore(daily?.stores || []);
+  const storeSalesRows = applyStore(storeSales?.stores || []);
+  const dailyTotals = dailyStores.reduce(
+    (a, s) => ({
+      in_store: a.in_store + (s.in_store || 0),
+      sold_on: a.sold_on + (s.sold_on || 0),
+      transferred_out_on: a.transferred_out_on + (s.transferred_out_on || 0),
+      transferred_in_on: a.transferred_in_on + (s.transferred_in_on || 0),
+      out_total: a.out_total + (s.out_total || 0)
+    }),
+    { in_store: 0, sold_on: 0, transferred_out_on: 0, transferred_in_on: 0, out_total: 0 }
+  );
+  const storeSalesTotals = storeSalesRows.reduce(
+    (a, s) => ({ units: a.units + (s.units || 0), amount: a.amount + (s.amount || 0), profit: a.profit + (s.profit || 0) }),
+    { units: 0, amount: 0, profit: 0 }
+  );
 
   useEffect(() => {
     let alive = true;
@@ -134,10 +159,9 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [] }) {
   const printDailyReport = () => {
     if (!daily && !storeSales) return;
     const d = daily || { date: reportDate, stores: [], totals: {} };
-    const ss = storeSales || { date: reportDate, stores: [], totals: {} };
     const w = window.open('', '_blank', 'width=760,height=900');
     if (!w) return;
-    const rows = (d.stores || [])
+    const rows = dailyStores
       .map(
         (st) => `<tr>
         <td>${escapeHtml(st.store_name)}</td>
@@ -150,8 +174,8 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [] }) {
       </tr>`
       )
       .join('');
-    const t = d.totals || {};
-    const srows = (ss.stores || [])
+    const t = dailyTotals;
+    const srows = storeSalesRows
       .map(
         (st) => `<tr>
         <td>${escapeHtml(st.store_name)}</td>
@@ -161,7 +185,7 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [] }) {
       </tr>`
       )
       .join('');
-    const st = ss.totals || {};
+    const st = storeSalesTotals;
     w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Daily Report — ${escapeHtml(d.date)}</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -284,6 +308,20 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [] }) {
             <p className="text-xs text-ink-faint">Per-store system in / out and store-wise sales for one day.</p>
           </div>
           <div className="flex items-center gap-2">
+            {isAdmin && visibleStores.length > 0 && (
+              <select
+                value={effectiveFilter}
+                onChange={(e) => setStoreFilter(e.target.value)}
+                className="field w-auto max-w-[220px]"
+              >
+                <option value="all">All stores</option>
+                {visibleStores.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.store_name}
+                  </option>
+                ))}
+              </select>
+            )}
             <input
               type="date"
               value={reportDate}
@@ -317,7 +355,7 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [] }) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--hairline)]">
-                  {(daily.stores || []).map((st) => (
+                  {dailyStores.map((st) => (
                     <tr key={st.store_id} className="transition-colors duration-150 hover:bg-surface-2/60">
                       <td className="px-3 py-2.5 font-medium text-ink">{st.store_name}</td>
                       <td className="px-3 py-2.5 text-right font-mono text-xs text-ink">{st.in_store ?? 0}</td>
@@ -335,25 +373,23 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [] }) {
                       </td>
                     </tr>
                   ))}
-                  {(daily.stores || []).length === 0 && (
+                  {dailyStores.length === 0 && (
                     <tr>
                       <td colSpan={7} className="px-3 py-8 text-center text-sm text-ink-faint">No stores on this date.</td>
                     </tr>
                   )}
                 </tbody>
-                {daily.totals && (
-                  <tfoot>
-                    <tr className="border-t border-line">
-                      <td className="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-ink">Totals</td>
-                      <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-ink">{daily.totals.in_store ?? 0}</td>
-                      <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-ink-dim">{daily.totals.sold_on ?? 0}</td>
-                      <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-ink-dim">{daily.totals.transferred_out_on ?? 0}</td>
-                      <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-ink-dim">{daily.totals.transferred_in_on ?? 0}</td>
-                      <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-accent">{daily.totals.out_total ?? 0}</td>
-                      <td />
-                    </tr>
-                  </tfoot>
-                )}
+                <tfoot>
+                  <tr className="border-t border-line">
+                    <td className="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-ink">Totals</td>
+                    <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-ink">{dailyTotals.in_store}</td>
+                    <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-ink-dim">{dailyTotals.sold_on}</td>
+                    <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-ink-dim">{dailyTotals.transferred_out_on}</td>
+                    <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-ink-dim">{dailyTotals.transferred_in_on}</td>
+                    <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-accent">{dailyTotals.out_total}</td>
+                    <td />
+                  </tr>
+                </tfoot>
               </table>
             </div>
 
@@ -369,7 +405,7 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [] }) {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--hairline)]">
-                    {(storeSales.stores || []).map((st) => (
+                    {storeSalesRows.map((st) => (
                       <tr key={st.store_id} className="transition-colors duration-150 hover:bg-surface-2/60">
                         <td className="px-3 py-2.5 font-medium text-ink">{st.store_name}</td>
                         <td className="px-3 py-2.5 text-right font-mono text-xs text-ink-dim">{st.units ?? 0}</td>
@@ -377,22 +413,20 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [] }) {
                         <td className="px-3 py-2.5 text-right font-mono text-xs text-ink-dim">{inr(st.profit)}</td>
                       </tr>
                     ))}
-                    {(storeSales.stores || []).length === 0 && (
+                    {storeSalesRows.length === 0 && (
                       <tr>
                         <td colSpan={4} className="px-3 py-8 text-center text-sm text-ink-faint">No sales on this date.</td>
                       </tr>
                     )}
                   </tbody>
-                  {storeSales.totals && (
-                    <tfoot>
-                      <tr className="border-t border-line">
-                        <td className="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-ink">Totals</td>
-                        <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-ink">{storeSales.totals.units ?? 0}</td>
-                        <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-ink">{inr(storeSales.totals.amount)}</td>
-                        <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-ink-dim">{inr(storeSales.totals.profit)}</td>
-                      </tr>
-                    </tfoot>
-                  )}
+                  <tfoot>
+                    <tr className="border-t border-line">
+                      <td className="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-ink">Totals</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-ink">{storeSalesTotals.units}</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-ink">{inr(storeSalesTotals.amount)}</td>
+                      <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-ink-dim">{inr(storeSalesTotals.profit)}</td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             )}

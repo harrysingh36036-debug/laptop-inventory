@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { DEFAULT_LABELS } from '../labels.jsx';
-import { getPermissions, savePermissions } from '../api';
+import { getPermissions, savePermissions, getUsers, updateUser } from '../api';
 import DangerConfirmModal from './DangerConfirmModal';
 
 // Description rows for the customizable button/label texts.
@@ -170,11 +170,56 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
   const selectTab = (k) => {
     setTab(k);
     if (k === 'permissions' && !permsLoaded) loadPerms();
+    if (k === 'users' && !usersLoaded) loadUsers();
+  };
+
+  // ---- Users tab (admin only) ---------------------------------------------
+  const [users, setUsers] = useState([]);
+  const [usersLoaded, setUsersLoaded] = useState(false);
+  const [drafts, setDrafts] = useState({}); // userId -> { role, store_id }
+  const [usersBusy, setUsersBusy] = useState(false);
+
+  const loadUsers = async () => {
+    try {
+      const list = await getUsers();
+      setUsers(list || []);
+      setDrafts(
+        (list || []).reduce((m, u) => {
+          m[u.id] = { role: u.role, store_id: u.home_store_id ?? 0 };
+          return m;
+        }, {})
+      );
+    } catch (e) {
+      flash(e.message);
+    } finally {
+      setUsersLoaded(true);
+    }
+  };
+
+  const setDraft = (id, k) => (e) => setDrafts((d) => ({ ...d, [id]: { ...d[id], [k]: e.target.value === '' ? '' : e.target.value } }));
+
+  const saveUser = async (u) => {
+    const d = drafts[u.id];
+    if (!d) return;
+    setUsersBusy(true);
+    try {
+      await updateUser(u.id, {
+        role: d.role || u.role,
+        store_id: d.store_id === '' ? 0 : Number(d.store_id || 0)
+      });
+      flash(`${u.display_name || u.username} updated`);
+      await loadUsers();
+    } catch (e) {
+      flash(e.message);
+    } finally {
+      setUsersBusy(false);
+    }
   };
 
   const TABS = [['stores', 'Stores']].concat(
     isAdmin ? [['labels', 'Buttons & Labels']] : [],
-    (isAdmin || isSuperAdmin) ? [['permissions', 'Roles & Permissions']] : []
+    (isAdmin || isSuperAdmin) ? [['permissions', 'Roles & Permissions']] : [],
+    isAdmin ? [['users', 'Users']] : []
   );
 
   return (
@@ -321,6 +366,68 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
                   </button>
                 </div>
               </>
+            )}
+          </div>
+        )}
+
+        {tab === 'users' && (
+          <div className="mt-4 space-y-4">
+            <p className="text-sm text-ink-faint">
+              Assign each account its role and home store. A manager sees only their home store's daily report.
+            </p>
+            {!usersLoaded ? (
+              <p className="text-sm text-ink-faint">Loading users…</p>
+            ) : users.length === 0 ? (
+              <p className="text-sm text-ink-faint">No accounts found.</p>
+            ) : (
+              <div className="space-y-2">
+                {users.map((u) => {
+                  const d = drafts[u.id] || {};
+                  return (
+                    <div key={u.id} className="rounded-xl border border-line bg-surface-2/40 p-4">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-semibold text-ink">{u.display_name || u.username}</p>
+                          <p className="truncate text-xs text-ink-faint">
+                            @{u.username}
+                            {u.home_store_name ? ` · ${u.home_store_name}` : ''}
+                          </p>
+                        </div>
+                        <select
+                          value={d.role ?? u.role}
+                          onChange={setDraft(u.id, 'role')}
+                          className="field w-auto"
+                          disabled={u.role === 'superadmin' && !isSuperAdmin}
+                        >
+                          <option value="staff">staff</option>
+                          <option value="manager">manager</option>
+                          <option value="admin">admin</option>
+                          {isSuperAdmin && <option value="superadmin">superadmin</option>}
+                        </select>
+                        <select
+                          value={d.store_id ?? u.home_store_id ?? 0}
+                          onChange={setDraft(u.id, 'store_id')}
+                          className="field w-auto max-w-[220px]"
+                        >
+                          <option value={0}>— No store —</option>
+                          {stores.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.store_name}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={() => saveUser(u)}
+                          disabled={usersBusy}
+                          className="btn-accent disabled:opacity-50"
+                        >
+                          Save
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         )}
