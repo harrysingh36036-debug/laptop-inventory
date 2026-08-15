@@ -27,7 +27,7 @@ const EMPTY = {
   purchase_comment: ''
 };
 
-export default function InventoryModal({ stores, brands = [], vendors = [], editing, onSave, onClose }) {
+export default function InventoryModal({ stores, brands = [], vendors = [], productLines = [], editing, onSave, onClose }) {
   const t = useLabels();
   const [form, setForm] = useState(EMPTY);
   const [error, setError] = useState('');
@@ -132,8 +132,26 @@ export default function InventoryModal({ stores, brands = [], vendors = [], edit
             </div>
             <div>
               <label className={label}>Product Line</label>
-              <input value={form.product_line} onChange={set('product_line')} placeholder="e.g. Inspiron"
-                className={input()} />
+              {productLines.includes(form.product_line) || !form.product_line ? (
+                <select
+                  value={form.product_line}
+                  onChange={(e) => setForm((f) => ({ ...f, product_line: e.target.value === '__new__' ? '' : e.target.value }))}
+                  className={input()}
+                >
+                  <option value="">Select product line…</option>
+                  {productLines.map((p) => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                  <option value="__new__">+ Add new product line…</option>
+                </select>
+              ) : (
+                <input
+                  value={form.product_line}
+                  onChange={set('product_line')}
+                  placeholder="e.g. Inspiron"
+                  className={input()}
+                />
+              )}
               <p className="mt-1 text-xs text-ink-faint">Series / family, e.g. Inspiron, ThinkPad, Pavilion.</p>
             </div>
             <div>

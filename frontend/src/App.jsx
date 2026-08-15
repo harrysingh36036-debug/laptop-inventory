@@ -915,6 +915,7 @@ export default function App() {
           stores={stores}
           brands={brands}
           vendors={vendors}
+          productLines={[...new Set(laptops.map((l) => l.product_line).filter(Boolean))].sort()}
           editing={invModal.laptop}
           onSave={handleSave}
           onClose={() => setInvModal(null)}
