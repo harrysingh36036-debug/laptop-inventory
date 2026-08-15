@@ -167,7 +167,7 @@ export default function SalesTab({ stores, isSuperAdmin = false, canSeeCustomer 
   const activeStore = stores.find((s) => String(s.id) === storeF);
 
   return (
-    <div className="space-y-6 animate-rise">
+    <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <SearchBox
           value={search}

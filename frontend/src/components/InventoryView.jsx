@@ -98,7 +98,7 @@ export default function InventoryView({
   const tile = (active, onClick, children, extra = '') => (
     <button
       onClick={onClick}
-      className={`panel group relative flex flex-col items-start gap-2 p-4 text-left transition-all duration-150 animate-rise ${extra} ${
+      className={`panel group relative flex flex-col items-start gap-2 p-4 text-left transition-all duration-150 ${extra} ${
         active ? 'ring-2 ring-accent-line bg-accent-soft/20' : 'hover:bg-surface-2/70'
       }`}
     >
@@ -144,7 +144,7 @@ export default function InventoryView({
       {!brand ? (
         /* ---- Brand tiles ---- */
         brandGroups.length === 0 ? (
-          <div className="panel rounded-2xl p-12 text-center animate-rise">
+          <div className="panel rounded-2xl p-12 text-center">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-surface-2 text-ink-faint">
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.6">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />

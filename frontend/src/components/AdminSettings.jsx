@@ -253,8 +253,8 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade">
-      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-line bg-surface p-6 shadow-pop animate-rise">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-line bg-surface p-6 shadow-pop">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-base font-semibold tracking-tight text-ink">
             {isAdmin ? 'Admin Settings' : 'Store Management'}

@@ -424,7 +424,7 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
   ];
 
   return (
-    <div className="space-y-6 animate-rise">
+    <div className="space-y-6">
       <SearchBox
         value={search}
         onChange={setSearch}

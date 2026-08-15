@@ -60,8 +60,8 @@ export default function RepairModal({ editing = null, laptops = [], stores = [],
   const label = 'mb-1 block text-xs font-medium text-ink-dim';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade">
-      <form onSubmit={submit} className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-line bg-surface p-6 shadow-pop animate-rise">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <form onSubmit={submit} className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-line bg-surface p-6 shadow-pop">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-display text-base font-semibold tracking-tight text-ink">
             {editing ? 'Edit Repair' : 'Add Repair'}

@@ -4,28 +4,28 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        page: '#06121c',
+        page: '#ffffff',
         surface: {
-          DEFAULT: '#0d1b2a',
-          2: '#13263a',
-          3: '#19324b'
+          DEFAULT: '#ffffff',
+          2: '#f2f5f8',
+          3: '#e8edf2'
         },
-        line: 'rgba(159,183,206,0.13)',
+        line: 'rgba(15,23,42,0.1)',
         ink: {
-          DEFAULT: '#edf6ff',
-          dim: '#9fb7ce',
-          faint: '#6f88a3'
+          DEFAULT: '#1a2430',
+          dim: '#5b6b7d',
+          faint: '#8b98a8'
         },
         accent: {
-          DEFAULT: '#5cc8ff',
-          soft: 'rgba(92,200,255,0.14)',
-          line: 'rgba(92,200,255,0.42)'
+          DEFAULT: '#2563eb',
+          soft: 'rgba(37,99,235,0.1)',
+          line: 'rgba(37,99,235,0.32)'
         },
         stock: {
-          ok: '#3dd9a1',
-          transit: '#ffd166',
-          sold: '#7c91a8',
-          risk: '#ff7b91'
+          ok: '#059669',
+          transit: '#b45309',
+          sold: '#64748b',
+          risk: '#dc2626'
         }
       },
       fontFamily: {
@@ -45,22 +45,8 @@ module.exports = {
         '2xl': '16px'
       },
       boxShadow: {
-        raise: '0 1px 2px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.35)',
-        pop: '0 1px 2px rgba(0,0,0,0.45), 0 16px 48px rgba(0,0,0,0.55)'
-      },
-      keyframes: {
-        rise: {
-          '0%': { transform: 'translateY(6px)', opacity: '0' },
-          '100%': { transform: 'translateY(0)', opacity: '1' }
-        },
-        fade: {
-          '0%': { opacity: '0' },
-          '100%': { opacity: '1' }
-        }
-      },
-      animation: {
-        rise: 'rise .4s cubic-bezier(0.22,1,0.36,1) both',
-        fade: 'fade .25s ease-out both'
+        raise: '0 1px 2px rgba(15,23,42,0.06), 0 8px 24px rgba(15,23,42,0.08)',
+        pop: '0 1px 2px rgba(15,23,42,0.08), 0 16px 48px rgba(15,23,42,0.14)'
       }
     }
   },

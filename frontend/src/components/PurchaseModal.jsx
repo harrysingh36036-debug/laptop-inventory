@@ -85,8 +85,8 @@ export default function PurchaseModal({ stores, editing, onSave, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm animate-fade">
-      <div className="my-8 w-full max-w-2xl rounded-2xl border border-line bg-surface p-6 shadow-pop animate-rise">
+    <div className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm">
+      <div className="my-8 w-full max-w-2xl rounded-2xl border border-line bg-surface p-6 shadow-pop">
         <h3 className="font-display text-base font-semibold tracking-tight text-ink">
           {editing ? 'Edit Purchase Record' : 'Record a Purchase'}
         </h3>

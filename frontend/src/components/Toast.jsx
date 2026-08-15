@@ -25,7 +25,7 @@ export default function Toast({ msg, type = 'info', onClose }) {
 
   return (
     <div className="fixed inset-x-0 bottom-5 z-50 flex justify-center px-4 pointer-events-none">
-      <div className={`pointer-events-auto flex max-w-md items-center gap-2.5 rounded-xl border px-4 py-3 shadow-pop animate-rise ${s.wrap}`}>
+      <div className={`pointer-events-auto flex max-w-md items-center gap-2.5 rounded-xl border px-4 py-3 shadow-pop ${s.wrap}`}>
         <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${s.dot}`} />
         <p className="text-sm font-medium">{msg}</p>
       </div>

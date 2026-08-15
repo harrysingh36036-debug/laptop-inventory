@@ -756,7 +756,7 @@ export default function App() {
               }`}
             >
               <span
-                className={`h-1.5 w-1.5 rounded-full ${connected ? 'bg-stock-ok' : 'bg-stock-risk animate-pulse'}`}
+                className={`h-1.5 w-1.5 rounded-full ${connected ? 'bg-stock-ok' : 'bg-stock-risk'}`}
               />
               <span className="hidden sm:inline">{connected ? 'Live · synced' : 'Reconnecting…'}</span>
             </span>
@@ -791,7 +791,7 @@ export default function App() {
               </button>
 
               {menuOpen && (
-                <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-2xl border border-line bg-surface p-1.5 shadow-pop animate-rise">
+                <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-2xl border border-line bg-surface p-1.5 shadow-pop">
                   <p className="px-3 pb-1 pt-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
                     {(user.display_name || user.username).slice(0, 1)} — {user.role}
                   </p>
@@ -969,8 +969,8 @@ export default function App() {
       )}
 
       {brandsOpen && isAdmin && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-line bg-surface p-6 shadow-pop animate-rise">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-line bg-surface p-6 shadow-pop">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="font-display text-base font-semibold tracking-tight text-ink">Manage Brands</h2>
               <button onClick={() => setBrandsOpen(false)} className="text-ink-faint hover:text-ink transition-colors" aria-label="Close">
@@ -985,8 +985,8 @@ export default function App() {
       )}
 
       {vendorsOpen && canManageVendors && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fade">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-line bg-surface p-6 shadow-pop animate-rise">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-line bg-surface p-6 shadow-pop">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="font-display text-base font-semibold tracking-tight text-ink">Manage Vendors</h2>
               <button onClick={() => setVendorsOpen(false)} className="text-ink-faint hover:text-ink transition-colors" aria-label="Close">

@@ -38,7 +38,7 @@ export default function LaptopTable({
   const td = 'px-4 py-3 align-middle';
 
   return (
-    <div className="panel overflow-hidden animate-rise">
+    <div className="panel overflow-hidden">
       <div className="hidden md:block overflow-x-auto">
         <table className="w-full min-w-[960px] border-collapse text-left text-sm">
           <thead>

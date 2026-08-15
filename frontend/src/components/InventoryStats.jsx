@@ -47,7 +47,7 @@ export default function InventoryStats({ stores, search = '' }) {
   const configs = (stats.by_config || []).filter((c) => match(c.config));
 
   return (
-    <div className="space-y-6 animate-rise">
+    <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card label="Total Systems" value={stats.totals?.total ?? 0} />
         <Card label="In Stock" value={stats.totals?.in_stock ?? 0} />

@@ -32,7 +32,7 @@ export default function Login({ onSuccess }) {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-page px-4">
-      <div className="w-full max-w-sm animate-rise">
+      <div className="w-full max-w-sm">
         <div className="panel p-8">
           <div className="text-center">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-accent-soft text-accent">

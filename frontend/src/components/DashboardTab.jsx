@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import StatusChip from './StatusChip';
 import { getSalesSummary } from '../api';
 import { inr } from '../utils';
@@ -85,7 +85,6 @@ const CARDS = [
 ];
 
 export default function DashboardTab({ laptops = [], logs = [], customers = [], purchases = [], repairs = [], onNavigate, onFocusLaptop }) {
-  const refs = useRef({});
   const [soldCount, setSoldCount] = useState(0);
   const all = laptops;
 
@@ -175,42 +174,26 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
   const repairInProgress = (repairs || []).filter((r) => r?.status === 'In Progress').length;
 
   const counts = {
-    inventory: { main: laptops.length, sub: `${inStockCount} in stock · ${inTransitCount} in transit` },
+    inventory: { main: laptops.length, sub: `${inStockCount} in stock � ${inTransitCount} in transit` },
     purchase: {
       main: purchases.length,
       sub: purchaseValue
-        ? `₹${purchaseValue.toLocaleString('en-IN')} invested`
+        ? `?${purchaseValue.toLocaleString('en-IN')} invested`
         : 'units bought & money invested'
     },
     repair: {
       main: repairs.length,
-      sub: `${repairPending} pending · ${repairInProgress} in progress`
+      sub: `${repairPending} pending � ${repairInProgress} in progress`
     },
     transfers: { main: logs.length, sub: 'store-to-store movements' },
     sold: { main: soldCount, sub: 'units sold' },
     report: { main: inStockCount, sub: 'ready to sell right now' },
-    customers: { main: customers.length, sub: 'customers · view full purchase history' }
-  };
-
-  const tilt = (key) => (e) => {
-    const el = refs.current[key];
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    const px = (e.clientX - rect.left) / rect.width - 0.5;
-    const py = (e.clientY - rect.top) / rect.height - 0.5;
-    el.style.transform = `perspective(1000px) rotateY(${px * 14}deg) rotateX(${py * -14}deg) translateZ(8px)`;
-  };
-
-  const reset = (key) => () => {
-    const el = refs.current[key];
-    if (el) el.style.transform = 'perspective(1000px) rotateY(0deg) rotateX(0deg)';
+    customers: { main: customers.length, sub: 'customers � view full purchase history' }
   };
 
   return (
     <div className="relative">
-      <div className="pointer-events-none absolute inset-0 neon-grid rounded-3xl" />
-
-      <div className="relative px-1 py-2 sm:px-2">
+      <div className="px-1 py-2 sm:px-2">
         <div className="mb-7 text-center">
           <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-accent">
             Live Operations
@@ -219,12 +202,12 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
             Dashboard
           </h2>
           <p className="mt-1 text-sm text-ink-faint">
-            Pick a module — everything updates in real time.
+            Pick a module � everything updates in real time.
           </p>
         </div>
 
         {/* Master search */}
-        <div className="mb-6 rounded-2xl border border-line bg-surface p-4 shadow-soft animate-rise">
+        <div className="mb-6 rounded-2xl border border-line bg-surface p-4 shadow-soft">
           <div className="grid gap-3">
             <div className="relative">
               <svg
@@ -236,7 +219,7 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Master search — brand, product line, model, serial, processor, RAM, configuration…"
+                placeholder="Master search � brand, product line, model, serial, processor, RAM, configuration�"
                 className="field pl-9"
               />
             </div>
@@ -273,13 +256,13 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
               <input
                 type="number" min="0" value={minPrice}
                 onChange={(e) => setMinPrice(e.target.value)}
-                placeholder="Min ₹"
+                placeholder="Min ?"
                 className="field w-auto min-w-[110px] flex-1 sm:flex-none"
               />
               <input
                 type="number" min="0" value={maxPrice}
                 onChange={(e) => setMaxPrice(e.target.value)}
-                placeholder="Max ₹"
+                placeholder="Max ?"
                 className="field w-auto min-w-[110px] flex-1 sm:flex-none"
               />
               {filtersActive && (
@@ -291,9 +274,9 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
           </div>
 
           {filtersActive && (
-            <div className="mt-3 border-t border-line pt-3 animate-fade">
+            <div className="mt-3 border-t border-line pt-3">
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">
-                {results.length} match{results.length === 1 ? '' : 'es'} — click a result to open it in Inventory
+                {results.length} match{results.length === 1 ? '' : 'es'} � click a result to open it in Inventory
               </p>
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {results.slice(0, 24).map((l) => (
@@ -305,20 +288,20 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-medium text-ink">{l.brand_model}</span>
                       <span className="block truncate font-mono text-[11px] text-ink-faint">
-                        {l.serial_number} · {l.current_store_name || 'Unassigned'}
+                        {l.serial_number} � {l.current_store_name || 'Unassigned'}
                       </span>
                     </span>
                     <span className="flex shrink-0 items-center gap-2">
                       <StatusChip status={l.status} />
                       <span className="font-mono text-[11px] text-ink-dim">
-                        {l.purchase_rate != null ? inr(l.purchase_rate) : '—'}
+                        {l.purchase_rate != null ? inr(l.purchase_rate) : '�'}
                       </span>
                     </span>
                   </button>
                 ))}
                 {results.length > 24 && (
                   <p className="col-span-full text-xs text-ink-faint">
-                    +{results.length - 24} more — narrow your search
+                    +{results.length - 24} more � narrow your search
                   </p>
                 )}
               </div>
@@ -330,19 +313,14 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
           {CARDS.map((c, i) => (
             <button
               key={c.key}
-              ref={(el) => (refs.current[c.key] = el)}
-              onMouseMove={tilt(c.key)}
-              onMouseLeave={reset(c.key)}
               onClick={() => onNavigate(c.target)}
-              className={`neon-card neon-enter group relative overflow-hidden rounded-2xl border border-line bg-surface p-4 text-left outline-none focus-visible:ring-2 focus-visible:ring-accent-line sm:p-6 ${
+              className={`group relative overflow-hidden rounded-2xl border border-line bg-surface p-4 text-left outline-none focus-visible:ring-2 focus-visible:ring-accent-line sm:p-6 ${
                 c.full ? 'col-span-2 lg:col-span-4' : ''
               }`}
-              style={{ animationDelay: `${i * 90}ms` }}
             >
-              <div className="neon-scan" />
-              <div className="card-face pointer-events-none relative">
+              <div className="pointer-events-none relative">
                 <div className="flex items-start justify-between">
-                  <div className="neon-icon flex h-10 w-10 items-center justify-center rounded-xl border border-accent-line bg-accent-soft sm:h-12 sm:w-12">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-accent-line bg-accent-soft sm:h-12 sm:w-12">
                     {c.icon}
                   </div>
                   <span className="rounded-full border border-accent-line bg-accent-soft px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-accent sm:px-2.5 sm:py-1">
@@ -350,7 +328,7 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
                   </span>
                 </div>
 
-                <p className="neon-value mt-4 font-display text-3xl font-semibold tracking-tight text-accent sm:mt-5 sm:text-4xl">
+                <p className="mt-4 font-display text-3xl font-semibold tracking-tight text-accent sm:mt-5 sm:text-4xl">
                   {counts[c.key].main.toLocaleString('en-IN')}
                 </p>
                 <h3 className="mt-1 text-sm font-semibold text-ink sm:text-base">{c.title}</h3>
@@ -358,7 +336,7 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
 
                 <div className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-accent sm:mt-5">
                   Open
-                  <svg className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>
                 </div>

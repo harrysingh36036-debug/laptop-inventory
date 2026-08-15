@@ -6,7 +6,7 @@ export default function HistoryLog({ logs }) {
   const th = 'px-5 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint';
   const td = 'px-5 py-2.5 align-middle';
   return (
-    <section className="panel overflow-hidden animate-rise">
+    <section className="panel overflow-hidden">
       <div className="flex items-baseline justify-between border-b border-line px-5 py-4">
         <div>
           <h2 className="font-display text-sm font-semibold tracking-tight text-ink">{t.transferHistory}</h2>

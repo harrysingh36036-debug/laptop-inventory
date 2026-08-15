@@ -25,8 +25,8 @@ export default function DangerConfirmModal({ title, warning, onConfirm, onClose 
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm animate-fade">
-      <div className="w-full max-w-md rounded-2xl border border-stock-risk/30 bg-surface p-6 shadow-pop animate-rise">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-2xl border border-stock-risk/30 bg-surface p-6 shadow-pop">
         <h3 className="font-display text-base font-semibold tracking-tight text-stock-risk">{title || 'Confirm deletion'}</h3>
         <p className="mt-2 text-sm leading-relaxed text-ink-dim">
           {warning || 'This action cannot be undone. Please verify your identity before continuing.'}
