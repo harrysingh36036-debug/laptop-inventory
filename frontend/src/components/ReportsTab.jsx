@@ -30,7 +30,7 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
   const [sales, setSales] = useState([]);
   const [summary, setSummary] = useState(null);
   const [search, setSearch] = useState('');
-  const [reportDate, setReportDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [reportDate, setReportDate] = useState(() => new Date().toLocaleDateString('en-CA'));
   const [daily, setDaily] = useState(null); // app_daily_report payload
   const [storeSales, setStoreSales] = useState(null); // app_daily_store_sales payload
   const [dailyLoading, setDailyLoading] = useState(false);

@@ -25,7 +25,6 @@ const EMPTY = {
   quantity: 1,
   current_store_id: '',
   status: 'In Stock',
-  charger: 'with',
   purchase_comment: '',
   aadhar_no: ''
 };
@@ -57,9 +56,8 @@ export default function InventoryModal({ stores, brands = [], vendors = [], edit
             quantity: 1,
             current_store_id: editing.current_store_id ?? '',
             status: editing.status || 'In Stock',
-            charger: editing.charger || 'with',
             purchase_comment: editing.purchase_comment || '',
-            aadhar_no: ''
+            aadhar_no: editing.aadhar_no || ''
           }
         : EMPTY
     );
@@ -83,6 +81,10 @@ export default function InventoryModal({ stores, brands = [], vendors = [], edit
     }
     if (!form.purchase_comment.trim()) {
       setError('A purchase comment is required.');
+      return;
+    }
+    if (!isAdmin || (isAdmin && !form.aadhar_no.trim())) {
+      setError('Aadhar number is mandatory for purchase recording.');
       return;
     }
     if (isAdmin && form.aadhar_no.trim() && !/^\d{12}$/.test(form.aadhar_no.trim())) {
@@ -216,16 +218,9 @@ export default function InventoryModal({ stores, brands = [], vendors = [], edit
                 ))}
               </datalist>
             </div>
-            <div>
-              <label className={label}>Charger</label>
-              <select value={form.charger} onChange={set('charger')} className={input()}>
-                <option value="with">With Charger</option>
-                <option value="without">Without Charger</option>
-              </select>
-            </div>
-            {isAdmin && (
-              <div>
-                <label className={label}>Purchaser Aadhar No.</label>
+{isAdmin && (
+               <div>
+                 <label className={label}>Purchaser Aadhar No.</label>
                 <input
                   value={form.aadhar_no}
                   onChange={set('aadhar_no')}

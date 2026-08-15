@@ -5,8 +5,13 @@ import StatusChip from './StatusChip';
 
 export default function LaptopTable({
   laptops, stores, onTransfer, onEdit, onDelete, onSell,
-  canEdit = true, canTransfer = true, canSell = false, canManageCustomers = false, rowId, showSensitive = false
+  canEdit = true, canTransfer = true, canSell = false, canManageCustomers = false, rowId, showSensitive = false, onDetail
 }) {
+  const [detailLaptopId, setDetailLaptopId] = useState(null);
+
+  const toggleDetail = (laptopId) => {
+    setDetailLaptopId(prev => prev === laptopId ? null : laptopId);
+  };
   const t = useLabels();
   const [pending, setPending] = useState({}); // { laptopId: toStoreId }
 
@@ -61,20 +66,10 @@ export default function LaptopTable({
                    <tr className="group transition-colors duration-150 hover:bg-surface-2/60" data-row={rowId ? rowId(l) : undefined}>
                    <td className={td}>
                      <p className="font-medium text-ink">{l.brand_model}</p>
-                     {l.purchased_from && (
-                       <p className="mt-0.5 text-[11px] text-ink-faint">From {l.purchased_from}</p>
-                     )}
-                     {l.charger && (
-                       <p className="mt-0.5 text-[11px] text-ink-faint">
-                         {l.charger === 'with' ? 'With charger' : 'Without charger'}
-                       </p>
-                     )}
-                     {showSensitive && l.purchaser_aadhar_hash && (
-                       <p className="mt-0.5 font-mono text-[10px] text-ink-faint">
-                         Aadhar ••••{l.purchaser_aadhar_hash.slice(-6)}
-                       </p>
-                     )}
-                   </td>
+{l.purchased_from && (
+                        <p className="mt-0.5 text-[11px] text-ink-faint">From {l.purchased_from}</p>
+                      )}
+                    </td>
                    <td className={`${td} text-xs text-ink-dim`}>
                      <p>{spec || '—'}</p>
                      {gfx && <p className="mt-0.5 text-[11px] text-ink-faint">{gfx}</p>}
@@ -146,17 +141,61 @@ export default function LaptopTable({
                            </button>
                          </>
                        )}
-                       {canSell && !isSold && (
-                         <button
-                           onClick={() => handleSell(l)}
-                           className="btn-accent"
-                         >
-                           {t.sellButton || 'Sell'}
-                         </button>
-                       )}
-                     </div>
+{canSell && !isSold && (
+                          <button
+                            onClick={() => handleSell(l)}
+                            className="btn-accent"
+                          >
+                            {t.sellButton || 'Sell'}
+                          </button>
+                        )}
+                        {isSold && (
+                          <button
+                            onClick={() => toggleDetail(l.id)}
+                            className="btn-ghost text-accent"
+                            title="View customer details"
+                          >
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l3 3m0 0l-3-3m3 3H10" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
                    </td>
                  </tr>
+                 {detailLaptopId === l.id && (
+                   <tr className="bg-surface-2/50">
+                     <td colSpan={8} className="px-4 py-2 text-sm text-ink-dim">
+                       <div className="p-3 rounded-lg border border-accent-line bg-accent-soft">
+                         <p className="font-semibold text-ink mb-2">Customer Details</p>
+                         <p className="text-[10px] text-ink-faint mb-1">
+                           {l.sale_customer_name || '— no customer linked —'}
+                         </p>
+                         {l.sold_at && (
+                           <p className="text-[10px] text-ink-faint">
+                             Sold on {formatTime(l.sold_at)}
+                           </p>
+                         )}
+                         {l.sold_by && (
+                           <p className="text-[10px] text-ink-faint">
+                             Sold by {l.sold_by}
+                           </p>
+                         )}
+                         {showSensitive && l.purchaser_aadhar_hash && (
+                           <p className="mt-2 text-[10px] font-mono text-ink">
+                             Aadhar ••••{l.purchaser_aadhar_hash.slice(-6)}
+                           </p>
+                         )}
+                         <button
+                           onClick={() => setDetailLaptopId(null)}
+                           className="mt-3 text-accent underline cursor-pointer"
+                         >
+                           Close
+                         </button>
+                       </div>
+                     </td>
+                   </tr>
+                 )}
                  {isSold && (
                    <tr className="bg-surface-2/30">
                      <td colSpan={8} className="px-4 py-1.5 text-xs text-ink-dim">
@@ -206,16 +245,6 @@ export default function LaptopTable({
                   <p className="font-medium text-ink">{l.brand_model}</p>
                   {l.purchased_from && (
                     <p className="mt-0.5 text-[11px] text-ink-faint">From {l.purchased_from}</p>
-                  )}
-                  {l.charger && (
-                    <p className="mt-0.5 text-[11px] text-ink-faint">
-                      {l.charger === 'with' ? 'With charger' : 'Without charger'}
-                    </p>
-                  )}
-                  {showSensitive && l.purchaser_aadhar_hash && (
-                    <p className="mt-0.5 font-mono text-[10px] text-ink-faint">
-                      Aadhar ••••{l.purchaser_aadhar_hash.slice(-6)}
-                    </p>
                   )}
                 </div>
                 <StatusChip status={l.status} />
@@ -293,6 +322,17 @@ export default function LaptopTable({
                   {canSell && !isSold && (
                     <button onClick={() => handleSell(l)} className="btn-accent">
                       {t.sellButton || 'Sell'}
+                    </button>
+                  )}
+                  {isSold && (
+                    <button
+                      onClick={() => toggleDetail(l.id)}
+                      className="btn-ghost text-accent"
+                      title="View customer details"
+                    >
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 10l3 3m0 0l-3-3m3 3H10" />
+                      </svg>
                     </button>
                   )}
                 </div>
