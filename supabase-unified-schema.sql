@@ -298,7 +298,7 @@ DECLARE
 BEGIN
   IF p_password IS NULL OR btrim(p_password) = '' THEN RETURN false; END IF;
   SELECT encrypted_password::text INTO v_hash FROM auth.users WHERE id = auth.uid();
-  RETURN v_hash IS NOT NULL AND v_hash <> '' AND extensions.crypt(p_password, v_hash) = v_hash;
+  RETURN v_hash IS NOT NULL AND v_hash <> '' AND public.crypt(p_password, v_hash) = v_hash;
 END $$;
 
 CREATE OR REPLACE FUNCTION public.app_log_delete(p_entity_type text, p_entity_id bigint, p_label text, p_remarks text)
