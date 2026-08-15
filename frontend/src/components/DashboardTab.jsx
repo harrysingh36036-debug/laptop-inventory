@@ -174,21 +174,21 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
   const repairInProgress = (repairs || []).filter((r) => r?.status === 'In Progress').length;
 
   const counts = {
-    inventory: { main: laptops.length, sub: `${inStockCount} in stock � ${inTransitCount} in transit` },
+    inventory: { main: laptops.length, sub: `${inStockCount} in stock · ${inTransitCount} in transit` },
     purchase: {
       main: purchases.length,
       sub: purchaseValue
-        ? `?${purchaseValue.toLocaleString('en-IN')} invested`
+        ? `₹${purchaseValue.toLocaleString('en-IN')} invested`
         : 'units bought & money invested'
     },
     repair: {
       main: repairs.length,
-      sub: `${repairPending} pending � ${repairInProgress} in progress`
+      sub: `${repairPending} pending · ${repairInProgress} in progress`
     },
     transfers: { main: logs.length, sub: 'store-to-store movements' },
     sold: { main: soldCount, sub: 'units sold' },
     report: { main: inStockCount, sub: 'ready to sell right now' },
-    customers: { main: customers.length, sub: 'customers � view full purchase history' }
+    customers: { main: customers.length, sub: 'customers · view full purchase history' }
   };
 
   return (
@@ -202,7 +202,7 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
             Dashboard
           </h2>
           <p className="mt-1 text-sm text-ink-faint">
-            Pick a module � everything updates in real time.
+            Pick a module — everything updates in real time.
           </p>
         </div>
 
@@ -219,7 +219,7 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Master search � brand, product line, model, serial, processor, RAM, configuration�"
+                placeholder="Master search — brand, product line, model, serial, processor, RAM, configuration…"
                 className="field pl-9"
               />
             </div>
@@ -256,13 +256,13 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
               <input
                 type="number" min="0" value={minPrice}
                 onChange={(e) => setMinPrice(e.target.value)}
-                placeholder="Min ?"
+                placeholder="Min ₹"
                 className="field w-auto min-w-[110px] flex-1 sm:flex-none"
               />
               <input
                 type="number" min="0" value={maxPrice}
                 onChange={(e) => setMaxPrice(e.target.value)}
-                placeholder="Max ?"
+                placeholder="Max ₹"
                 className="field w-auto min-w-[110px] flex-1 sm:flex-none"
               />
               {filtersActive && (
@@ -276,7 +276,7 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
           {filtersActive && (
             <div className="mt-3 border-t border-line pt-3">
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">
-                {results.length} match{results.length === 1 ? '' : 'es'} � click a result to open it in Inventory
+                {results.length} match{results.length === 1 ? '' : 'es'} — click a result to open it in Inventory
               </p>
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {results.slice(0, 24).map((l) => (
@@ -288,20 +288,20 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-medium text-ink">{l.brand_model}</span>
                       <span className="block truncate font-mono text-[11px] text-ink-faint">
-                        {l.serial_number} � {l.current_store_name || 'Unassigned'}
+                        {l.serial_number} · {l.current_store_name || 'Unassigned'}
                       </span>
                     </span>
                     <span className="flex shrink-0 items-center gap-2">
                       <StatusChip status={l.status} />
                       <span className="font-mono text-[11px] text-ink-dim">
-                        {l.purchase_rate != null ? inr(l.purchase_rate) : '�'}
+                        {l.purchase_rate != null ? inr(l.purchase_rate) : '—'}
                       </span>
                     </span>
                   </button>
                 ))}
                 {results.length > 24 && (
                   <p className="col-span-full text-xs text-ink-faint">
-                    +{results.length - 24} more � narrow your search
+                    +{results.length - 24} more — narrow your search
                   </p>
                 )}
               </div>
