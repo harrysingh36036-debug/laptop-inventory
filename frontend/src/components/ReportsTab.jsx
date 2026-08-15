@@ -26,7 +26,7 @@ function saveCsv(filename, rows) {
   a.parentNode && a.parentNode.removeChild(a);
 }
 
-export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdmin = false, homeStoreId = null }) {
+export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdmin = false, homeStoreId = null, onOpenStore }) {
   const [sales, setSales] = useState([]);
   const [summary, setSummary] = useState(null);
   const [search, setSearch] = useState('');
@@ -388,93 +388,135 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
 
         {!dailyLoading && daily && (
           <div className="mt-5 space-y-6">
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[720px] text-left text-sm">
-                <thead>
-                  <tr className="border-b border-line">
-                    <th className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Store</th>
-                    <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-faint">In Store</th>
-                    <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Sold</th>
-                    <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Transferred Out</th>
-                    <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Transferred In</th>
-                    <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Out Total</th>
-                    <th className="px-3 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Models</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--hairline)]">
-                  {dailyStores.map((st) => (
-                    <tr key={st.store_id} className="transition-colors duration-150 hover:bg-surface-2/60">
-                      <td className="px-3 py-2.5 font-medium text-ink">{st.store_name}</td>
-                      <td className="px-3 py-2.5 text-right font-mono text-xs text-ink">{st.in_store ?? 0}</td>
-                      <td className="px-3 py-2.5 text-right font-mono text-xs text-ink-dim">{st.sold_on ?? 0}</td>
-                      <td className="px-3 py-2.5 text-right font-mono text-xs text-ink-dim">{st.transferred_out_on ?? 0}</td>
-                      <td className="px-3 py-2.5 text-right font-mono text-xs text-ink-dim">{st.transferred_in_on ?? 0}</td>
-                      <td className="px-3 py-2.5 text-right font-mono text-xs font-medium text-accent">{st.out_total ?? 0}</td>
-                      <td className="px-3 py-2.5 text-[11px] text-ink-dim">
-                        {(st.models || []).map((m) => (
-                          <span key={m.model} className="mr-1.5 inline-block rounded-md border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] text-ink-dim">
-                            {m.model} × {m.count}
-                          </span>
-                        ))}
-                        {(st.models || []).length === 0 && <span className="text-ink-faint">—</span>}
-                      </td>
-                    </tr>
-                  ))}
-                  {dailyStores.length === 0 && (
-                    <tr>
-                      <td colSpan={7} className="px-3 py-8 text-center text-sm text-ink-faint">No stores on this date.</td>
-                    </tr>
-                  )}
-                </tbody>
-                <tfoot>
-                  <tr className="border-t border-line">
-                    <td className="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-ink">Totals</td>
-                    <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-ink">{dailyTotals.in_store}</td>
-                    <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-ink-dim">{dailyTotals.sold_on}</td>
-                    <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-ink-dim">{dailyTotals.transferred_out_on}</td>
-                    <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-ink-dim">{dailyTotals.transferred_in_on}</td>
-                    <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-accent">{dailyTotals.out_total}</td>
-                    <td />
-                  </tr>
-                </tfoot>
-              </table>
+            {/* Summary cards: system counts per store for the selected date */}
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <button
+                onClick={() => onOpenStore?.('')}
+                className="panel flex flex-col items-start gap-1 p-4 text-left transition-colors hover:bg-surface-2/70"
+                title="Open all stores in Inventory"
+              >
+                <span className="truncate w-full text-xs font-semibold uppercase tracking-wide text-ink-faint">All Stores</span>
+                <span className="mt-1 font-display text-2xl font-bold text-accent">{dailyTotals.in_store}</span>
+                <span className="text-[11px] text-ink-faint">
+                  {dailyTotals.sold_on} sold on {reportDate}
+                </span>
+              </button>
+              {dailyStores.map((st) => (
+                <button
+                  key={st.store_id}
+                  onClick={() => onOpenStore?.(st.store_id)}
+                  className="panel flex flex-col items-start gap-1 p-4 text-left transition-colors hover:bg-surface-2/70"
+                  title={`Open ${st.store_name} in Inventory`}
+                >
+                  <span className="truncate w-full text-xs font-semibold uppercase tracking-wide text-ink-faint">{st.store_name}</span>
+                  <span className="mt-1 font-display text-2xl font-bold text-accent">{st.in_store ?? 0}</span>
+                  <span className="text-[11px] text-ink-faint">
+                    {st.in_store === 1 ? 'system' : 'systems'} · {st.sold_on ?? 0} sold
+                  </span>
+                </button>
+              ))}
             </div>
 
+            {/* Daily report: uniform per-store tiles (in / out) */}
+            <div>
+              <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-wide text-ink-faint">
+                Store status — in / out on {reportDate}
+              </h2>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {dailyStores.map((st) => (
+                  <button
+                    key={st.store_id}
+                    onClick={() => onOpenStore?.(st.store_id)}
+                    className="panel flex flex-col gap-2.5 p-4 text-left transition-colors hover:bg-surface-2/70"
+                    title={`Open ${st.store_name} in Inventory`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate text-sm font-semibold text-ink">{st.store_name}</span>
+                      <span className="mono-chip">{st.in_store ?? 0} in store</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      {[
+                        { label: 'Sold', value: st.sold_on ?? 0, strong: false },
+                        { label: 'Transferred Out', value: st.transferred_out_on ?? 0, strong: false },
+                        { label: 'Transferred In', value: st.transferred_in_on ?? 0, strong: false }
+                      ].map((m) => (
+                        <div key={m.label} className="rounded-lg border border-line bg-surface-2/60 px-1 py-1.5">
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">{m.label}</p>
+                          <p className={`mt-0.5 font-mono text-sm ${m.strong ? 'font-medium text-accent' : 'text-ink-dim'}`}>{m.value}</p>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-between border-t border-line pt-2">
+                      <span className="text-[11px] text-ink-faint">Out total</span>
+                      <span className="font-mono text-sm font-medium text-accent">{st.out_total ?? 0}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(st.models || []).map((m) => (
+                        <span
+                          key={m.model}
+                          role="button"
+                          tabIndex={0}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onOpenStore?.(st.store_id, m.model);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              onOpenStore?.(st.store_id, m.model);
+                            }
+                          }}
+                          className="cursor-pointer rounded-md border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] text-ink-dim transition-colors hover:border-accent-line hover:text-accent"
+                          title={`Find ${m.model} in ${st.store_name}`}
+                        >
+                          {m.model} × {m.count}
+                        </span>
+                      ))}
+                      {(st.models || []).length === 0 && <span className="text-[10px] text-ink-faint">—</span>}
+                    </div>
+                  </button>
+                ))}
+                {dailyStores.length === 0 && (
+                  <p className="col-span-full px-1 text-sm text-ink-faint">No stores on this date.</p>
+                )}
+              </div>
+            </div>
+
+            {/* Store-wise sales: uniform tiles */}
             {storeSales && (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[480px] text-left text-sm">
-                  <thead>
-                    <tr className="border-b border-line">
-                      <th className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Store</th>
-                      <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Units</th>
-                      <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Amount</th>
-                      <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Profit</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[var(--hairline)]">
-                    {storeSalesRows.map((st) => (
-                      <tr key={st.store_id} className="transition-colors duration-150 hover:bg-surface-2/60">
-                        <td className="px-3 py-2.5 font-medium text-ink">{st.store_name}</td>
-                        <td className="px-3 py-2.5 text-right font-mono text-xs text-ink-dim">{st.units ?? 0}</td>
-                        <td className="px-3 py-2.5 text-right font-mono text-xs text-ink">{inr(st.amount)}</td>
-                        <td className="px-3 py-2.5 text-right font-mono text-xs text-ink-dim">{inr(st.profit)}</td>
-                      </tr>
-                    ))}
-                    {storeSalesRows.length === 0 && (
-                      <tr>
-                        <td colSpan={4} className="px-3 py-8 text-center text-sm text-ink-faint">No sales on this date.</td>
-                      </tr>
-                    )}
-                  </tbody>
-                  <tfoot>
-                    <tr className="border-t border-line">
-                      <td className="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-ink">Totals</td>
-                      <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-ink">{storeSalesTotals.units}</td>
-                      <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-ink">{inr(storeSalesTotals.amount)}</td>
-                      <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-ink-dim">{inr(storeSalesTotals.profit)}</td>
-                    </tr>
-                  </tfoot>
-                </table>
+              <div>
+                <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-wide text-ink-faint">
+                  Store-wise sales on {reportDate}
+                </h2>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {storeSalesRows.map((st) => (
+                    <button
+                      key={st.store_id}
+                      onClick={() => onOpenStore?.(st.store_id)}
+                      className="panel flex flex-col gap-2 p-4 text-left transition-colors hover:bg-surface-2/70"
+                      title={`Open ${st.store_name} in Inventory`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate text-sm font-semibold text-ink">{st.store_name}</span>
+                        <span className="mono-chip">{st.units ?? 0} units</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="rounded-lg border border-line bg-surface-2/60 px-2 py-1.5">
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">Amount</p>
+                          <p className="mt-0.5 font-mono text-sm text-ink">{inr(st.amount)}</p>
+                        </div>
+                        <div className="rounded-lg border border-line bg-surface-2/60 px-2 py-1.5">
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">Profit</p>
+                          <p className="mt-0.5 font-mono text-sm text-ink-dim">{inr(st.profit)}</p>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                  {storeSalesRows.length === 0 && (
+                    <p className="col-span-full px-1 text-sm text-ink-faint">No sales on this date.</p>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -493,43 +535,32 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
               Download CSV
             </button>
           </div>
-          <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[640px] text-left text-sm">
-              <thead>
-                <tr className="border-b border-line">
-                  <th className="px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Store</th>
-                  <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Repairs</th>
-                  <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Item Cost</th>
-                  <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Charged to Customer</th>
-                  <th className="px-3 py-2 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Profit</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--hairline)]">
-                {repairRows.map((st) => (
-                  <tr key={st.store_id} className="transition-colors duration-150 hover:bg-surface-2/60">
-                    <td className="px-3 py-2.5 font-medium text-ink">{st.store_name}</td>
-                    <td className="px-3 py-2.5 text-right font-mono text-xs text-ink-dim">{st.count ?? 0}</td>
-                    <td className="px-3 py-2.5 text-right font-mono text-xs text-ink-dim">{inr(st.total_cost)}</td>
-                    <td className="px-3 py-2.5 text-right font-mono text-xs text-ink">{inr(st.total_charge)}</td>
-                    <td className="px-3 py-2.5 text-right font-mono text-xs text-ink-dim">{inr(st.profit)}</td>
-                  </tr>
-                ))}
-                {repairRows.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="px-3 py-8 text-center text-sm text-ink-faint">No repairs recorded yet.</td>
-                  </tr>
-                )}
-              </tbody>
-              <tfoot>
-                <tr className="border-t border-line">
-                  <td className="px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-ink">Totals</td>
-                  <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-ink">{repairTotals.count}</td>
-                  <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-ink-dim">{inr(repairTotals.total_cost)}</td>
-                  <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-ink">{inr(repairTotals.total_charge)}</td>
-                  <td className="px-3 py-2.5 text-right font-mono text-xs font-semibold text-ink-dim">{inr(repairTotals.profit)}</td>
-                </tr>
-              </tfoot>
-            </table>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {repairRows.map((st) => (
+              <div key={st.store_id} className="panel flex flex-col gap-2 p-4">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate text-sm font-semibold text-ink">{st.store_name}</span>
+                  <span className="mono-chip">{st.count ?? 0} repairs</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="rounded-lg border border-line bg-surface-2/60 px-1 py-1.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">Item Cost</p>
+                    <p className="mt-0.5 font-mono text-sm text-ink-dim">{inr(st.total_cost)}</p>
+                  </div>
+                  <div className="rounded-lg border border-line bg-surface-2/60 px-1 py-1.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">Charged</p>
+                    <p className="mt-0.5 font-mono text-sm text-ink">{inr(st.total_charge)}</p>
+                  </div>
+                  <div className="rounded-lg border border-line bg-surface-2/60 px-1 py-1.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">Profit</p>
+                    <p className="mt-0.5 font-mono text-sm text-ink-dim">{inr(st.profit)}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {repairRows.length === 0 && (
+              <p className="col-span-full px-1 text-sm text-ink-faint">No repairs recorded yet.</p>
+            )}
           </div>
         </section>
       )}

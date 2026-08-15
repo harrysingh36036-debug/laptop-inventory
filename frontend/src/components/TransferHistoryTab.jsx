@@ -71,13 +71,13 @@ export default function TransferHistoryTab({ stores }) {
         ))}
       </div>
 
-      {/* Transfer table */}
+      {/* Transfer table (desktop) */}
       <div className="panel overflow-hidden">
         <div className="flex items-center justify-between border-b border-line px-5 py-3">
           <h2 className="font-display text-sm font-semibold tracking-tight text-ink">Transfer History</h2>
           <span className="mono-chip text-[10px]">{filtered.length} moves</span>
         </div>
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full min-w-[880px] text-left text-sm">
             <thead>
               <tr className="border-b border-line">
@@ -129,6 +129,44 @@ export default function TransferHistoryTab({ stores }) {
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile: stackable vertical cards — no horizontal scroll */}
+        <div className="md:hidden divide-y divide-[var(--hairline)]">
+          {filtered.length === 0 && (
+            <div className="px-4 py-10 text-center text-sm text-ink-faint">
+              {q ? 'No transfers match your search.' : 'No transfers recorded yet. Move a laptop to a different store to see it here.'}
+            </div>
+          )}
+          {filtered.map((l) => (
+            <div key={l.id} className="px-4 py-3">
+              <div className="flex items-start justify-between gap-3">
+                <p className="font-medium text-ink">{l.brand_model}</p>
+                <span className="shrink-0 font-mono text-[11px] text-ink-faint">
+                  {formatTime(l.changed_at)}
+                </span>
+              </div>
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                <span className="mono-chip">{l.serial_number}</span>
+              </div>
+              <div className="mt-2 flex items-center gap-2 text-xs">
+                <span className="rounded-md border border-line bg-surface-2 px-1.5 py-0.5 font-medium text-ink-dim">
+                  {l.from_store_name || (l.from_store_id && storeName(l.from_store_id)) || '—'}
+                </span>
+                <svg className="h-3.5 w-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+                <span className="rounded-md border border-line bg-surface-2 px-1.5 py-0.5 font-medium text-ink-dim">
+                  {l.to_store_name || (l.to_store_id && storeName(l.to_store_id)) || '—'}
+                </span>
+              </div>
+              {l.transferred_by && (
+                <p className="mt-1.5 text-[11px] text-ink-faint">
+                  Transferred by <span className="font-medium text-ink-dim">{l.transferred_by}</span>
+                </p>
+              )}
+            </div>
+          ))}
         </div>
       </div>
     </div>
