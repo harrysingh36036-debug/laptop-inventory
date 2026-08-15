@@ -211,9 +211,10 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
   const loadUsers = async () => {
     try {
       const list = await getUsers();
-      setUsers(list || []);
+      const visible = (list || []).filter((u) => isSuperAdmin || u.role !== 'superadmin');
+      setUsers(visible);
       setDrafts(
-        (list || []).reduce((m, u) => {
+        visible.reduce((m, u) => {
           m[u.id] = { role: u.role, store_id: u.home_store_id ?? 0 };
           return m;
         }, {})
