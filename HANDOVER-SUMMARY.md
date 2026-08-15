@@ -5,7 +5,7 @@ A web app to track laptop inventory across stores. It supports multiple users
 with **roles** and **permissions**, live transfer logging between stores, and the
 owner/admin can see which accounts are used.
 
-- **Live URL:** https://laptop-inventory-production.up.railway.app
+- **Live URL:** https://harrysingh36036-debug.github.io/laptop-inventory/
 
 ## Access
 - **Admin login:** username `admin`, password `admin123`
