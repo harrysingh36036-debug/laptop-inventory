@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { hashAadhar } from '../utils';
 
 const STATUSES = ['In Stock', 'In Transit'];
 
@@ -18,7 +19,8 @@ const EMPTY = {
   quantity: 1,
   current_store_id: '',
   status: 'In Stock',
-  comment: ''
+  comment: '',
+  aadhar_no: ''
 };
 
 export default function PurchaseModal({ stores, editing, onSave, onClose }) {
@@ -44,7 +46,8 @@ export default function PurchaseModal({ stores, editing, onSave, onClose }) {
             quantity: editing.quantity || 1,
             current_store_id: editing.current_store_id ?? '',
             status: editing.status || 'In Stock',
-            comment: editing.comment || ''
+            comment: editing.comment || '',
+            aadhar_no: editing.aadhar_no || ''
           }
         : EMPTY
     );
@@ -65,8 +68,20 @@ export default function PurchaseModal({ stores, editing, onSave, onClose }) {
       setError('Enter the purchase rate — this is a spending ledger.');
       return;
     }
+    if (!editing && !form.aadhar_no.trim()) {
+      setError('Aadhar number is mandatory when adding a purchase.');
+      return;
+    }
+    if (form.aadhar_no.trim() && !/^\d{12}$/.test(form.aadhar_no.trim())) {
+      setError('Aadhar number must be exactly 12 digits.');
+      return;
+    }
+    const payload = { ...form };
+    if (form.aadhar_no.trim()) {
+      payload.purchaser_aadhar_hash = await hashAadhar(form.aadhar_no.trim());
+    }
     setError('');
-    await onSave(form);
+    await onSave(payload);
   };
 
   return (
@@ -92,6 +107,13 @@ export default function PurchaseModal({ stores, editing, onSave, onClose }) {
             <div>
               <label className="flabel">Vendor / Bought From</label>
               <input value={form.purchased_from} onChange={set('purchased_from')} placeholder="Dealer, customer or shop…" className="field mt-1.5" />
+            </div>
+            <div>
+              <label className="flabel">Purchaser Aadhar No. {!editing && <span className="text-stock-risk">*</span>}</label>
+              <input value={form.aadhar_no} onChange={set('aadhar_no')} inputMode="numeric" maxLength={12}
+                placeholder={editing ? (form.aadhar_no ? '' : 'Optional on edit') : '12-digit Aadhar (required)'}
+                className="field mt-1.5" />
+              <p className="mt-1 text-xs text-ink-faint">Hashed before saving.</p>
             </div>
             <div>
               <label className="flabel">Brand</label>

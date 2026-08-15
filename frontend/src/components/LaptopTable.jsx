@@ -181,11 +181,6 @@ export default function LaptopTable({
                              Sold by {l.sold_by}
                            </p>
                          )}
-                         {showSensitive && l.purchaser_aadhar_hash && (
-                           <p className="mt-2 text-[10px] font-mono text-ink">
-                             Aadhar ••••{l.purchaser_aadhar_hash.slice(-6)}
-                           </p>
-                         )}
                          <button
                            onClick={() => setDetailLaptopId(null)}
                            className="mt-3 text-accent underline cursor-pointer"

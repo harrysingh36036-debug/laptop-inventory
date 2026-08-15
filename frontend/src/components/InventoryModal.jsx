@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useLabels } from '../labels.jsx';
-import { hashAadhar } from '../utils';
 
 const STATUSES = ['In Stock', 'In Transit'];
 const SIZES = ['256 GB', '512 GB', '1 TB', '2 TB', '4 TB', '8 TB'];
@@ -25,8 +24,7 @@ const EMPTY = {
   quantity: 1,
   current_store_id: '',
   status: 'In Stock',
-  purchase_comment: '',
-  aadhar_no: ''
+  purchase_comment: ''
 };
 
 export default function InventoryModal({ stores, brands = [], vendors = [], editing, onSave, onClose, isAdmin = false }) {
@@ -56,8 +54,7 @@ export default function InventoryModal({ stores, brands = [], vendors = [], edit
             quantity: 1,
             current_store_id: editing.current_store_id ?? '',
             status: editing.status || 'In Stock',
-            purchase_comment: editing.purchase_comment || '',
-            aadhar_no: editing.aadhar_no || ''
+            purchase_comment: editing.purchase_comment || ''
           }
         : EMPTY
     );
@@ -83,25 +80,14 @@ export default function InventoryModal({ stores, brands = [], vendors = [], edit
       setError('A purchase comment is required.');
       return;
     }
-    if (!editing && isAdmin && !form.aadhar_no.trim()) {
-      setError('Aadhar number is mandatory for purchase recording.');
-      return;
-    }
-    if (isAdmin && form.aadhar_no.trim() && !/^\d{12}$/.test(form.aadhar_no.trim())) {
-      setError('Aadhar number must be exactly 12 digits.');
-      return;
-    }
     // Bulk mode always auto-generates serials; single mode too (brand prefix).
-    const payload = { ...form, aadhar_no: undefined };
+    const payload = { ...form };
     if (payload.quantity > 1) {
       delete payload.serial_number;
       payload.serial_prefix = brandPrefix || undefined;
     } else if (!editing && !payload.serial_number.trim() && !brandPrefix) {
       setError('Serial Number is required (or use a brand with a serial prefix).');
       return;
-    }
-    if (isAdmin && form.aadhar_no.trim()) {
-      payload.purchaser_aadhar_hash = await hashAadhar(form.aadhar_no);
     }
     const err = await onSave(payload);
     if (err) setError(err);
@@ -216,22 +202,8 @@ export default function InventoryModal({ stores, brands = [], vendors = [], edit
                 {vendors.map((v) => (
                   <option key={v.id} value={v.name} />
                 ))}
-              </datalist>
+</datalist>
             </div>
-{isAdmin && (
-               <div>
-                 <label className={label}>Purchaser Aadhar No.</label>
-                <input
-                  value={form.aadhar_no}
-                  onChange={set('aadhar_no')}
-                  inputMode="numeric"
-                  maxLength={12}
-                  placeholder={editing?.purchaser_aadhar_hash ? '•••• (stored — enter new to replace)' : '12-digit Aadhar'}
-                  className={input()}
-                />
-                <p className="mt-1 text-xs text-ink-faint">Hashed before saving; visible only to admins.</p>
-              </div>
-            )}
           </div>
 
           {/* Graphics */}

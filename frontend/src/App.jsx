@@ -579,7 +579,8 @@ export default function App() {
         quantity: Number(form.quantity) || 1,
         current_store_id: form.current_store_id ? Number(form.current_store_id) : null,
         status: form.status || 'In Stock',
-        comment: form.comment
+        comment: form.comment,
+        purchaser_aadhar_hash: form.purchaser_aadhar_hash || null
       };
       if (purchaseModal?.purchase) {
         await updatePurchase(purchaseModal.purchase.id, payload);

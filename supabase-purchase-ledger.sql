@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS public.purchases (
   current_store_id  bigint REFERENCES public.stores (id),
   status            text NOT NULL DEFAULT 'In Stock',
   comment           text,
+  purchaser_aadhar_hash text,
   created_by        text,
   created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at        TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -82,6 +83,7 @@ BEGIN
       'current_store_name', s.store_name,
       'status', p.status,
       'comment', p.comment,
+      'purchaser_aadhar_hash', p.purchaser_aadhar_hash,
       'created_by', p.created_by,
       'created_at', to_char(p.created_at, 'YYYY-MM-DD HH24:MI:SS'))
       ORDER BY p.purchased_at DESC, p.id DESC), '[]'::jsonb) INTO v_out
@@ -120,7 +122,7 @@ BEGIN
   IF NOT public.app_perm('editInventory') THEN RAISE EXCEPTION 'Insufficient permissions'; END IF;
   INSERT INTO public.purchases (
     purchased_at, brand, brand_model, serial_number, processor, generation, ram, storage,
-    graphics, purchased_from, purchase_rate, extra_charges, quantity, current_store_id, status, comment
+    graphics, purchased_from, purchase_rate, extra_charges, quantity, current_store_id, status, comment, purchaser_aadhar_hash
   ) VALUES (
     COALESCE(NULLIF(btrim(COALESCE(p_data->>'purchased_at','')), '')::timestamptz, now()),
     NULLIF(btrim(COALESCE(p_data->>'brand','')), ''),
@@ -138,7 +140,8 @@ BEGIN
     CASE WHEN p_data->>'current_store_id' IS NULL OR p_data->>'current_store_id' = '' THEN NULL
          ELSE (p_data->>'current_store_id')::bigint END,
     COALESCE(p_data->>'status','In Stock'),
-    NULLIF(btrim(COALESCE(p_data->>'comment','')), '')
+    NULLIF(btrim(COALESCE(p_data->>'comment','')), ''),
+    NULLIF(btrim(COALESCE(p_data->>'purchaser_aadhar_hash','')), '')
   ) RETURNING id INTO v_id;
   RETURN jsonb_build_object('ok', true, 'id', v_id);
 END $$;
@@ -169,6 +172,7 @@ BEGIN
                             ELSE (p_data->>'current_store_id')::bigint END,
     status = COALESCE(p_data->>'status','In Stock'),
     comment = NULLIF(btrim(COALESCE(p_data->>'comment','')), ''),
+    purchaser_aadhar_hash = NULLIF(btrim(COALESCE(p_data->>'purchaser_aadhar_hash','')), ''),
     updated_at = now()
   WHERE id = p_id;
   RETURN jsonb_build_object('ok', true, 'id', p_id);
