@@ -83,7 +83,7 @@ export default function InventoryModal({ stores, brands = [], vendors = [], edit
       setError('A purchase comment is required.');
       return;
     }
-    if (!isAdmin || (isAdmin && !form.aadhar_no.trim())) {
+    if ((!editing && !isAdmin) || (!editing && isAdmin && !form.aadhar_no.trim())) {
       setError('Aadhar number is mandatory for purchase recording.');
       return;
     }
