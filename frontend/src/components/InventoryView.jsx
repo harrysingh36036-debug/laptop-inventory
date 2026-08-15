@@ -29,6 +29,7 @@ export default function InventoryView({
 }) {
   const t = useLabels();
   const [brand, setBrand] = useState(''); // '' = brand tiles, value = models view
+  const [lineF, setLineF] = useState(''); // product line dropdown filter
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(() =>
     typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches ? 9 : 16
@@ -41,6 +42,18 @@ export default function InventoryView({
   useEffect(() => {
     setPage(1);
   }, [storeId, status, search, brand]);
+
+  // Product lines present in the current list, for the dropdown filter.
+  const productLines = useMemo(() => {
+    const s = new Set((laptops || []).map((l) => l?.product_line).filter(Boolean));
+    return [...s].sort();
+  }, [laptops]);
+
+  // List after the product-line dropdown filter (drives tiles + model rows).
+  const filtered = useMemo(
+    () => (lineF ? (laptops || []).filter((l) => l?.product_line === lineF) : laptops || []),
+    [laptops, lineF]
+  );
 
   // Jump to a specific laptop (from dashboard master search).
   useEffect(() => {
@@ -65,7 +78,7 @@ export default function InventoryView({
   // ---- Brand tiles (grouped by brand from the active list) ----------------
   const brandGroups = useMemo(() => {
     const map = new Map();
-    for (const l of laptops) {
+    for (const l of filtered) {
       const b = l.brand || 'Unbranded';
       const g = map.get(b) || { brand: b, total: 0, inStock: 0 };
       g.total += 1;
@@ -73,9 +86,9 @@ export default function InventoryView({
       map.set(b, g);
     }
     return [...map.values()].sort((a, b) => b.total - a.total || a.brand.localeCompare(b.brand));
-  }, [laptops]);
+  }, [filtered]);
 
-  const brandRows = useMemo(() => laptops.filter((l) => (l.brand || 'Unbranded') === brand), [laptops, brand]);
+  const brandRows = useMemo(() => filtered.filter((l) => (l.brand || 'Unbranded') === brand), [filtered, brand]);
 
   const totalPages = Math.max(1, Math.ceil(brandRows.length / pageSize));
   const currentPage = Math.min(page, totalPages);
@@ -99,6 +112,17 @@ export default function InventoryView({
         <Toolbar search={search} setSearch={setSearch} resultCount={laptops.length} />
         <div className="flex flex-wrap items-center gap-2">
           <select
+            value={lineF}
+            onChange={(e) => setLineF(e.target.value)}
+            className="rounded-lg border border-line bg-surface px-3 py-2 text-xs font-medium text-ink-dim focus:border-accent-line focus:outline-none"
+            title="Filter by product line"
+          >
+            <option value="">All product lines</option>
+            {productLines.map((p) => (
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
+          <select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
             className="rounded-lg border border-line bg-surface px-3 py-2 text-xs font-medium text-ink-dim focus:border-accent-line focus:outline-none"
@@ -121,7 +145,21 @@ export default function InventoryView({
         /* ---- Brand tiles ---- */
         brandGroups.length === 0 ? (
           <div className="panel rounded-2xl p-12 text-center animate-rise">
-            <p className="text-sm text-ink-faint">{t.noLaptops || 'No laptops found'}</p>
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-surface-2 text-ink-faint">
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.6">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              </svg>
+            </div>
+            <p className="mt-4 text-sm font-medium text-ink">
+              {activeStore
+                ? `No inventory in ${activeStore.store_name} yet`
+                : (t.noLaptops || 'No laptops found')}
+            </p>
+            {activeStore && (
+              <p className="mt-1 text-xs text-ink-faint">
+                Add a laptop to this store or switch to another store to see its stock.
+              </p>
+            )}
           </div>
         ) : (
           <div>

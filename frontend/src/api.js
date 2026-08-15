@@ -144,6 +144,15 @@ export const getStores = () => table('stores');
 
 // ------------------------------- Users (admin) -------------------------------
 export const getUsers = () => rpc('app_get_users');
+export const createUser = (data = {}) =>
+  rpc('app_create_user', {
+    p_username: data.username || '',
+    p_password: data.password || '',
+    p_display_name: data.display_name || '',
+    p_role: data.role || 'staff',
+    p_store_id: data.store_id === null || data.store_id === undefined || data.store_id === '' ? null : Number(data.store_id),
+    p_allowed_store_ids: null
+  });
 export const updateUser = (id, data = {}) =>
   rpc('app_update_user', {
     p_id: id,

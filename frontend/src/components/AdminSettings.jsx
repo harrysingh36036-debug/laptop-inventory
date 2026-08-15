@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { DEFAULT_LABELS } from '../labels.jsx';
-import { getPermissions, savePermissions, getUsers, updateUser } from '../api';
+import { getPermissions, savePermissions, getUsers, updateUser, createUser } from '../api';
 import DangerConfirmModal from './DangerConfirmModal';
 
 // Description rows for the customizable button/label texts.
@@ -178,6 +178,35 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
   const [usersLoaded, setUsersLoaded] = useState(false);
   const [drafts, setDrafts] = useState({}); // userId -> { role, store_id }
   const [usersBusy, setUsersBusy] = useState(false);
+  const [newUser, setNewUser] = useState({ display_name: '', username: '', password: '', role: 'staff', store_id: 0 });
+  const [creating, setCreating] = useState(false);
+
+  const setNew = (k) => (e) => setNewUser((d) => ({ ...d, [k]: e.target.value }));
+
+  const createAccount = async (e) => {
+    e.preventDefault();
+    if (!newUser.username.trim() || !newUser.password) {
+      flash('Username and password are required.');
+      return;
+    }
+    setCreating(true);
+    try {
+      const res = await createUser({
+        username: newUser.username.trim(),
+        password: newUser.password,
+        display_name: newUser.display_name.trim(),
+        role: newUser.role,
+        store_id: newUser.store_id === '' ? null : Number(newUser.store_id || 0)
+      });
+      flash(`${res?.user?.display_name || newUser.username} account created`);
+      setNewUser({ display_name: '', username: '', password: '', role: 'staff', store_id: 0 });
+      await loadUsers();
+    } catch (err) {
+      flash(err.message);
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const loadUsers = async () => {
     try {
@@ -373,7 +402,54 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
         {tab === 'users' && (
           <div className="mt-4 space-y-4">
             <p className="text-sm text-ink-faint">
-              Assign each account its role and home store. A manager sees only their home store's daily report.
+              Assign each account its role and home store. A manager sees only their home store's daily report. Admins can create manager, admin and staff accounts; only the super admin can create a super admin.
+            </p>
+
+            <form onSubmit={createAccount} className="rounded-xl border border-line bg-surface-2/40 p-4">
+              <h3 className="text-sm font-semibold text-ink">Create account</h3>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="flabel">Display name</label>
+                  <input value={newUser.display_name} onChange={setNew('display_name')} className="field mt-1.5" placeholder="e.g. Priya Sharma" />
+                </div>
+                <div>
+                  <label className="flabel">Username <span className="text-stock-risk">*</span></label>
+                  <input value={newUser.username} onChange={setNew('username')} className="field mt-1.5" placeholder="e.g. priya (3-32 chars)" autoComplete="off" />
+                </div>
+                <div>
+                  <label className="flabel">Password <span className="text-stock-risk">*</span></label>
+                  <input type="password" value={newUser.password} onChange={setNew('password')} className="field mt-1.5" placeholder="At least 6 characters" autoComplete="new-password" />
+                </div>
+                <div>
+                  <label className="flabel">Role</label>
+                  <select value={newUser.role} onChange={setNew('role')} className="field mt-1.5">
+                    <option value="staff">staff</option>
+                    <option value="manager">manager</option>
+                    <option value="admin">admin</option>
+                    {isSuperAdmin && <option value="superadmin">superadmin</option>}
+                  </select>
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="flabel">Home store</label>
+                  <select value={newUser.store_id} onChange={setNew('store_id')} className="field mt-1.5 max-w-[280px]">
+                    <option value={0}>— No store —</option>
+                    {stores.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.store_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="mt-3 flex justify-end">
+                <button type="submit" disabled={creating} className="btn-accent disabled:opacity-50">
+                  {creating ? 'Creating…' : 'Create Account'}
+                </button>
+              </div>
+            </form>
+
+            <p className="text-sm text-ink-faint">
+              Existing accounts — change a role or home store, then press Save.
             </p>
             {!usersLoaded ? (
               <p className="text-sm text-ink-faint">Loading users…</p>

@@ -8,10 +8,15 @@ export default function LaptopTable({
   canEdit = true, canTransfer = true, canSell = false, canManageCustomers = false, rowId, showSensitive = false, onDetail
 }) {
   const [detailLaptopId, setDetailLaptopId] = useState(null);
+  const [adminDetailId, setAdminDetailId] = useState(null);
 
   const toggleDetail = (laptopId) => {
     setDetailLaptopId(prev => prev === laptopId ? null : laptopId);
   };
+  const toggleAdminDetail = (laptopId) => {
+    setAdminDetailId(prev => prev === laptopId ? null : laptopId);
+  };
+  const maskAadhar = (hash) => (hash && hash.length > 6 ? `••••••${hash.slice(-6)}` : hash || '—');
   const t = useLabels();
   const [pending, setPending] = useState({}); // { laptopId: toStoreId }
 
@@ -160,9 +165,44 @@ export default function LaptopTable({
                             </svg>
                           </button>
                         )}
+                        {showSensitive && (
+                          <button
+                            onClick={() => toggleAdminDetail(l.id)}
+                            className="btn-ghost text-accent"
+                            title="View purchase / inventory details"
+                          >
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            </svg>
+                          </button>
+                        )}
                       </div>
                    </td>
                  </tr>
+                 {adminDetailId === l.id && (
+                   <tr className="bg-surface-2/50">
+                     <td colSpan={8} className="px-4 py-2 text-sm text-ink-dim">
+                       <div className="p-3 rounded-lg border border-accent-line bg-accent-soft">
+                         <p className="font-semibold text-ink mb-2">Purchase / Inventory Details</p>
+                         <div className="grid gap-x-6 gap-y-1 text-[11px] sm:grid-cols-2 lg:grid-cols-3">
+                           <p><span className="text-ink-faint">Aadhar (last 6):</span> <span className="font-mono text-ink">{maskAadhar(l.purchaser_aadhar_hash)}</span></p>
+                           <p><span className="text-ink-faint">Purchase comment:</span> {l.purchase_comment || '—'}</p>
+                           <p><span className="text-ink-faint">Charger:</span> {l.charger || '—'}</p>
+                           <p><span className="text-ink-faint">Added:</span> {formatTime(l.created_at)}</p>
+                           <p><span className="text-ink-faint">Purchased from:</span> {l.purchased_from || '—'}</p>
+                           <p><span className="text-ink-faint">Purchase rate:</span> {l.purchase_rate != null ? inr(l.purchase_rate) : '—'}{l.extra_charges ? ` + ${inr(l.extra_charges)}` : ''}</p>
+                         </div>
+                         <button
+                           onClick={() => setAdminDetailId(null)}
+                           className="mt-3 text-accent underline cursor-pointer"
+                         >
+                           Close
+                         </button>
+                       </div>
+                     </td>
+                   </tr>
+                 )}
                  {detailLaptopId === l.id && (
                    <tr className="bg-surface-2/50">
                      <td colSpan={8} className="px-4 py-2 text-sm text-ink-dim">
@@ -330,8 +370,33 @@ export default function LaptopTable({
                       </svg>
                     </button>
                   )}
+                  {showSensitive && (
+                    <button
+                      onClick={() => toggleAdminDetail(l.id)}
+                      className="btn-ghost text-accent"
+                      title="View purchase / inventory details"
+                    >
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
               </div>
+              {adminDetailId === l.id && (
+                <div className="mt-2 rounded-lg border border-accent-line bg-accent-soft p-3 text-[11px] text-ink-dim">
+                  <p className="font-semibold text-ink mb-1.5">Purchase / Inventory Details</p>
+                  <div className="grid gap-x-6 gap-y-1 sm:grid-cols-2">
+                    <p><span className="text-ink-faint">Aadhar (last 6):</span> <span className="font-mono text-ink">{maskAadhar(l.purchaser_aadhar_hash)}</span></p>
+                    <p><span className="text-ink-faint">Charger:</span> {l.charger || '—'}</p>
+                    <p><span className="text-ink-faint">Purchase comment:</span> {l.purchase_comment || '—'}</p>
+                    <p><span className="text-ink-faint">Purchased from:</span> {l.purchased_from || '—'}</p>
+                    <p><span className="text-ink-faint">Added:</span> {formatTime(l.created_at)}</p>
+                    <p><span className="text-ink-faint">Purchase rate:</span> {l.purchase_rate != null ? inr(l.purchase_rate) : '—'}{l.extra_charges ? ` + ${inr(l.extra_charges)}` : ''}</p>
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}
