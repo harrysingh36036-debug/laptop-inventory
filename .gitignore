@@ -10,3 +10,6 @@ backend/.env
 backend/supabase-url.txt
 frontend/.env
 frontend/vite.log
+.agents/mcp_config.json
+.env
+.env.*

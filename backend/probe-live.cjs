@@ -1,5 +1,7 @@
 const fs = require('fs');
-const t = fs.readFileSync('C:/Users/Admin/Documents/Default Project/laptop-inventory/frontend/.env', 'utf8');
+const path = require('path');
+const envPath = path.join(__dirname, '../frontend/.env');
+const t = fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf8') : '';
 const url = (t.match(/VITE_SUPABASE_URL=(\S+)/) || [])[1];
 const anon = (t.match(/VITE_SUPABASE_ANON_KEY=(\S+)/) || [])[1];
 
