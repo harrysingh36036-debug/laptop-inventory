@@ -18,6 +18,8 @@ export default function InventoryView({
   canEdit,
   canTransfer,
   canSell,
+  canManageCustomers = false,
+  showSensitive = false,
   focusSerial,
   allLaptops,
   onTransfer,
@@ -114,35 +116,7 @@ export default function InventoryView({
         </div>
       </div>
 
-      {/* Store tiles with counts */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-        {tile(
-          !storeId && !brand,
-          () => { setStoreId(''); setBrand(''); },
-          <>
-            <span className="text-xs font-semibold uppercase tracking-wide text-ink-faint">All Stores</span>
-            <span className="mt-1 font-display text-2xl font-bold text-accent">{laptops.length}</span>
-            <span className="text-[11px] text-ink-faint">
-              {brandGroups.length} brand{brandGroups.length === 1 ? '' : 's'}
-            </span>
-          </>
-        )}
-        {stores.map((s) => {
-          const count = laptops.filter((l) => l.current_store_id === s.id).length;
-          return tile(
-            String(storeId) === String(s.id) && !brand,
-            () => { setStoreId(String(storeId) === String(s.id) ? '' : s.id); setBrand(''); },
-            <>
-              <span className="truncate w-full text-xs font-semibold uppercase tracking-wide text-ink-faint">{s.store_name}</span>
-              <span className="mt-1 font-display text-2xl font-bold text-accent">{count}</span>
-              <span className="text-[11px] text-ink-faint">
-                {count === 1 ? 'unit' : 'units'} in store
-              </span>
-            </>
-          );
-        })}
-      </div>
-
+      {/* Brand tiles with counts */}
       {!brand ? (
         /* ---- Brand tiles ---- */
         brandGroups.length === 0 ? (
@@ -206,6 +180,8 @@ export default function InventoryView({
               canEdit={canEdit}
               canTransfer={canTransfer}
               canSell={canSell}
+              canManageCustomers={canManageCustomers}
+              showSensitive={showSensitive}
               onTransfer={onTransfer}
               onSell={onSell}
               onEdit={onEdit}

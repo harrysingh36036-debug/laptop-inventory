@@ -27,7 +27,7 @@ const EMPTY = {
   purchase_comment: ''
 };
 
-export default function InventoryModal({ stores, brands = [], vendors = [], editing, onSave, onClose, isAdmin = false }) {
+export default function InventoryModal({ stores, brands = [], vendors = [], editing, onSave, onClose }) {
   const t = useLabels();
   const [form, setForm] = useState(EMPTY);
   const [error, setError] = useState('');
@@ -202,7 +202,7 @@ export default function InventoryModal({ stores, brands = [], vendors = [], edit
                 {vendors.map((v) => (
                   <option key={v.id} value={v.name} />
                 ))}
-</datalist>
+              </datalist>
             </div>
           </div>
 

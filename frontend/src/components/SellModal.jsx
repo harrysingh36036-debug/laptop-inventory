@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { hashAadhar } from '../utils';
 
 const EMPTY_NEW = { name: '', phone: '', email: '', address: '', notes: '' };
 
@@ -7,6 +8,7 @@ export default function SellModal({ open, laptop, customers, onSave, onAddCustom
   const [buyer, setBuyer] = useState('');
   const [newCustomer, setNewCustomer] = useState(false);
   const [newForm, setNewForm] = useState(EMPTY_NEW);
+  const [aadharNo, setAadharNo] = useState('');
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -18,6 +20,7 @@ export default function SellModal({ open, laptop, customers, onSave, onAddCustom
       setBuyer('');
       setNewCustomer(false);
       setNewForm(EMPTY_NEW);
+      setAadharNo('');
     }
   }, [open, laptop]);
 
@@ -29,6 +32,13 @@ export default function SellModal({ open, laptop, customers, onSave, onAddCustom
     if (!Number.isFinite(num) || num < 0) {
       return onSave?.(null, { cost: laptop?.cost_price });
     }
+    let aadharHash = null;
+    if (aadharNo.trim()) {
+      if (!/^\d{12}$/.test(aadharNo.trim())) {
+        return onSave?.(null, { cost: laptop?.cost_price, aadharError: 'Aadhar number must be exactly 12 digits.' });
+      }
+      aadharHash = await hashAadhar(aadharNo);
+    }
     setBusy(true);
     try {
       if (newCustomer) {
@@ -37,9 +47,9 @@ export default function SellModal({ open, laptop, customers, onSave, onAddCustom
         const added = await onAddCustomer?.({ name: n, phone: newForm.phone, email: newForm.email, address: newForm.address, notes: newForm.notes });
         if (!added) return;
         setBuyer(added.id);
-        onSave?.(num, { customerId: added.id });
+        onSave?.(num, { customerId: added.id, aadharHash });
       } else {
-        onSave?.(num, { customerId: buyer ? Number(buyer) : null });
+        onSave?.(num, { customerId: buyer ? Number(buyer) : null, aadharHash });
       }
     } finally {
       setBusy(false);
@@ -102,6 +112,19 @@ export default function SellModal({ open, laptop, customers, onSave, onAddCustom
               <FormRow label="Address" value={newForm.address} onChange={(address) => setNewForm({ ...newForm, address })} placeholder="Shipping / billing address" />
             </div>
           )}
+
+          <div>
+            <label className="flabel">Purchaser Aadhar No.</label>
+            <input
+              value={aadharNo}
+              onChange={(e) => setAadharNo(e.target.value)}
+              inputMode="numeric"
+              maxLength={12}
+              placeholder="Optional · 12-digit Aadhar"
+              className="field w-full"
+            />
+            <p className="mt-1 text-xs text-ink-faint">Hashed before saving; recorded on this laptop.</p>
+          </div>
 
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={onClose} className="btn-ghost">Cancel</button>

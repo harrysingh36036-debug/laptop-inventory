@@ -35,8 +35,7 @@ import { socket, setSocketAuth } from './socket';
 import { LabelsProvider } from './labels.jsx';
 import Login from './components/Login';
 import StoreFilter from './components/StoreFilter';
-import Toolbar from './components/Toolbar';
-import LaptopTable from './components/LaptopTable';
+import InventoryView from './components/InventoryView';
 import Toast from './components/Toast';
 import DangerConfirmModal from './components/DangerConfirmModal';
 import InventoryModal from './components/InventoryModal';
@@ -123,12 +122,6 @@ export default function App() {
   const [status, setStatus] = useState('');
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState('dashboard');
-
-  // Inventory pagination: 9 rows/page on mobile, 16 on desktop (user-selectable).
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(() =>
-    typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches ? 9 : 16
-  );
 
   // Toast / sync notifications
   const [toast, setToast] = useState(null);
@@ -284,11 +277,6 @@ export default function App() {
   useEffect(() => {
     if (user) refresh();
   }, [refresh, user]);
-
-  // Jump back to page 1 whenever the filter set or page size changes.
-  useEffect(() => {
-    setPage(1);
-  }, [storeId, status, search, pageSize]);
 
   // ---- Real-time socket listeners -----------------------------------------
   useEffect(() => {
@@ -620,17 +608,21 @@ export default function App() {
     setSellTarget(laptop);
   };
 
-  const handleSellConfirm = async (price, { customerId } = {}) => {
+  const handleSellConfirm = async (price, { customerId, aadharHash, aadharError } = {}) => {
     const l = sellTarget;
     setSellTarget(null);
     if (!l) return;
+    if (aadharError) {
+      notify(aadharError, 'error');
+      return;
+    }
     const num = Number(price);
     if (!Number.isFinite(num) || num < 0) {
       notify('Enter a valid sale price', 'error');
       return;
     }
     try {
-      await sellLaptop(l.id, num, customerId);
+      await sellLaptop(l.id, num, customerId, aadharHash);
       notify(
         `Sold ${l.brand_model} for \u20b9${num.toLocaleString('en-IN')}${customerId ? ' (customer recorded)' : ''}`,
         'success'
@@ -717,12 +709,6 @@ export default function App() {
     id === 'all'
       ? laptops.length
       : laptops.filter((l) => l.current_store_id === id).length;
-
-  // Client-side pagination of the (already filtered) inventory list.
-  const totalPages = Math.max(1, Math.ceil(laptops.length / pageSize));
-  const currentPage = Math.min(page, totalPages);
-  const from = laptops.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
-  const pageRows = laptops.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   if (!authReady) {
     return (
@@ -859,74 +845,25 @@ export default function App() {
             />
           </aside>
 
-          <section className="space-y-4 min-w-0">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <Toolbar search={search} setSearch={setSearch} resultCount={laptops.length} />
-              {canEditInventory && (
-                <button
-                  onClick={() => setInvModal({})}
-                  className="btn-accent"
-                >
-                  {labels.addInventoryButton || '+ Update Inventory'}
-                </button>
-              )}
-            </div>
-            <LaptopTable
-              laptops={pageRows}
-              stores={stores}
-              canEdit={canEditInventory}
-              canTransfer={canTransfer}
-              canSell={canEditInventory}
-              canManageCustomers={canManageCustomers}
-              showSensitive={isAdmin}
-              onTransfer={handleTransfer}
-              onSell={handleSell}
-              onEdit={(laptop) => setInvModal({ laptop })}
-              onDelete={handleDelete}
-            />
-            {laptops.length > 0 && (
-              <div className="flex flex-wrap items-center justify-between gap-3 px-1">
-                <div className="flex items-center gap-2 text-xs text-ink-dim">
-                  <span className="text-ink-faint">Rows per page</span>
-                  {[9, 16].map((n) => (
-                    <button
-                      key={n}
-                      onClick={() => setPageSize(n)}
-                      className={`rounded-full border px-2.5 py-1 font-medium transition-colors ${
-                        pageSize === n
-                          ? 'border-accent-line bg-accent-soft text-accent'
-                          : 'border-line bg-surface text-ink-dim hover:text-ink'
-                      }`}
-                    >
-                      {n}
-                    </button>
-                  ))}
-                  <span className="ml-2 font-mono text-ink-faint">
-                    Showing {from}–{Math.min(laptops.length, currentPage * pageSize)} of {laptops.length}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setPage(currentPage - 1)}
-                    disabled={currentPage <= 1}
-                    className="btn-ghost disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    ← Prev
-                  </button>
-                  <span className="font-mono text-xs text-ink-dim">
-                    Page {currentPage} / {totalPages}
-                  </span>
-                  <button
-                    onClick={() => setPage(currentPage + 1)}
-                    disabled={currentPage >= totalPages}
-                    className="btn-ghost disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    Next →
-                  </button>
-                </div>
-              </div>
-            )}
-          </section>
+          <InventoryView
+            laptops={laptops}
+            stores={stores}
+            storeId={storeId}
+            setStoreId={setStoreId}
+            status={status}
+            setStatus={setStatus}
+            search={search}
+            setSearch={setSearch}
+            canEdit={canEditInventory}
+            canTransfer={canTransfer}
+            canSell={canEditInventory}
+            canManageCustomers={canManageCustomers}
+            showSensitive={isAdmin}
+            onTransfer={handleTransfer}
+            onSell={handleSell}
+            onEdit={(laptop) => setInvModal({ laptop })}
+            onDelete={handleDelete}
+          />
         </div>
         ) : tab === 'purchases' ? (
           <PurchasesTab
@@ -967,7 +904,6 @@ export default function App() {
           brands={brands}
           vendors={vendors}
           editing={invModal.laptop}
-          isAdmin={isAdmin}
           onSave={handleSave}
           onClose={() => setInvModal(null)}
         />
