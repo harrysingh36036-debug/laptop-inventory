@@ -5,6 +5,9 @@ import supabase from './supabaseClient';
 
 const TOKEN_KEY = 'laptop_inventory_token';
 
+const GAS_URL = import.meta.env.VITE_GAS_URL || '';
+const GAS_KEY = import.meta.env.VITE_GAS_KEY || '';
+
 export const getToken = () => {
   try {
     return localStorage.getItem(TOKEN_KEY) || null;
@@ -160,12 +163,16 @@ export const updateUser = (id, data = {}) =>
     p_store_id: data.store_id === null || data.store_id === undefined ? null : Number(data.store_id)
   });
 
-export const getLaptops = (params = {}) =>
-  rpc('app_get_laptops', {
+export const getLaptops = async (params = {}) => {
+  const rows = await rpc('app_get_laptops', {
     p_store_id: params.storeId ? Number(params.storeId) : null,
     p_status: params.status || null,
     p_search: params.search || null
   });
+  if (rows && rows.length > 0) return rows;
+  if (params.search && GAS_URL) return searchSheetsLaptops(params.search);
+  return rows || [];
+};
 
 export const getTransferLogs = (limit = 100) => rpc('app_get_transfer_logs', { p_limit: limit });
 
@@ -347,3 +354,33 @@ export const addStore = (name) => rpc('app_add_store', { p_store_name: name });
 export const renameStore = (id, name) => rpc('app_rename_store', { p_store_id: id, p_store_name: name });
 export const deleteStore = (id, password = '', remarks = '') =>
   rpc('app_delete_store', { p_store_id: id, p_password: password, p_remarks: remarks });
+
+// ------------------------------ Sheets fallback ----------------------------
+// When the DB search returns nothing, fall back to a case-insensitive scan of
+// the archived Google Sheet (Laptops tab) via the Apps Script web app.
+async function searchSheetsLaptops(query, limit = 50) {
+  const url = new URL(GAS_URL);
+  url.searchParams.set('action', 'search');
+  url.searchParams.set('table', 'Laptops');
+  url.searchParams.set('q', query);
+  url.searchParams.set('limit', String(limit));
+  url.searchParams.set('key', GAS_KEY);
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), 30000);
+  try {
+    const res = await fetch(url.toString(), { signal: ac.signal });
+    const data = await res.json().catch(() => ({}));
+    if (!data.ok) throw new Error(data.error || 'sheets search failed');
+    const headers = data.headers || [];
+    const rows = data.rows || [];
+    return rows.map((row) => {
+      const obj = {};
+      headers.forEach((h, i) => {
+        obj[h] = row[i] == null ? null : row[i];
+      });
+      return obj;
+    });
+  } finally {
+    clearTimeout(timer);
+  }
+}
