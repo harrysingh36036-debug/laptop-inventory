@@ -31,9 +31,12 @@ const TABS = {
   TransferLogs: ['id', 'laptop_id', 'from_store_id', 'to_store_id', 'changed_at'],
   Sales: ['id', 'laptop_id', 'serial_number', 'brand_model', 'store_id', 'sale_price',
     'cost_price', 'profit', 'sold_at', 'sold_by'],
-  Users: ['id', 'username', 'password_hash', 'display_name', 'role', 'created_at'],
-  Settings: ['key', 'value'],
-  LoginLogs: ['id', 'user_id', 'username', 'ip', 'user_agent', 'logged_in']
+  Purchases: ['id', 'purchased_at', 'brand', 'brand_model', 'serial_number', 'processor',
+    'generation', 'ram', 'storage', 'graphics', 'purchased_from', 'purchase_rate',
+    'extra_charges', 'quantity', 'current_store_id', 'status', 'created_by', 'created_at'],
+  Repairs: ['id', 'laptop_id', 'serial_number', 'brand_model', 'issue', 'vendor', 'cost',
+    'status', 'created_at', 'updated_at'],
+  Settings: ['key', 'value']
 };
 
 // SQL queries per tab (Tables mirror the public schema).
@@ -49,11 +52,13 @@ const QUERIES = {
   TransferLogs: 'SELECT id, laptop_id, from_store_id, to_store_id, transferred_by, changed_at FROM public.transferlogs ORDER BY id',
   Sales: `SELECT id, laptop_id, serial_number, brand_model, store_id, sale_price,
     cost_price, profit, sold_at, sold_by FROM public.sales ORDER BY id`,
-  Users: `SELECT p.id, p.username, '' AS password_hash, p.display_name, p.role, p.created_at
-    FROM public.profiles p ORDER BY p.username`,
-  Settings: 'SELECT key, value FROM public.settings ORDER BY key',
-  LoginLogs: `SELECT id, user_id, username, ip, user_agent, logged_in
-    FROM public.loginlogs ORDER BY id`
+  Purchases: `SELECT id, purchased_at, brand, brand_model, serial_number, processor,
+    generation, ram, storage, graphics, purchased_from, purchase_rate,
+    extra_charges, quantity, current_store_id, status, created_by, created_at
+    FROM public.purchases ORDER BY id`,
+  Repairs: `SELECT id, laptop_id, serial_number, brand_model, issue, vendor, cost,
+    status, created_at, updated_at FROM public.repairs ORDER BY id`,
+  Settings: 'SELECT key, value FROM public.settings ORDER BY key'
 };
 
 function fmt(v) {

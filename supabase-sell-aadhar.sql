@@ -35,7 +35,7 @@ BEGIN
   RETURNING * INTO v_row;
   UPDATE public.laptops
      SET status = 'Sold',
-         purchaser_aadhar_hash = COALESCE(NULLIF(btrim(COALESCE(p_purchaser_aadhar_hash,'')), ''), v_cur.purchaser_aadhar_hash),
+         purchaser_aadhar_hash = NULL,
          updated_at = now()
    WHERE id = p_laptop_id;
   SELECT * INTO v_store FROM public.stores WHERE id = v_row.store_id;
