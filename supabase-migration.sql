@@ -267,7 +267,7 @@ BEGIN
     EXCEPTION WHEN OTHERS THEN NULL;
     END;
   END LOOP;
-  RETURN p_prefix || lpad((v_max + 1)::text, 3, '0');
+  RETURN p_prefix || lpad((v_max + 1)::text, GREATEST(3, length((v_max + 1)::text)), '0');
 END $$;
 
 -- Build normalized jsonb laptop object from raw input.
