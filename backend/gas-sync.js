@@ -103,6 +103,11 @@ async function run() {
   if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is not set');
   if (!GAS_URL || !GAS_KEY) throw new Error('GAS_WEBAPP_URL / GAS_KEY are not set');
   const u = new URL(process.env.DATABASE_URL.trim());
+  console.log('[debug] host:', u.hostname);
+  console.log('[debug] port:', u.port);
+  console.log('[debug] user:', u.username);
+  console.log('[debug] db:', u.pathname);
+  console.log('[debug] pass length:', u.password.length);
   const client = new Client({
     host: u.hostname,
     port: parseInt(u.port || '5432', 10),
