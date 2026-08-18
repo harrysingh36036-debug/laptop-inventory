@@ -72,6 +72,10 @@ export default function InventoryModal({ stores, brands = [], vendors = [], prod
       setError('Brand and Model are required.');
       return;
     }
+    if (!form.ram.trim()) {
+      setError('RAM is required.');
+      return;
+    }
     if (form.graphics === 'yes' && !form.graphics_type.trim()) {
       setError('Choose integrated or dedicated graphics when "Yes".');
       return;
