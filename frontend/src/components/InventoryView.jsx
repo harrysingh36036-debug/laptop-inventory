@@ -30,6 +30,7 @@ export default function InventoryView({
   const t = useLabels();
   const [brand, setBrand] = useState(''); // '' = brand tiles, value = models view
   const [lineF, setLineF] = useState(''); // product line dropdown filter
+  const [ramF, setRamF] = useState(''); // RAM dropdown filter
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(() =>
     typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches ? 9 : 16
@@ -49,10 +50,19 @@ export default function InventoryView({
     return [...s].sort();
   }, [laptops]);
 
-  // List after the product-line dropdown filter (drives tiles + model rows).
+  // RAM values present in the current list, for the dropdown filter.
+  const ramValues = useMemo(() => {
+    const s = new Set((laptops || []).map((l) => l?.ram).filter(Boolean));
+    return [...s].sort((a, b) => parseFloat(a) - parseFloat(b));
+  }, [laptops]);
+
+  // List after the product-line and RAM dropdown filters.
   const filtered = useMemo(
-    () => (lineF ? (laptops || []).filter((l) => l?.product_line === lineF) : laptops || []),
-    [laptops, lineF]
+    () =>
+      (laptops || [])
+        .filter((l) => !lineF || l?.product_line === lineF)
+        .filter((l) => !ramF || l?.ram === ramF),
+    [laptops, lineF, ramF]
   );
 
   // Jump to a specific laptop (from dashboard master search).
@@ -120,6 +130,17 @@ export default function InventoryView({
             <option value="">All product lines</option>
             {productLines.map((p) => (
               <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
+          <select
+            value={ramF}
+            onChange={(e) => setRamF(e.target.value)}
+            className="rounded-lg border border-line bg-surface px-3 py-2 text-xs font-medium text-ink-dim focus:border-accent-line focus:outline-none"
+            title="Filter by RAM"
+          >
+            <option value="">All RAM</option>
+            {ramValues.map((r) => (
+              <option key={r} value={r}>{r}</option>
             ))}
           </select>
           <select

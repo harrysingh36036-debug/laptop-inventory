@@ -25,7 +25,7 @@ const GAS_KEY = process.env.GAS_KEY || '';
 const TABS = {
   Stores: ['id', 'store_name', 'created_at'],
   Brands: ['id', 'name', 'serial_prefix', 'created_at'],
-  Laptops: ['id', 'brand', 'brand_model', 'processor_type', 'generation', 'storage_type',
+  Laptops: ['id', 'brand', 'brand_model', 'product_line', 'processor_type', 'ram', 'generation', 'storage_type',
     'purchased_from', 'graphics', 'graphics_type', 'graphics_model', 'purchase_rate',
     'extra_charges', 'serial_number', 'current_store_id', 'status', 'created_at', 'updated_at'],
   TransferLogs: ['id', 'laptop_id', 'from_store_id', 'to_store_id', 'changed_at'],
@@ -43,7 +43,7 @@ const TABS = {
 const QUERIES = {
   Stores: 'SELECT id, store_name, created_at FROM public.stores ORDER BY id',
   Brands: 'SELECT id, name, serial_prefix, created_at FROM public.brands ORDER BY id',
-  Laptops: `SELECT id, brand, brand_model, processor_type, generation,
+  Laptops: `SELECT id, brand, brand_model, product_line, processor_type, ram, generation,
       CASE WHEN storage_size IS NOT NULL AND btrim(storage_size) <> '' THEN btrim(storage_size) || ' ' || storage_type
            ELSE storage_type END AS storage_type,
       purchased_from, graphics, graphics_type, graphics_model, purchase_rate,
