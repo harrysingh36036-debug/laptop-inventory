@@ -31,7 +31,7 @@ import {
   renameStore,
   deleteStore
 } from './api';
-import { socket, setSocketAuth } from './socket';
+import { socket, setSocketAuth, setLocalRole } from './socket';
 import { LabelsProvider } from './labels.jsx';
 import Login from './components/Login';
 import StoreFilter from './components/StoreFilter';
@@ -196,6 +196,7 @@ export default function App() {
   const handleAuth = useCallback((token, nextUser, current = user) => {
     setToken(token);
     setSocketAuth(token);
+    setLocalRole(nextUser.role);
     if (nextUser.role !== current?.role || nextUser.id !== current?.id) socket.connect();
     setUser(nextUser);
   }, [user]);
@@ -210,6 +211,7 @@ export default function App() {
     getMe()
       .then((res) => {
         setSocketAuth(token);
+        setLocalRole(res.user.role);
         socket.connect();
         setUser(res.user);
       })

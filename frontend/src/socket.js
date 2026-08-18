@@ -66,6 +66,12 @@ function storeName(id) {
   return sn !== undefined ? sn : null;
 }
 
+// Current local user's role, used to mirror the RPC's admin-only aadhar masking.
+let localRole = null;
+export function setLocalRole(role) {
+  localRole = role;
+}
+
 function num(v) {
   return v == null || !Number.isFinite(Number(v)) ? null : Number(v);
 }
@@ -75,7 +81,9 @@ function laptopFromRow(row) {
     id: Number(row.id),
     brand: row.brand,
     brand_model: row.brand_model,
+    product_line: row.product_line,
     processor_type: row.processor_type,
+    ram: row.ram,
     generation: row.generation,
     storage_type: row.storage_type,
     storage_size: row.storage_size,
@@ -89,6 +97,9 @@ function laptopFromRow(row) {
     current_store_id: num(row.current_store_id),
     current_store_name: row.current_store_id != null ? storeName(row.current_store_id) : null,
     status: row.status,
+    charger: row.charger,
+    purchase_comment: row.purchase_comment,
+    purchaser_aadhar_hash: localRole === 'admin' || localRole === 'superadmin' ? row.purchaser_aadhar_hash : null,
     created_at: row.created_at,
     updated_at: row.updated_at
   };
