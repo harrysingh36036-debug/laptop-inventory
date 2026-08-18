@@ -271,7 +271,7 @@ export default function DashboardTab({ laptops = [], purchases = [], repairs = [
         </div>
 
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-5">
-          {CARDS.map((c, i) => (
+          {CARDS.map((c) => (
             <button
               key={c.key}
               onClick={() => onNavigate(c.target)}
@@ -284,9 +284,6 @@ export default function DashboardTab({ laptops = [], purchases = [], repairs = [
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-accent-line bg-accent-soft sm:h-12 sm:w-12">
                     {c.icon}
                   </div>
-                  <span className="rounded-full border border-accent-line bg-accent-soft px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-accent sm:px-2.5 sm:py-1">
-                    {String(i + 1).padStart(2, '0')}
-                  </span>
                 </div>
 
                 <p className="mt-4 font-display text-3xl font-semibold tracking-tight text-accent sm:mt-5 sm:text-4xl">
