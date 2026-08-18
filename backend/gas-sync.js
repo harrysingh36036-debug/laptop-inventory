@@ -102,7 +102,7 @@ async function pushTab(client, tab) {
 async function run() {
   if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is not set');
   if (!GAS_URL || !GAS_KEY) throw new Error('GAS_WEBAPP_URL / GAS_KEY are not set');
-  const client = new Client({ connectionString: process.env.DATABASE_URL.trim(), connectionTimeoutMillis: 15000, query_timeout: 30000 });
+  const client = new Client({ connectionString: process.env.DATABASE_URL.trim(), connectionTimeoutMillis: 15000, query_timeout: 30000, ssl: { rejectUnauthorized: false } });
   await client.connect();
   let total = 0;
   const t0 = Date.now();
