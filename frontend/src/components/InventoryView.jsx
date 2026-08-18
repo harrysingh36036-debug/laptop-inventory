@@ -29,7 +29,6 @@ export default function InventoryView({
 }) {
   const t = useLabels();
   const [brand, setBrand] = useState(''); // '' = brand tiles, value = models view
-  const [lineF, setLineF] = useState(''); // product line dropdown filter
   const [ramF, setRamF] = useState(''); // RAM dropdown filter
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(() =>
@@ -44,25 +43,16 @@ export default function InventoryView({
     setPage(1);
   }, [storeId, status, search, brand]);
 
-  // Product lines present in the current list, for the dropdown filter.
-  const productLines = useMemo(() => {
-    const s = new Set((laptops || []).map((l) => l?.product_line).filter(Boolean));
-    return [...s].sort();
-  }, [laptops]);
-
-  // RAM values present in the current list, for the dropdown filter.
+  // RAM values present in the current list, for the dropdown filter (unique, no repeats).
   const ramValues = useMemo(() => {
     const s = new Set((laptops || []).map((l) => l?.ram).filter(Boolean));
     return [...s].sort((a, b) => parseFloat(a) - parseFloat(b));
   }, [laptops]);
 
-  // List after the product-line and RAM dropdown filters.
+  // List after the RAM dropdown filter.
   const filtered = useMemo(
-    () =>
-      (laptops || [])
-        .filter((l) => !lineF || l?.product_line === lineF)
-        .filter((l) => !ramF || l?.ram === ramF),
-    [laptops, lineF, ramF]
+    () => (laptops || []).filter((l) => !ramF || l?.ram === ramF),
+    [laptops, ramF]
   );
 
   // Jump to a specific laptop (from dashboard master search).
@@ -121,17 +111,6 @@ export default function InventoryView({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Toolbar search={search} setSearch={setSearch} resultCount={laptops.length} />
         <div className="flex flex-wrap items-center gap-2">
-          <select
-            value={lineF}
-            onChange={(e) => setLineF(e.target.value)}
-            className="rounded-lg border border-line bg-surface px-3 py-2 text-xs font-medium text-ink-dim focus:border-accent-line focus:outline-none"
-            title="Filter by product line"
-          >
-            <option value="">All product lines</option>
-            {productLines.map((p) => (
-              <option key={p} value={p}>{p}</option>
-            ))}
-          </select>
           <select
             value={ramF}
             onChange={(e) => setRamF(e.target.value)}

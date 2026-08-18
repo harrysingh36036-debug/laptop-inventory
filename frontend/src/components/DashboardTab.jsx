@@ -103,7 +103,6 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
   // ---- Master search: text + filters (works on ALL laptops) ----------------
   const [q, setQ] = useState('');
   const [brandF, setBrandF] = useState('');
-  const [lineF, setLineF] = useState('');
   const [ramF, setRamF] = useState('');
   const [storageF, setStorageF] = useState('');
   const [statusF, setStatusF] = useState('');
@@ -112,11 +111,6 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
 
   const brands = useMemo(() => {
     const s = new Set((all || []).map((l) => l?.brand).filter(Boolean));
-    return [...s].sort();
-  }, [all]);
-
-  const productLines = useMemo(() => {
-    const s = new Set((all || []).map((l) => l?.product_line).filter(Boolean));
     return [...s].sort();
   }, [all]);
 
@@ -138,7 +132,6 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
         if (!hay.includes(text)) return false;
       }
       if (brandF && l?.brand !== brandF) return false;
-      if (lineF && l?.product_line !== lineF) return false;
       if (ramF && l?.ram !== ramF) return false;
       if (storageF && l?.storage_type !== storageF) return false;
       if (statusF && l?.status !== statusF) return false;
@@ -147,15 +140,14 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
       if (max != null && rate > max) return false;
       return true;
     });
-  }, [all, q, brandF, lineF, ramF, storageF, statusF, minPrice, maxPrice]);
+  }, [all, q, brandF, ramF, storageF, statusF, minPrice, maxPrice]);
 
   const filtersActive =
-    q.trim() !== '' || brandF !== '' || lineF !== '' || ramF !== '' || storageF !== '' || statusF !== '' || minPrice !== '' || maxPrice !== '';
+    q.trim() !== '' || brandF !== '' || ramF !== '' || storageF !== '' || statusF !== '' || minPrice !== '' || maxPrice !== '';
 
   const clearFilters = () => {
     setQ('');
     setBrandF('');
-    setLineF('');
     setRamF('');
     setStorageF('');
     setStatusF('');
@@ -227,12 +219,6 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
               <select value={brandF} onChange={(e) => setBrandF(e.target.value)} className="field w-auto min-w-[130px] flex-1 sm:flex-none">
                 <option value="">All brands</option>
                 {brands.map((b) => (
-                  <option key={b} value={b}>{b}</option>
-                ))}
-              </select>
-              <select value={lineF} onChange={(e) => setLineF(e.target.value)} className="field w-auto min-w-[130px] flex-1 sm:flex-none">
-                <option value="">All product lines</option>
-                {productLines.map((b) => (
                   <option key={b} value={b}>{b}</option>
                 ))}
               </select>
