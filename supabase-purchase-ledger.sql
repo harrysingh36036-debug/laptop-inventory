@@ -112,12 +112,20 @@ BEGIN
   RETURN v_out;
 END $$;
 
--- 5. Create a purchase record -------------------------------------------------
+-- 5. Create a purchase record + matching inventory rows -----------------------
 CREATE OR REPLACE FUNCTION public.app_create_purchase(p_data jsonb)
 RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
 AS $$
-DECLARE v_id bigint;
+DECLARE
+  v_id bigint;
+  v_qty int := GREATEST(COALESCE((p_data->>'quantity')::int, 1), 1);
+  v_serial text;
+  v_prefix text;
+  v_brand_row public.brands%ROWTYPE;
+  v_laptop_id bigint;
+  v_store bigint;
+  i int;
 BEGIN
   IF NOT public.app_perm('editInventory') THEN RAISE EXCEPTION 'Insufficient permissions'; END IF;
   INSERT INTO public.purchases (
@@ -136,13 +144,57 @@ BEGIN
     NULLIF(btrim(COALESCE(p_data->>'purchased_from','')), ''),
     COALESCE((p_data->>'purchase_rate')::numeric, 0),
     COALESCE((p_data->>'extra_charges')::numeric, 0),
-    GREATEST(COALESCE((p_data->>'quantity')::int, 1), 1),
+    v_qty,
     CASE WHEN p_data->>'current_store_id' IS NULL OR p_data->>'current_store_id' = '' THEN NULL
          ELSE (p_data->>'current_store_id')::bigint END,
     COALESCE(p_data->>'status','In Stock'),
     NULLIF(btrim(COALESCE(p_data->>'comment','')), ''),
     NULLIF(btrim(COALESCE(p_data->>'purchaser_aadhar_hash','')), '')
   ) RETURNING id INTO v_id;
+
+  -- Create matching inventory rows so purchased units show in Inventory.
+  v_store := CASE WHEN p_data->>'current_store_id' IS NULL OR p_data->>'current_store_id' = '' THEN NULL
+                  ELSE (p_data->>'current_store_id')::bigint END;
+  v_serial := NULLIF(btrim(COALESCE(p_data->>'serial_number','')), '');
+  IF v_serial IS NULL THEN
+    SELECT * INTO v_brand_row FROM public.brands WHERE name = btrim(COALESCE(p_data->>'brand','')) LIMIT 1;
+    IF v_brand_row.id IS NOT NULL THEN v_prefix := v_brand_row.serial_prefix; END IF;
+    v_prefix := COALESCE(v_prefix, btrim(COALESCE(p_data->>'brand','')));
+  END IF;
+  FOR i IN 1..v_qty LOOP
+    IF i > 1 OR v_serial IS NULL THEN
+      v_serial := public.app_next_serial(v_prefix);
+      WHILE EXISTS (SELECT 1 FROM public.laptops WHERE serial_number = v_serial) LOOP
+        v_serial := public.app_next_serial(v_prefix || 'X');
+      END LOOP;
+    END IF;
+    INSERT INTO public.laptops (
+      brand, brand_model, processor_type, ram, generation, storage_size, purchased_from,
+      graphics, graphics_type, purchase_rate, extra_charges, serial_number, current_store_id,
+      status, purchase_comment, purchaser_aadhar_hash, created_at, updated_at
+    ) VALUES (
+      NULLIF(btrim(COALESCE(p_data->>'brand','')), ''),
+      NULLIF(btrim(COALESCE(p_data->>'brand_model','')), ''),
+      NULLIF(btrim(COALESCE(p_data->>'processor','')), ''),
+      NULLIF(btrim(COALESCE(p_data->>'ram','')), ''),
+      NULLIF(btrim(COALESCE(p_data->>'generation','')), ''),
+      NULLIF(btrim(COALESCE(p_data->>'storage','')), ''),
+      NULLIF(btrim(COALESCE(p_data->>'purchased_from','')), ''),
+      COALESCE(NULLIF(btrim(COALESCE(p_data->>'graphics','')), ''), 'no'),
+      CASE WHEN btrim(COALESCE(p_data->>'graphics','')) = 'yes' THEN 'integrated' ELSE NULL END,
+      COALESCE((p_data->>'purchase_rate')::numeric, 0),
+      COALESCE((p_data->>'extra_charges')::numeric, 0),
+      v_serial,
+      v_store,
+      COALESCE(p_data->>'status','In Stock'),
+      NULLIF(btrim(COALESCE(p_data->>'comment','')), ''),
+      NULLIF(btrim(COALESCE(p_data->>'purchaser_aadhar_hash','')), ''),
+      now(), now()
+    ) RETURNING id INTO v_laptop_id;
+    IF i > 1 OR NULLIF(btrim(COALESCE(p_data->>'serial_number','')), '') IS NULL THEN
+      v_serial := NULL;
+    END IF;
+  END LOOP;
   RETURN jsonb_build_object('ok', true, 'id', v_id);
 END $$;
 
