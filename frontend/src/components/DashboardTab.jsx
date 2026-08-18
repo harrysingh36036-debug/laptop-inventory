@@ -125,7 +125,7 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
     const max = maxPrice === '' ? null : Number(maxPrice);
     return (all || []).filter((l) => {
       if (text) {
-        const hay = [l?.brand, l?.product_line, l?.brand_model, l?.serial_number, l?.processor_type, l?.ram, l?.generation, l?.storage_type, l?.storage_size, l?.current_store_name]
+        const hay = [l?.brand, l?.brand_model, l?.serial_number, l?.processor_type, l?.ram, l?.generation, l?.storage_type, l?.storage_size, l?.current_store_name]
           .filter(Boolean)
           .join(' ')
           .toLowerCase();
@@ -211,7 +211,7 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Master search — brand, product line, model, serial, processor, RAM, configuration…"
+                placeholder="Master search — brand, model, serial, processor, RAM, configuration…"
                 className="field pl-9"
               />
             </div>

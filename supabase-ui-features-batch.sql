@@ -43,7 +43,7 @@ BEGIN
       (p_status IS NULL AND l.status <> 'Sold')
       OR (p_status IS NOT NULL AND l.status = p_status)
     )
-    AND (p_search IS NULL OR l.brand ILIKE '%' || p_search || '%' OR l.product_line ILIKE '%' || p_search || '%' OR l.brand_model ILIKE '%' || p_search || '%' OR l.serial_number ILIKE '%' || p_search || '%');
+    AND (p_search IS NULL OR l.brand ILIKE '%' || p_search || '%' OR l.brand_model ILIKE '%' || p_search || '%' OR l.serial_number ILIKE '%' || p_search || '%');
   RETURN v_out;
 END $$;
 
