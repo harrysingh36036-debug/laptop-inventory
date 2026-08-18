@@ -38,6 +38,17 @@ const CARDS = [
     )
   },
   {
+    key: 'transfers',
+    title: 'Transfer History',
+    subtitle: 'Every movement between stores',
+    target: 'transfers',
+    icon: (
+      <svg className="h-7 w-7 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.6">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4" />
+      </svg>
+    )
+  },
+  {
     key: 'sold',
     title: 'Sold',
     subtitle: 'Units sold & profit earned',
@@ -58,10 +69,22 @@ const CARDS = [
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
       </svg>
     )
+  },
+  {
+    key: 'customers',
+    title: 'Customers',
+    subtitle: 'Who bought which laptop',
+    target: 'customers',
+    full: true,
+    icon: (
+      <svg className="h-7 w-7 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.6">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6-5a3 3 0 11-3-3 3 3 0 013 3zm-8 1a3 3 0 11-3-3 3 3 0 013 3z" />
+      </svg>
+    )
   }
 ];
 
-export default function DashboardTab({ laptops = [], purchases = [], repairs = [], onNavigate, onFocusLaptop }) {
+export default function DashboardTab({ laptops = [], logs = [], customers = [], purchases = [], repairs = [], onNavigate, onFocusLaptop }) {
   const [soldCount, setSoldCount] = useState(0);
   const all = laptops;
 
@@ -154,8 +177,10 @@ export default function DashboardTab({ laptops = [], purchases = [], repairs = [
       main: repairs.length,
       sub: `${repairPending} pending · ${repairInProgress} in progress`
     },
+    transfers: { main: logs.length, sub: 'store-to-store movements' },
     sold: { main: soldCount, sub: 'units sold' },
-    report: { main: inStockCount, sub: 'ready to sell right now' }
+    report: { main: inStockCount, sub: 'ready to sell right now' },
+    customers: { main: customers.length, sub: 'customers · view full purchase history' }
   };
 
   return (

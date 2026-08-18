@@ -43,7 +43,9 @@ import SalesTab from './components/SalesTab';
 import AdminSettings from './components/AdminSettings';
 import BrandsManager from './components/BrandsManager';
 import VendorsManager from './components/VendorsManager';
+import CustomersManager from './components/CustomersManager';
 import SellModal from './components/SellModal';
+import TransferHistoryTab from './components/TransferHistoryTab';
 import DashboardTab from './components/DashboardTab';
 import ReportsTab from './components/ReportsTab';
 import PurchasesTab from './components/PurchasesTab';
@@ -134,6 +136,7 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [brandsOpen, setBrandsOpen] = useState(false);
   const [vendorsOpen, setVendorsOpen] = useState(false);
+  const [customersOpen, setCustomersOpen] = useState(false);
   const [sellTarget, setSellTarget] = useState(null); // laptop about to be sold
   const [delTarget, setDelTarget] = useState(null); // { id, label } scheduled for deletion
   const [repairDelTarget, setRepairDelTarget] = useState(null); // repair scheduled for deletion
@@ -823,6 +826,8 @@ export default function App() {
         {tab === 'dashboard' ? (
           <DashboardTab
             laptops={laptops}
+            logs={logs}
+            customers={customers}
             purchases={purchases}
             repairs={repairs}
             onNavigate={setTab}
@@ -879,7 +884,12 @@ export default function App() {
           />
         ) : tab === 'sales' ? (
           <SalesTab stores={stores} isSuperAdmin={isSuperAdmin} canSeeCustomer={isAdmin} onNotify={notify} />
-        ) : tab === 'stats' ? (
+        ) : tab === 'customers' ? (
+          <div className="space-y-4">
+            <p className="text-sm text-ink-dim">Manage your customers. Linked to sales when a laptop is sold to them.</p>
+            <CustomersManager onNotify={notify} />
+          </div>
+) : tab === 'stats' ? (
           <ReportsTab
             stores={stores}
             logs={logs}
@@ -893,6 +903,8 @@ export default function App() {
               setTab('inventory');
             }}
           />
+        ) : tab === 'transfers' ? (
+          <TransferHistoryTab stores={stores} />
         ) : (
           <SalesTab stores={stores} isSuperAdmin={isSuperAdmin} canSeeCustomer={isAdmin} onNotify={notify} />
         )}
