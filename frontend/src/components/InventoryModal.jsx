@@ -31,6 +31,7 @@ export default function InventoryModal({ stores, brands = [], vendors = [], prod
   const t = useLabels();
   const [form, setForm] = useState(EMPTY);
   const [error, setError] = useState('');
+  const [addingLine, setAddingLine] = useState(false);
 
   useEffect(() => {
     setForm(
@@ -59,7 +60,8 @@ export default function InventoryModal({ stores, brands = [], vendors = [], prod
         : EMPTY
     );
     setError('');
-  }, [editing]);
+    setAddingLine(!!(editing && editing.product_line && !productLines.includes(editing.product_line)));
+  }, [editing, productLines]);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const setN = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value === '' ? '' : Number(e.target.value) }));
@@ -136,10 +138,37 @@ export default function InventoryModal({ stores, brands = [], vendors = [], prod
             </div>
             <div>
               <label className={label}>Product Line</label>
-              {productLines.includes(form.product_line) || !form.product_line ? (
+              {addingLine ? (
+                <div className="flex items-start gap-2">
+                  <input
+                    value={form.product_line}
+                    onChange={set('product_line')}
+                    placeholder="e.g. Inspiron"
+                    autoFocus
+                    className={`${input()} flex-1`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAddingLine(false);
+                      setForm((f) => ({ ...f, product_line: '' }));
+                    }}
+                    className="mt-1.5 shrink-0 text-xs font-medium text-ink-dim hover:text-ink"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
                 <select
                   value={form.product_line}
-                  onChange={(e) => setForm((f) => ({ ...f, product_line: e.target.value === '__new__' ? '' : e.target.value }))}
+                  onChange={(e) => {
+                    if (e.target.value === '__new__') {
+                      setAddingLine(true);
+                      setForm((f) => ({ ...f, product_line: '' }));
+                    } else {
+                      setForm((f) => ({ ...f, product_line: e.target.value }));
+                    }
+                  }}
                   className={input()}
                 >
                   <option value="">Select product line…</option>
@@ -148,13 +177,6 @@ export default function InventoryModal({ stores, brands = [], vendors = [], prod
                   ))}
                   <option value="__new__">+ Add new product line…</option>
                 </select>
-              ) : (
-                <input
-                  value={form.product_line}
-                  onChange={set('product_line')}
-                  placeholder="e.g. Inspiron"
-                  className={input()}
-                />
               )}
               <p className="mt-1 text-xs text-ink-faint">Series / family, e.g. Inspiron, ThinkPad, Pavilion.</p>
             </div>
