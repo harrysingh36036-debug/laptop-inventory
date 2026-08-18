@@ -162,6 +162,8 @@ export const updateUser = (id, data = {}) =>
     p_role: data.role || null,
     p_store_id: data.store_id === null || data.store_id === undefined ? null : Number(data.store_id)
   });
+export const deleteUser = (id, password = '', remarks = '') =>
+  rpc('app_delete_user', { p_id: id, p_password: password, p_remarks: remarks });
 
 export const getLaptops = async (params = {}) => {
   const rows = await rpc('app_get_laptops', {

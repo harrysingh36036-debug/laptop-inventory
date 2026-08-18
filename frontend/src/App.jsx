@@ -1006,6 +1006,7 @@ export default function App() {
           settings={labels}
           isAdmin={isAdmin}
           isSuperAdmin={isSuperAdmin}
+          currentUserId={user?.id ?? null}
           onSaveSettings={handleSaveSettings}
           onSaveStore={handleSaveStore}
           onDeleteStore={handleDeleteStore}

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { DEFAULT_LABELS } from '../labels.jsx';
-import { getPermissions, savePermissions, getUsers, updateUser, createUser } from '../api';
+import { getPermissions, savePermissions, getUsers, updateUser, createUser, deleteUser } from '../api';
 import DangerConfirmModal from './DangerConfirmModal';
 
 // Description rows for the customizable button/label texts.
@@ -74,7 +74,7 @@ const DEFAULT_PERMISSIONS = {
   }
 };
 
-export default function AdminSettings({ stores, settings, onSaveSettings, onSaveStore, onDeleteStore, onClose, isAdmin = true, isSuperAdmin = false }) {
+export default function AdminSettings({ stores, settings, onSaveSettings, onSaveStore, onDeleteStore, onClose, isAdmin = true, isSuperAdmin = false, currentUserId = null }) {
   const [labels, setLabels] = useState({ ...DEFAULT_LABELS, ...(settings || {}) });
   const [storeName, setStoreName] = useState('');
   const [edits, setEdits] = useState({}); // storeId -> draft name
@@ -246,6 +246,24 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
     }
   };
 
+  const [delUser, setDelUser] = useState(null);
+
+  const removeOneUser = (u) => setDelUser(u);
+
+  const confirmDeleteUser = async (pwd, remarks) => {
+    const u = delUser;
+    if (!u) return '';
+    try {
+      await deleteUser(u.id, pwd, remarks);
+      setDelUser(null);
+      flash(`${u.display_name || u.username} account deleted`);
+      await loadUsers();
+      return '';
+    } catch (e) {
+      return e.message;
+    }
+  };
+
   const TABS = [['stores', 'Stores']].concat(
     isAdmin ? [['labels', 'Buttons & Labels']] : [],
     (isAdmin || isSuperAdmin) ? [['permissions', 'Roles & Permissions']] : [],
@@ -403,7 +421,7 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
         {tab === 'users' && (
           <div className="mt-4 space-y-4">
             <p className="text-sm text-ink-faint">
-              Assign each account its role and home store. A manager sees only their home store's daily report. Admins can create manager, admin and staff accounts; only the super admin can create a super admin.
+              Assign each account its role and home store. A manager sees only their home store's daily report. Admins can create and delete manager, admin and staff accounts (never their own account); only the super admin can manage a super admin account.
             </p>
 
             <form onSubmit={createAccount} className="rounded-xl border border-line bg-surface-2/40 p-4">
@@ -500,6 +518,13 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
                         >
                           Save
                         </button>
+                        <button
+                          onClick={() => removeOneUser(u)}
+                          disabled={usersBusy || u.id === currentUserId}
+                          className="btn-danger disabled:opacity-40"
+                        >
+                          Delete
+                        </button>
                       </div>
                     </div>
                   );
@@ -516,6 +541,15 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
           warning={`"${delStore.name}" will be permanently removed as a store location. This cannot be undone.`}
           onConfirm={confirmDeleteStore}
           onClose={() => setDelStore(null)}
+        />
+      )}
+
+      {delUser && (
+        <DangerConfirmModal
+          title="Delete this account?"
+          warning={`"${delUser.display_name || delUser.username}" (@${delUser.username}, ${delUser.role}) will be permanently removed and will no longer be able to sign in. This cannot be undone.`}
+          onConfirm={confirmDeleteUser}
+          onClose={() => setDelUser(null)}
         />
       )}
     </div>

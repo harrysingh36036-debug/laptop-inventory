@@ -72,6 +72,7 @@ Apply them in the Supabase SQL Editor in dependency order:
 10. `supabase-manager-store-report.sql` — manager-scoped daily report
 11. `supabase-repair-charge-store.sql` — repairs store + charge, store-wise report
 12. `supabase-transferred-by.sql` — `transferlogs.transferred_by` column
+13. `supabase-delete-user.sql` — user list + delete admin/manager/staff accounts
 
 ## Logging in
 
