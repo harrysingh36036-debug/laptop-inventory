@@ -20,6 +20,9 @@ const { Client } = require('pg');
 const GAS_URL = process.env.GAS_WEBAPP_URL || '';
 const GAS_KEY = process.env.GAS_KEY || '';
 
+// Apps Script /exec GET URLs fail past ~6KB; keep every request well under.
+const MAX_URL_LEN = 4000;
+
 // Sheet layouts: tab -> column headers. Must match the Apps Script
 // CONFIG.tables exactly (see backend/sheets.js TABS).
 const TABS = {
@@ -95,7 +98,25 @@ async function pushTab(client, tab) {
   const headers = TABS[tab];
   const { rows } = await client.query(QUERIES[tab]);
   const body = rows.map((r) => toRow(headers, r));
-  await gasRpc('replaceTable', { table: tab, headers, rows: body });
+
+  // Apps Script /exec only handles GET (POST bodies get dropped / 405) and the
+  // URL length is limited: large tables fail with "fetch failed". Chunk the
+  // upload: replaceTable with the first batch, appendRow for the rest.
+  const fixedLen = GAS_URL.length + GAS_KEY.length + 120;
+  const overhead = JSON.stringify({ table: tab, headers, rows: [] }).length;
+  const fullLen = overhead + JSON.stringify(body).length + fixedLen;
+  if (fullLen <= MAX_URL_LEN) {
+    await gasRpc('replaceTable', { table: tab, headers, rows: body });
+    return body.length;
+  }
+
+  const perRow = Math.max(1, Math.ceil(JSON.stringify(body).length / Math.max(1, body.length)));
+  const chunkSize = Math.max(1, Math.floor((MAX_URL_LEN - overhead - fixedLen) / perRow));
+  await gasRpc('replaceTable', { table: tab, headers, rows: body.slice(0, chunkSize) });
+  for (let i = chunkSize; i < body.length; i++) {
+    await gasRpc('appendRow', { table: tab, values: body[i] });
+  }
+  console.log(`[sync] ${tab}: chunked ${body.length} rows (${chunkSize} + append)`);
   return body.length;
 }
 
