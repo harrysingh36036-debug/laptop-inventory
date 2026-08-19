@@ -47,7 +47,7 @@ export default function PurchaseModal({ stores, editing, onSave, onClose }) {
             current_store_id: editing.current_store_id ?? '',
             status: editing.status || 'In Stock',
             comment: editing.comment || '',
-            aadhar_no: editing.aadhar_no || ''
+            aadhar_no: editing.purchaser_aadhar || editing.aadhar_no || ''
           }
         : EMPTY
     );
@@ -80,6 +80,7 @@ export default function PurchaseModal({ stores, editing, onSave, onClose }) {
     if (form.aadhar_no.trim()) {
       payload.purchaser_aadhar = form.aadhar_no.trim();
       payload.purchaser_aadhar_hash = await hashAadhar(form.aadhar_no.trim());
+      payload.purchaser_aadhar = form.aadhar_no.trim();
     }
     setError('');
     await onSave(payload);
@@ -114,7 +115,7 @@ export default function PurchaseModal({ stores, editing, onSave, onClose }) {
               <input value={form.aadhar_no} onChange={set('aadhar_no')} inputMode="numeric" maxLength={12}
                 placeholder={editing ? (form.aadhar_no ? '' : 'Optional on edit') : '12-digit Aadhar (required)'}
                 className="field mt-1.5" />
-              <p className="mt-1 text-xs text-ink-faint">Hashed before saving.</p>
+              <p className="mt-1 text-xs text-ink-faint">Hashed before saving; admin can view the full number.</p>
             </div>
             <div>
               <label className="flabel">Brand</label>

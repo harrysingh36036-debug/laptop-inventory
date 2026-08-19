@@ -100,6 +100,7 @@ function laptopFromRow(row) {
     charger: row.charger,
     purchase_comment: row.purchase_comment,
     purchaser_aadhar_hash: localRole === 'admin' || localRole === 'superadmin' ? row.purchaser_aadhar_hash : null,
+    purchaser_aadhar: localRole === 'admin' || localRole === 'superadmin' ? row.purchaser_aadhar : null,
     created_at: row.created_at,
     updated_at: row.updated_at
   };
