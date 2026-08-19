@@ -941,9 +941,9 @@ export default function App() {
         </div>
       </header>
 
-      <QuickNav tab={tab} onNavigate={setTab} />
+      <div className="hidden sm:block"><QuickNav tab={tab} onNavigate={setTab} /></div>
 
-<main className="mx-auto max-w-[1440px] pl-18 pr-4 py-6 sm:pl-4 space-y-6">
+<main className="mx-auto max-w-[1440px] pl-[60px] pr-4 py-6 sm:pl-4 space-y-6">
         {tab === 'dashboard' ? (
           <DashboardTab
             laptops={laptops}
