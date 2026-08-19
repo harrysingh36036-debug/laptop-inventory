@@ -36,10 +36,13 @@ export function downloadSalesCsv(sales, stores) {
 }
 
 // Printable sales receipt (browser print).
-export function printSaleReceipt(s, storeName, sellerName) {
+export function printSaleReceipt(s, storeName, sellerName, customerPhone) {
   const w = window.open('', '_blank', 'width=520,height=700');
   if (!w) return;
   const total = Number(s.sale_price) || 0;
+  const phoneDisplay = customerPhone
+    ? ` <span class="muted">${escapeHtml(customerPhone)}</span>`
+    : (s.customer_phone_last4 ? ` <span class="muted">•••• ${escapeHtml(s.customer_phone_last4)}</span>` : '');
   w.document.write(`<!doctype html><html><head><title>Receipt ${s.serial_number}</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -57,7 +60,7 @@ export function printSaleReceipt(s, storeName, sellerName) {
   <br/>
   <div class="row"><span>Model</span><b>${escapeHtml(s.brand_model || '')}</b></div>
   <div class="row"><span>Serial</span><b>${escapeHtml(s.serial_number || '')}</b></div>
-  <div class="row"><span>Customer</span><b>${escapeHtml(s.customer_name || '—')}${s.customer_phone_last4 ? ' <span class="muted">•••• ' + escapeHtml(s.customer_phone_last4) + '</span>' : ''}</b></div>
+  <div class="row"><span>Customer</span><b>${escapeHtml(s.customer_name || '—')}${phoneDisplay}</b></div>
   <div class="row"><span>Sold by</span><b>${escapeHtml(s.sold_by || sellerName || '')}</b></div>
   <div class="row"><span>Time</span><b>${escapeHtml(formatTime(s.sold_at))}</b></div>
   <div class="total"><span>Amount (₹)</span><span>${Number(total).toLocaleString('en-IN')}</span></div>
@@ -80,6 +83,7 @@ export default function SalesTab({ stores, isSuperAdmin = false, canSeeCustomer 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [danger, setDanger] = useState(null); // { sale }
+  const [revealedPhones, setRevealedPhones] = useState(new Set());
 
   const storeName = (id) => stores.find((s) => s.id === id)?.store_name;
 
@@ -282,8 +286,22 @@ export default function SalesTab({ stores, isSuperAdmin = false, canSeeCustomer 
                       : <span className="text-ink-faint">Restricted</span>}
                   </td>
                   <td className={`${td} font-mono text-xs text-ink-dim`}>
-                    {canSeeCustomer && s.customer_phone_last4
-                      ? `••••${s.customer_phone_last4}`
+                    {canSeeCustomer && (s.customer_phone_last4 || s.customer_phone)
+                      ? <span className="inline-flex items-center gap-1">
+                          <span>{revealedPhones.has(s.id) && s.customer_phone ? s.customer_phone : `••••${s.customer_phone_last4}`}</span>
+                          {s.customer_phone && (
+                            <button
+                              type="button"
+                              onClick={() => setRevealedPhones((prev) => { const next = new Set(prev); next.has(s.id) ? next.delete(s.id) : next.add(s.id); return next; })}
+                              className="text-ink-faint hover:text-accent transition-colors"
+                              title={revealedPhones.has(s.id) ? 'Hide phone' : 'Show full phone'}
+                            >
+                              {revealedPhones.has(s.id)
+                                ? <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
+                                : <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>}
+                            </button>
+                          )}
+                        </span>
                       : <span className="text-ink-faint">—</span>}
                   </td>
                   <td className={`${td} font-mono text-xs text-ink`}>{inr(s.sale_price)}</td>
@@ -294,7 +312,7 @@ export default function SalesTab({ stores, isSuperAdmin = false, canSeeCustomer 
                   <td className={`${td} font-mono text-[11px] text-ink-faint`}>{formatTime(s.sold_at)}</td>
                   <td className={td}>
                     <button
-                      onClick={() => printSaleReceipt(s, storeName(s.store_id))}
+                      onClick={() => printSaleReceipt(s, storeName(s.store_id), null, revealedPhones.has(s.id) ? s.customer_phone : null)}
                       className="btn-ghost"
                       title="Print sales receipt"
                     >

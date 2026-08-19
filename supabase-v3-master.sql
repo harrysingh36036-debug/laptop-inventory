@@ -352,7 +352,8 @@ BEGIN
       'profit', s.profit, 'sold_by', s.sold_by, 'sold_at', to_char(s.sold_at, 'YYYY-MM-DD HH24:MI:SS'),
       'customer_id', s.customer_id,
       'customer_name', CASE WHEN public.app_role() IN ('admin','superadmin') THEN c.name ELSE NULL END,
-      'customer_phone_last4', CASE WHEN public.app_role() IN ('admin','superadmin') THEN RIGHT(COALESCE(c.phone,''), 4) ELSE NULL END)
+      'customer_phone_last4', CASE WHEN public.app_role() IN ('admin','superadmin') THEN RIGHT(COALESCE(c.phone,''), 4) ELSE NULL END,
+      'customer_phone', CASE WHEN public.app_role() IN ('admin','superadmin') THEN COALESCE(c.phone,'') ELSE NULL END)
       ORDER BY s.sold_at DESC), '[]'::jsonb) INTO v_out
   FROM public.sales s
   LEFT JOIN public.stores st ON st.id = s.store_id

@@ -423,8 +423,34 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
     }
   ];
 
+  const statsStoreId = effectiveFilter === 'all' ? null : Number(effectiveFilter);
+
   return (
     <div className="space-y-6">
+      <section className="panel p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div>
+            <h2 className="font-display text-base font-semibold tracking-tight text-ink">Inventory Overview</h2>
+            <p className="text-xs text-ink-faint">Stock levels by brand, generation and configuration.</p>
+          </div>
+          {isAdmin && visibleStores.length > 0 && (
+            <select
+              value={effectiveFilter}
+              onChange={(e) => setStoreFilter(e.target.value)}
+              className="field w-auto max-w-[220px]"
+            >
+              <option value="all">All stores</option>
+              {visibleStores.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.store_name}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+        <InventoryStats stores={stores} search={search} storeId={statsStoreId} />
+      </section>
+
       <SearchBox
         value={search}
         onChange={setSearch}
@@ -686,7 +712,6 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
         </section>
       )}
 
-      <InventoryStats stores={stores} laptops={laptops} search={search} />
     </div>
   );
 }

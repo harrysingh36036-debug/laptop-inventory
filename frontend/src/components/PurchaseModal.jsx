@@ -78,6 +78,7 @@ export default function PurchaseModal({ stores, editing, onSave, onClose }) {
     }
     const payload = { ...form };
     if (form.aadhar_no.trim()) {
+      payload.purchaser_aadhar = form.aadhar_no.trim();
       payload.purchaser_aadhar_hash = await hashAadhar(form.aadhar_no.trim());
     }
     setError('');

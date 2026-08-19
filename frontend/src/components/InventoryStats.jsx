@@ -11,17 +11,19 @@ function Card({ label, value }) {
   );
 }
 
-export default function InventoryStats({ stores, search = '' }) {
+export default function InventoryStats({ stores, search = '', storeId = null }) {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    getInventoryStats()
+    setLoading(true);
+    setError('');
+    getInventoryStats({ storeId })
       .then(setStats)
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [storeId]);
 
   if (loading) return <p className="text-sm text-ink-faint">Loading stock insights…</p>;
   if (error) return <p className="text-sm text-stock-risk">{error}</p>;
