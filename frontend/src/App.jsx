@@ -198,9 +198,9 @@ function QuickNav({ tab, onNavigate }) {
                 data-nav={it.key}
                 onClick={() => onNavigate(it.key)}
                 aria-current={active ? 'page' : undefined}
-                className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-bold transition-all duration-200 ease-out active:scale-[0.95] ${
+                className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-[15px] font-bold ${
                   active
-                    ? 'bg-accent-soft text-accent shadow-sm'
+                    ? 'bg-accent text-white shadow-sm'
                     : 'text-ink-dim hover:bg-surface-2 hover:text-ink'
                 }`}
               >
