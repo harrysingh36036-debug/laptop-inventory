@@ -578,15 +578,15 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
                       <span className="truncate text-sm font-semibold text-ink">{st.store_name}</span>
                       <span className="mono-chip">{st.in_store ?? 0} in store</span>
                     </div>
-                    <div className="grid grid-cols-3 gap-2 text-center">
+                    <div className="grid grid-cols-3 gap-2">
                       {[
                         { label: 'Sold', value: st.sold_on ?? 0, strong: false },
                         { label: 'Transferred Out', value: st.transferred_out_on ?? 0, strong: false },
                         { label: 'Transferred In', value: st.transferred_in_on ?? 0, strong: false }
                       ].map((m) => (
-                        <div key={m.label} className="rounded-lg border border-line bg-surface-2/60 px-1 py-1.5">
-                          <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">{m.label}</p>
-                          <p className={`mt-0.5 font-mono text-sm ${m.strong ? 'font-medium text-accent' : 'text-ink-dim'}`}>{m.value}</p>
+                        <div key={m.label} className="flex flex-col items-center justify-between rounded-lg border border-line bg-surface-2/60 px-1 py-2 text-center">
+                          <p className="text-[9px] font-semibold uppercase leading-tight tracking-wide text-ink-faint">{m.label}</p>
+                          <p className={`mt-1 font-mono text-sm ${m.strong ? 'font-medium text-accent' : 'text-ink-dim'}`}>{m.value}</p>
                         </div>
                       ))}
                     </div>
@@ -646,13 +646,13 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
                         <span className="mono-chip">{st.units ?? 0} units</span>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
-                        <div className="rounded-lg border border-line bg-surface-2/60 px-2 py-1.5">
-                          <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">Amount</p>
-                          <p className="mt-0.5 font-mono text-sm text-ink">{inr(st.amount)}</p>
+                        <div className="flex flex-col items-center justify-between rounded-lg border border-line bg-surface-2/60 px-2 py-2 text-center">
+                          <p className="text-[9px] font-semibold uppercase leading-tight tracking-wide text-ink-faint">Amount</p>
+                          <p className="mt-1 font-mono text-sm text-ink">{inr(st.amount)}</p>
                         </div>
-                        <div className="rounded-lg border border-line bg-surface-2/60 px-2 py-1.5">
-                          <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">Profit</p>
-                          <p className="mt-0.5 font-mono text-sm text-ink-dim">{inr(st.profit)}</p>
+                        <div className="flex flex-col items-center justify-between rounded-lg border border-line bg-surface-2/60 px-2 py-2 text-center">
+                          <p className="text-[9px] font-semibold uppercase leading-tight tracking-wide text-ink-faint">Profit</p>
+                          <p className="mt-1 font-mono text-sm text-ink-dim">{inr(st.profit)}</p>
                         </div>
                       </div>
                     </button>
@@ -689,18 +689,18 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
                   <span className="truncate text-sm font-semibold text-ink">{st.store_name}</span>
                   <span className="mono-chip">{st.count ?? 0} repairs</span>
                 </div>
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  <div className="rounded-lg border border-line bg-surface-2/60 px-1 py-1.5">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">Item Cost</p>
-                    <p className="mt-0.5 font-mono text-sm text-ink-dim">{inr(st.total_cost)}</p>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="flex flex-col items-center justify-between rounded-lg border border-line bg-surface-2/60 px-1 py-2 text-center">
+                    <p className="text-[9px] font-semibold uppercase leading-tight tracking-wide text-ink-faint">Item Cost</p>
+                    <p className="mt-1 font-mono text-sm text-ink-dim">{inr(st.total_cost)}</p>
                   </div>
-                  <div className="rounded-lg border border-line bg-surface-2/60 px-1 py-1.5">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">Charged</p>
-                    <p className="mt-0.5 font-mono text-sm text-ink">{inr(st.total_charge)}</p>
+                  <div className="flex flex-col items-center justify-between rounded-lg border border-line bg-surface-2/60 px-1 py-2 text-center">
+                    <p className="text-[9px] font-semibold uppercase leading-tight tracking-wide text-ink-faint">Charged</p>
+                    <p className="mt-1 font-mono text-sm text-ink">{inr(st.total_charge)}</p>
                   </div>
-                  <div className="rounded-lg border border-line bg-surface-2/60 px-1 py-1.5">
-                    <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">Profit</p>
-                    <p className="mt-0.5 font-mono text-sm text-ink-dim">{inr(st.profit)}</p>
+                  <div className="flex flex-col items-center justify-between rounded-lg border border-line bg-surface-2/60 px-1 py-2 text-center">
+                    <p className="text-[9px] font-semibold uppercase leading-tight tracking-wide text-ink-faint">Profit</p>
+                    <p className="mt-1 font-mono text-sm text-ink-dim">{inr(st.profit)}</p>
                   </div>
                 </div>
               </div>
