@@ -10,6 +10,8 @@
  *   readTable     -> { table }             returns { headers, rows }
  *   replaceTable  -> { table, headers, rows }  overwrite a whole tab
  *   appendRow     -> { table, values }     append one row
+ *   appendRows    -> { table, headers, values } batch-append rows; creates the
+ *                                              tab with a header row if missing
  *   updateRowByIndex -> { table, rowIndex, values }
  *   clearRowByIndex  -> { table, rowIndex }
  *   search        -> { table, q, limit }   case-insensitive substring search
@@ -45,6 +47,8 @@ function handleRequest(e) {
         return respond(replaceAction(p), cb);
       case 'appendRow':
         return respond(appendAction(p), cb);
+      case 'appendRows':
+        return respond(appendRowsAction(p), cb);
       case 'updateRowByIndex':
         return respond(updateAction(p), cb);
       case 'clearRowByIndex':
@@ -111,6 +115,32 @@ function appendAction(p) {
   const values = Array.isArray(p.values) ? p.values : JSON.parse(p.values || '[]');
   sheet.appendRow(values);
   return { ok: true, table: tab, row: sheet.getLastRow() };
+}
+
+// Batch append used by the archival job (backend/archive-to-sheets.js). Creates
+// the tab with a header row on first use, then appends the data rows.
+function appendRowsAction(p) {
+  const tab = String(p.table || '');
+  const values = Array.isArray(p.values) ? p.values : JSON.parse(p.values || '[]');
+  const headers = Array.isArray(p.headers) ? p.headers : JSON.parse(p.headers || '[]');
+  if (!tab) throw new Error('table is required');
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(tab);
+  if (!sheet) {
+    sheet = ss.insertSheet(tab);
+    if (headers.length) sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  }
+  if (values.length) {
+    const width = Math.max(headers.length, ...values.map((r) => r.length));
+    const rows = values.map((r) => {
+      const out = r.slice(0, width);
+      while (out.length < width) out.push('');
+      return out;
+    });
+    const firstRow = sheet.getLastRow() + 1;
+    sheet.getRange(firstRow, 1, rows.length, width).setValues(rows);
+  }
+  return { ok: true, table: tab, count: values.length };
 }
 
 function updateAction(p) {

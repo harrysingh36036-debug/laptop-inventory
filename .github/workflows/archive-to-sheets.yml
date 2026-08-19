@@ -1,0 +1,27 @@
+name: archive-to-google-sheets
+
+on:
+  schedule:
+    - cron: '0 2 1 * *'   # 2 AM on the 1st of every month
+  workflow_dispatch:
+  push:
+    branches: ['main']
+    paths: ['backend/archive-to-sheets.js']
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install deps
+        run: npm install --prefix backend --omit=dev
+      - name: Archive old Supabase data to Google Sheets
+        run: node backend/archive-to-sheets.js
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          GAS_WEBAPP_URL: ${{ secrets.GAS_WEBAPP_URL }}
+          GAS_KEY: ${{ secrets.GAS_KEY }}
+          ARCHIVE_AGE_DAYS: ${{ vars.ARCHIVE_AGE_DAYS || 25 }}
