@@ -45,10 +45,18 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [] }) {
 
   const storeName = (id) => stores.find((s) => s.id === id)?.store_name;
 
+  const storeIdOf = (value) => Number(value);
+
   // --- Parse a transfer log's changed_at into a YYYY-MM-DD string for date comparison ---
   const toDateKey = (iso) => {
     if (!iso) return '';
-    const d = new Date(iso.replace(' ', 'T') + 'Z');
+    const value = String(iso).trim();
+    const d = new Date(
+      value.includes('T') || /[zZ]|[+-]\d{2}:?\d{2}$/.test(value)
+        ? value
+        : `${value.replace(' ', 'T')}Z`
+    );
+    if (Number.isNaN(d.getTime())) return '';
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   };
 
@@ -58,13 +66,13 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [] }) {
     let result = logs;
 
     if (filterMode === 'single' && singleStoreId) {
-      const sid = Number(singleStoreId);
-      result = result.filter((l) => l.from_store_id === sid || l.to_store_id === sid);
+      const sid = storeIdOf(singleStoreId);
+      result = result.filter((l) => storeIdOf(l.from_store_id) === sid || storeIdOf(l.to_store_id) === sid);
     }
 
     if (filterMode === 'inter' && interFromStoreId && interToStoreId) {
-      const fromId = Number(interFromStoreId);
-      const toId = Number(interToStoreId);
+      const fromId = storeIdOf(interFromStoreId);
+      const toId = storeIdOf(interToStoreId);
       result = result.filter(
         (l) => interDirection === 'in'
           ? Number(l.from_store_id) === toId && Number(l.to_store_id) === fromId
@@ -102,9 +110,9 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [] }) {
     const uniqueLaptops = new Set(base.map((l) => l.laptop_id)).size;
 
     if (filterMode === 'single' && singleStoreId) {
-      const sid = Number(singleStoreId);
-      const incoming = base.filter((l) => l.to_store_id === sid).length;
-      const outgoing = base.filter((l) => l.from_store_id === sid).length;
+      const sid = storeIdOf(singleStoreId);
+      const incoming = base.filter((l) => storeIdOf(l.to_store_id) === sid).length;
+      const outgoing = base.filter((l) => storeIdOf(l.from_store_id) === sid).length;
       return {
         totalTransfers: base.length,
         uniqueLaptops,
