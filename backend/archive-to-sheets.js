@@ -162,8 +162,9 @@ async function run() {
     let total = 0;
     total += await archiveStep(client, { selectSql: OLD_SALES, params, deleteSql: DEL_SALES, delParams: params, tab: 'ArchiveSales', headers: TABS.Sales });
     total += await archiveStep(client, { selectSql: OLD_TRANSFERS, params, deleteSql: DEL_TRANSFERS, delParams: params, tab: 'ArchiveTransferLogs', headers: TABS.TransferLogs });
-    total += await archiveStep(client, { selectSql: OLD_REPAIRS, params, deleteSql: DEL_REPAIRS, delParams: params, tab: 'ArchiveRepairs', headers: TABS.Repairs });
-    total += await archiveStep(client, { selectSql: OLD_PURCHASES, params, deleteSql: DEL_PURCHASES, delParams: params, tab: 'ArchivePurchases', headers: TABS.Purchases });
+    const cutoffOnly = [cutoff.toISOString()];
+    total += await archiveStep(client, { selectSql: OLD_REPAIRS, params: cutoffOnly, deleteSql: DEL_REPAIRS, delParams: cutoffOnly, tab: 'ArchiveRepairs', headers: TABS.Repairs });
+    total += await archiveStep(client, { selectSql: OLD_PURCHASES, params: cutoffOnly, deleteSql: DEL_PURCHASES, delParams: cutoffOnly, tab: 'ArchivePurchases', headers: TABS.Purchases });
     total += await archiveStep(client, { selectSql: OLD_SOLD_LAPTOPS, params: [cutoff.toISOString()], deleteSql: DEL_LAPTOPS, delParams: [cutoff.toISOString()], tab: 'ArchiveLaptops', headers: TABS.Laptops });
 
     await client.query('COMMIT');
