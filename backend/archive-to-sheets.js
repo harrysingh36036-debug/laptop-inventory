@@ -21,6 +21,7 @@
  */
 
 const { Client } = require('pg');
+const dns = require('dns').promises;
 
 const GAS_URL = process.env.GAS_WEBAPP_URL || '';
 const GAS_KEY = process.env.GAS_KEY || '';
@@ -67,12 +68,26 @@ function fmt(v) {
   return String(v);
 }
 
-async function connectWithRetry(connectionString, maxRetries = 4) {
+async function connectWithRetry(connectionString, maxRetries = 5) {
+  const url = new URL(connectionString);
+  const host = url.hostname;
+  
+  console.log(`[archive] Database host: ${host}`);
+  
+  // Pre-check DNS resolution
+  try {
+    const resolved = await dns.lookup(host);
+    console.log(`[archive] DNS resolved ${host} to ${resolved.address}`);
+  } catch (dnsError) {
+    console.error(`[archive] WARNING: DNS resolution failed for ${host}: ${dnsError.message}`);
+    console.error('[archive] Proceeding anyway - connection may still work or fail with more details');
+  }
+  
   let lastError;
   for (let attempt = 1; attempt <= maxRetries; attempt += 1) {
     const client = new Client({
       connectionString,
-      connectionTimeoutMillis: 15000,
+      connectionTimeoutMillis: 20000,  // Increased from 15s to 20s
       query_timeout: 60000,
       statement_timeout: 60000
     });
@@ -84,7 +99,7 @@ async function connectWithRetry(connectionString, maxRetries = 4) {
       lastError = error;
       await client.end().catch(() => {});
       if (attempt === maxRetries) break;
-      const delay = 2 ** (attempt - 1) * 1000;
+      const delay = Math.min(2 ** (attempt - 1) * 1000, 10000); // Cap at 10s
       console.log(`[archive] database connection attempt ${attempt} failed: ${error.message}; retrying in ${delay}ms`);
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
