@@ -1,11 +1,36 @@
+import { useState, useRef, useEffect } from 'react';
 import { NAV_ITEMS } from '../App';
 
 export default function BottomNav({ tab, onNavigate }) {
+  const [tooltip, setTooltip] = useState(null); // index of active tooltip
+  const navRef = useRef(null);
+
+  // Close tooltip on outside click
+  useEffect(() => {
+    if (tooltip === null) return;
+    const onDown = (e) => {
+      if (navRef.current && !navRef.current.contains(e.target)) setTooltip(null);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [tooltip]);
+
+  const handleNav = (idx, key) => {
+    if (tooltip === idx) {
+      // Second tap — navigate and close
+      setTooltip(null);
+      onNavigate(key);
+    } else {
+      // First tap — show tooltip
+      setTooltip(idx);
+    }
+  };
+
   return (
-    <nav className="fixed left-0 top-14 bottom-0 z-50 w-14 border-r border-line bg-page/95 backdrop-blur-md sm:hidden overflow-y-auto">
+    <nav ref={navRef} className="fixed left-0 top-14 bottom-0 z-50 w-14 border-r border-line bg-page/95 backdrop-blur-md sm:hidden overflow-y-auto">
       <div className="flex flex-col items-center py-2">
         <button
-          onClick={() => onNavigate('dashboard')}
+          onClick={() => { setTooltip(null); onNavigate('dashboard'); }}
           className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-soft mb-1"
           title="Dashboard"
         >
@@ -15,29 +40,37 @@ export default function BottomNav({ tab, onNavigate }) {
         </button>
         <div className="h-px w-8 bg-line mb-1" />
         <div className="flex flex-col items-center gap-1">
-        {NAV_ITEMS.map((it) => {
+        {NAV_ITEMS.map((it, idx) => {
           const active = tab === it.key;
+          const showTip = tooltip === idx;
           return (
             <button
               key={it.key}
-              onClick={() => onNavigate(it.key)}
+              onClick={() => handleNav(idx, it.key)}
               aria-current={active ? 'page' : undefined}
-              className={`group relative flex flex-col items-center gap-0.5 w-full py-2 text-[8px] leading-none font-medium transition-colors duration-150 ${
+              className={`group relative flex flex-col items-center gap-0.5 w-full py-2 text-[10px] leading-none font-bold transition-all duration-200 ease-out active:scale-[0.9] ${
                 active
                   ? 'text-accent'
-                  : 'text-ink-faint active:text-ink-dim'
+                  : 'text-ink-dim active:text-ink'
               }`}
             >
               <span
-                className={`flex h-8 w-8 items-center justify-center rounded-xl transition-colors duration-150 ${
-                  active ? 'bg-accent-soft' : 'group-hover:bg-surface-2'
+                className={`flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-200 ease-out ${
+                  active ? 'bg-accent-soft shadow-sm' : 'group-hover:bg-surface-2'
                 }`}
               >
                 {it.icon}
               </span>
-              <span className="max-w-[44px] truncate leading-tight">{it.label}</span>
+              <span className="max-w-[48px] truncate leading-tight font-semibold">{it.label}</span>
               {active && (
                 <span className="absolute left-0 top-1 bottom-1 w-0.5 rounded-r-full bg-accent" />
+              )}
+
+              {/* Tooltip popup — appears on first tap */}
+              {showTip && (
+                <span className="absolute left-full ml-2 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-ink shadow-pop z-50">
+                  {it.label}
+                </span>
               )}
             </button>
           );

@@ -12,9 +12,9 @@ module.exports = {
         },
         line: 'rgba(15,23,42,0.1)',
         ink: {
-          DEFAULT: '#1a2430',
-          dim: '#5b6b7d',
-          faint: '#8b98a8'
+          DEFAULT: '#0f172a',
+          dim: '#334155',
+          faint: '#64748b'
         },
         accent: {
           DEFAULT: '#2563eb',

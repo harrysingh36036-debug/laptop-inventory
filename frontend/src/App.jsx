@@ -92,7 +92,7 @@ function MenuRow({ label, icon, onClick, danger = false }) {
   return (
     <button
       onClick={onClick}
-      className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm font-medium transition-colors duration-150 ${
+      className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm font-medium transition-all duration-200 ease-out hover:translate-x-0.5 active:scale-[0.98] ${
         danger ? 'text-stock-risk hover:bg-stock-risk/10' : 'text-ink-dim hover:bg-surface-2 hover:text-ink'
       }`}
     >
@@ -198,9 +198,9 @@ function QuickNav({ tab, onNavigate }) {
                 data-nav={it.key}
                 onClick={() => onNavigate(it.key)}
                 aria-current={active ? 'page' : undefined}
-                className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors duration-150 ${
+                className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-bold transition-all duration-200 ease-out active:scale-[0.95] ${
                   active
-                    ? 'bg-accent-soft text-accent'
+                    ? 'bg-accent-soft text-accent shadow-sm'
                     : 'text-ink-dim hover:bg-surface-2 hover:text-ink'
                 }`}
               >
