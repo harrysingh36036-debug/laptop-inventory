@@ -67,6 +67,31 @@ function fmt(v) {
   return String(v);
 }
 
+async function connectWithRetry(connectionString, maxRetries = 4) {
+  let lastError;
+  for (let attempt = 1; attempt <= maxRetries; attempt += 1) {
+    const client = new Client({
+      connectionString,
+      connectionTimeoutMillis: 15000,
+      query_timeout: 60000,
+      statement_timeout: 60000
+    });
+    try {
+      await client.connect();
+      if (attempt > 1) console.log(`[archive] database connection succeeded on attempt ${attempt}`);
+      return client;
+    } catch (error) {
+      lastError = error;
+      await client.end().catch(() => {});
+      if (attempt === maxRetries) break;
+      const delay = 2 ** (attempt - 1) * 1000;
+      console.log(`[archive] database connection attempt ${attempt} failed: ${error.message}; retrying in ${delay}ms`);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+  throw lastError;
+}
+
 async function gasAppendRows(table, headers, rows) {
   if (!GAS_URL) throw new Error('GAS_WEBAPP_URL is not set');
   const CHUNK = 100;
@@ -108,8 +133,7 @@ async function archiveStep(client, { selectSql, params, deleteSql, delParams, ta
 async function run() {
   if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is not set');
   if (!GAS_URL || !GAS_KEY) throw new Error('GAS_WEBAPP_URL / GAS_KEY are not set');
-  const client = new Client({ connectionString: process.env.DATABASE_URL.trim(), connectionTimeoutMillis: 15000, query_timeout: 60000 });
-  await client.connect();
+  const client = await connectWithRetry(process.env.DATABASE_URL.trim());
 
   const cutoff = new Date(Date.now() - AGE_DAYS * 86400000);
   const t0 = Date.now();
