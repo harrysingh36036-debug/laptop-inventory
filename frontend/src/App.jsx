@@ -189,7 +189,7 @@ function QuickNav({ tab, onNavigate }) {
   return (
     <nav className="sticky top-14 z-30 border-b border-line bg-page/85 backdrop-blur-md">
       <div className="mx-auto max-w-[1440px] px-3">
-        <div ref={railRef} className="no-scrollbar flex gap-1 overflow-x-auto py-2">
+        <div ref={railRef} className="no-scrollbar flex justify-center gap-1 overflow-x-auto py-2">
           {NAV_ITEMS.map((it) => {
             const active = tab === it.key;
             return (

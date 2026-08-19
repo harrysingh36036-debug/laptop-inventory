@@ -451,13 +451,14 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
         <InventoryStats stores={stores} search={search} storeId={statsStoreId} />
       </section>
 
-      <SearchBox
-        value={search}
-        onChange={setSearch}
-        placeholder="Search reports by laptop, serial, store, brand or customer…"
-        countLabel={`${laptops.length} laptops · ${sales.length} sales · ${logs.length} transfers`}
-        className="max-w-md"
-      />
+      <div className="mx-auto max-w-md">
+        <SearchBox
+          value={search}
+          onChange={setSearch}
+          placeholder="Search reports by laptop, serial, store, brand or customer…"
+          countLabel={`${laptops.length} laptops · ${sales.length} sales · ${logs.length} transfers`}
+        />
+      </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {reports.map((r) => (
