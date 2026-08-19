@@ -124,7 +124,6 @@ export default function PurchasesTab({
                     <td className={`${td} font-mono text-xs font-medium text-ink`}>{inr(total)}</td>
                     {canEditInventory && (
                       <td className={`${td} text-right`}>
-                        {p.purchaser_aadhar && (
                           <button
                             onClick={() => setExpandedId(expandedId === p.id ? null : p.id)}
                             className="btn-ghost text-accent"
@@ -135,7 +134,6 @@ export default function PurchasesTab({
                               <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                             </svg>
                           </button>
-                        )}
                         <button onClick={() => onEditPurchase(p)} className="btn-ghost">Edit</button>
                         <button onClick={() => onDeletePurchase(p)} className="btn-ghost ml-2 text-stock-risk hover:bg-stock-risk/10">
                           Delete
