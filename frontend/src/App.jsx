@@ -340,7 +340,7 @@ export default function App() {
       const [s, l, lg, st, b] = await Promise.all([
         getStores(),
         getLaptops(),
-        getTransferLogs(),
+        getTransferLogs().catch(() => []),
         getSettings(),
         getBrands().catch(() => [])
       ]);
@@ -1025,7 +1025,7 @@ export default function App() {
             }}
           />
         ) : tab === 'transfers' ? (
-          <TransferHistoryTab stores={stores} />
+          <TransferHistoryTab stores={stores} initialLogs={logs} />
         ) : (
           <SalesTab stores={stores} isSuperAdmin={isSuperAdmin} canSeeCustomer={isAdmin} onNotify={notify} />
         )}

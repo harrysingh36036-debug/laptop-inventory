@@ -4,9 +4,9 @@ import { formatTime } from '../utils';
 import { useLabels } from '../labels.jsx';
 import SearchBox from './SearchBox';
 
-export default function TransferHistoryTab({ stores }) {
+export default function TransferHistoryTab({ stores = [], initialLogs = [] }) {
   const t = useLabels();
-  const [logs, setLogs] = useState([]);
+  const [logs, setLogs] = useState(Array.isArray(initialLogs) ? initialLogs : []);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -27,8 +27,13 @@ export default function TransferHistoryTab({ stores }) {
     let alive = true;
     (async () => {
       try {
-        const data = await getTransferLogs(limit);
-        if (alive) setLogs(data || []);
+        const data = initialLogs.length ? initialLogs : await getTransferLogs(limit);
+        const rows = Array.isArray(data)
+          ? data
+          : typeof data === 'string'
+            ? JSON.parse(data)
+            : [];
+        if (alive) setLogs(Array.isArray(rows) ? rows : []);
       } catch (e) {
         if (alive) setError(e.message);
       } finally {
@@ -36,7 +41,7 @@ export default function TransferHistoryTab({ stores }) {
       }
     })();
     return () => { alive = false; };
-  }, []);
+  }, [initialLogs]);
 
   if (loading) return <p className="text-sm text-ink-faint">Loading transfer history…</p>;
   if (error) return <p className="text-sm text-stock-risk">{error}</p>;

@@ -50,11 +50,16 @@ BEGIN
       'transferred_by', tl.transferred_by,
       'changed_at', to_char(tl.changed_at, 'YYYY-MM-DD HH24:MI:SS'))
       ORDER BY tl.changed_at DESC), '[]'::jsonb) INTO v_out
-  FROM public.transferlogs tl
+  FROM (
+    SELECT *
+    FROM public.transferlogs
+    ORDER BY changed_at DESC
+    LIMIT p_limit
+  ) tl
   JOIN public.laptops l ON l.id = tl.laptop_id
   LEFT JOIN public.stores fs ON fs.id = tl.from_store_id
   LEFT JOIN public.stores ts ON ts.id = tl.to_store_id
-  LIMIT p_limit;
+  ;
   RETURN v_out;
 END $$;
 
