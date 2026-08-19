@@ -468,20 +468,20 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
             <h3 className="font-display text-sm font-semibold tracking-tight text-ink">{r.title}</h3>
             <p className="mt-1 flex-1 text-xs text-ink-faint">{r.desc}</p>
             {r.stat && <p className="mt-2 font-mono text-lg font-medium tracking-tight text-accent">{r.stat}</p>}
-            <div className="mt-4 flex flex-wrap items-center gap-2 self-start">
+            <div className="mt-4 flex flex-wrap items-center gap-2">
               <button
                 onClick={r.action}
                 disabled={r.disabled}
                 className="btn-accent disabled:cursor-not-allowed disabled:opacity-40"
               >
-                Download CSV
+                CSV
               </button>
               <button
                 onClick={r.pdfAction}
                 disabled={r.disabled}
                 className="btn-ghost disabled:cursor-not-allowed disabled:opacity-40"
               >
-                Download PDF
+                PDF
               </button>
             </div>
           </div>
@@ -495,7 +495,7 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
             <h2 className="font-display text-base font-semibold tracking-tight text-ink">Daily report</h2>
             <p className="text-xs text-ink-faint">Per-store system in / out and store-wise sales for one day.</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {isAdmin && visibleStores.length > 0 && (
               <select
                 value={effectiveFilter}
@@ -520,7 +520,7 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
               Print
             </button>
             <button onClick={downloadDailyPdf} disabled={dailyLoading || (!daily && !storeSales)} className="btn-ghost disabled:opacity-40">
-              Download PDF
+              PDF
             </button>
           </div>
         </div>
@@ -676,10 +676,10 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
               <p className="text-xs text-ink-faint">Item cost spent vs amount charged to customers, per store.</p>
             </div>
             <button onClick={downloadRepairs} disabled={!repairRows.length} className="btn-ghost disabled:opacity-40">
-              Download CSV
+              CSV
             </button>
             <button onClick={downloadRepairsPdf} disabled={!repairRows.length} className="btn-ghost disabled:opacity-40">
-              Download PDF
+              PDF
             </button>
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
