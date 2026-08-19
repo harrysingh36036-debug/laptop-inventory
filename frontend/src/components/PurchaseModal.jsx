@@ -20,7 +20,9 @@ const EMPTY = {
   current_store_id: '',
   status: 'In Stock',
   comment: '',
-  aadhar_no: ''
+  aadhar_no: '',
+  purchaser_name: '',
+  purchaser_phone: ''
 };
 
 export default function PurchaseModal({ stores, editing, onSave, onClose }) {
@@ -47,7 +49,9 @@ export default function PurchaseModal({ stores, editing, onSave, onClose }) {
             current_store_id: editing.current_store_id ?? '',
             status: editing.status || 'In Stock',
             comment: editing.comment || '',
-            aadhar_no: editing.purchaser_aadhar || editing.aadhar_no || ''
+aadhar_no: editing.purchaser_aadhar || editing.aadhar_no || '',
+            purchaser_name: editing.purchaser_name || '',
+            purchaser_phone: editing.purchaser_phone || ''
           }
         : EMPTY
     );
@@ -72,11 +76,25 @@ export default function PurchaseModal({ stores, editing, onSave, onClose }) {
       setError('Aadhar number is mandatory when adding a purchase.');
       return;
     }
+    if (!editing && !form.purchaser_name.trim()) {
+      setError('Purchaser name is mandatory when adding a purchase.');
+      return;
+    }
+    if (!editing && !form.purchaser_phone.trim()) {
+      setError('Phone number is mandatory when adding a purchase.');
+      return;
+    }
+    if (form.purchaser_phone.trim() && !/^\d{10}$/.test(form.purchaser_phone.trim())) {
+      setError('Phone number must be exactly 10 digits.');
+      return;
+    }
     if (form.aadhar_no.trim() && !/^\d{12}$/.test(form.aadhar_no.trim())) {
       setError('Aadhar number must be exactly 12 digits.');
       return;
     }
     const payload = { ...form };
+    payload.purchaser_name = form.purchaser_name.trim();
+    payload.purchaser_phone = form.purchaser_phone.trim();
     if (form.aadhar_no.trim()) {
       payload.purchaser_aadhar = form.aadhar_no.trim();
       payload.purchaser_aadhar_hash = await hashAadhar(form.aadhar_no.trim());
@@ -116,6 +134,18 @@ export default function PurchaseModal({ stores, editing, onSave, onClose }) {
                 placeholder={editing ? (form.aadhar_no ? '' : 'Optional on edit') : '12-digit Aadhar (required)'}
                 className="field mt-1.5" />
               <p className="mt-1 text-xs text-ink-faint">Hashed before saving; admin can view the full number.</p>
+            </div>
+            <div>
+              <label className="flabel">Purchaser Name {!editing && <span className="text-stock-risk">*</span>}</label>
+              <input value={form.purchaser_name} onChange={set('purchaser_name')} placeholder="Full name of buyer…"
+                className="field mt-1.5" />
+            </div>
+            <div>
+              <label className="flabel">Phone Number {!editing && <span className="text-stock-risk">*</span>}</label>
+              <input value={form.purchaser_phone} onChange={set('purchaser_phone')} inputMode="numeric" maxLength={10}
+                placeholder="10-digit mobile (required)"
+                className="field mt-1.5" />
+              <p className="mt-1 text-xs text-ink-faint">Visible to admins only.</p>
             </div>
             <div>
               <label className="flabel">Brand</label>

@@ -164,6 +164,8 @@ export default function PurchasesTab({
                                 </button>
                               )}
                             </span></p>
+                            <p><span className="text-ink-faint">Name:</span> {p.purchaser_name || '—'}</p>
+                            <p><span className="text-ink-faint">Phone:</span> {p.purchaser_phone || '—'}</p>
                             <p><span className="text-ink-faint">Store:</span> {p.current_store_name || '—'}</p>
                             <p><span className="text-ink-faint">Status:</span> {p.status || '—'}</p>
                           </div>
