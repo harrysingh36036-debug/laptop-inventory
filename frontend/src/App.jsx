@@ -571,7 +571,9 @@ export default function App() {
         status: form.status || 'In Stock',
         comment: form.comment,
         purchaser_aadhar_hash: form.purchaser_aadhar_hash || null,
-        purchaser_aadhar: form.purchaser_aadhar || null
+        purchaser_aadhar: form.purchaser_aadhar || null,
+        purchaser_name: form.purchaser_name || null,
+        purchaser_phone: form.purchaser_phone || null
       };
       if (purchaseModal?.purchase) {
         await updatePurchase(purchaseModal.purchase.id, payload);
