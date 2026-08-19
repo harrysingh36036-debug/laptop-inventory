@@ -43,9 +43,6 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [] }) {
     return () => { alive = false; };
   }, [initialLogs]);
 
-  if (loading) return <p className="text-sm text-ink-faint">Loading transfer history…</p>;
-  if (error) return <p className="text-sm text-stock-risk">{error}</p>;
-
   const storeName = (id) => stores.find((s) => s.id === id)?.store_name;
 
   // --- Parse a transfer log's changed_at into a YYYY-MM-DD string for date comparison ---
@@ -123,6 +120,9 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [] }) {
       storeLabel: null
     };
   }, [transferFiltered, filterMode, singleStoreId]);
+
+  if (loading) return <p className="text-sm text-ink-faint">Loading transfer history…</p>;
+  if (error) return <p className="text-sm text-stock-risk">{error}</p>;
 
   const th = 'px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint';
   const td = 'px-4 py-3 align-middle';
