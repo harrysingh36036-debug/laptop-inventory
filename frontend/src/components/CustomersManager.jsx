@@ -195,7 +195,7 @@ export default function CustomersManager({ onNotify }) {
       )}
 
       <div className="overflow-hidden rounded-xl border border-line">
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full min-w-[760px] text-left text-sm">
             <thead className="bg-surface-2/50 text-[10px] uppercase tracking-wider text-ink-faint">
               <tr>
@@ -295,6 +295,75 @@ export default function CustomersManager({ onNotify }) {
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile: card list instead of wide table */}
+        <div className="md:hidden divide-y divide-[var(--hairline)]">
+          {customers.length === 0 && (
+            <div className="px-4 py-8 text-center text-sm text-ink-faint">No customers yet.</div>
+          )}
+          {customers.map((c) => {
+            const open = openCustomer === c.id;
+            const purchases = purchasesFor(c);
+            return (
+              <div key={c.id} className="px-4 py-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-start gap-2">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(c.id)}
+                      onChange={() => toggle(c.id)}
+                      className="mt-1 h-4 w-4 rounded accent-accent"
+                      aria-label={`Select ${c.name}`}
+                    />
+                    <div className="min-w-0">
+                      <p className="font-medium text-ink">{c.name}</p>
+                      <p className="mt-0.5 font-mono text-[11px] text-ink-dim">{c.phone || '—'}</p>
+                    </div>
+                  </div>
+                  <span className={`mono-chip ${purchases.length > 0 ? '' : 'text-ink-faint'}`}>
+                    {purchases.length} laptop{purchases.length === 1 ? '' : 's'}
+                  </span>
+                </div>
+                {(c.email || c.address) && (
+                  <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] text-ink-dim">
+                    {c.email && <span>{c.email}</span>}
+                    {c.address && <span>{c.address}</span>}
+                  </div>
+                )}
+                <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                  <button onClick={() => setOpenCustomer(open ? null : c.id)} className="btn-ghost" aria-label={`Show purchases for ${c.name}`}>
+                    {open ? '▲ Hide purchases' : purchases.length > 0 ? `▼ ${purchases.length} purchase${purchases.length === 1 ? '' : 's'}` : '—'}
+                  </button>
+                  <button onClick={() => startEdit(c)} className="btn-ghost">Edit</button>
+                  <button onClick={() => setDanger({ kind: 'one', c })} className="btn-danger ml-auto">Delete</button>
+                </div>
+                {open && (
+                  <div className="mt-2 rounded-lg border border-accent-line bg-accent-soft p-3">
+                    {purchases.length === 0 ? (
+                      <p className="text-xs text-ink-faint">No purchases recorded.</p>
+                    ) : (
+                      <div className="divide-y divide-[var(--hairline)]">
+                        {purchases.map((s) => (
+                          <div key={s.id} className="py-1.5 text-[11px] text-ink-dim">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="min-w-0 truncate font-medium text-ink">{s.brand_model}</p>
+                              <p className="font-mono">{inr(s.sale_price)}</p>
+                            </div>
+                            <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-ink-faint">
+                              {s.serial_number && <span className="mono-chip text-[10px]">{s.serial_number}</span>}
+                              {s.store_name && <span>{s.store_name}</span>}
+                              <span>{formatTime(s.sold_at)}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 

@@ -92,7 +92,7 @@ export default function RepairsTab({
         <div className="flex items-center justify-between border-b border-line px-5 py-3">
           <h2 className="font-display text-sm font-semibold tracking-tight text-ink">Repairs</h2>
         </div>
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full min-w-[1280px] text-left text-sm">
             <thead>
               <tr className="border-b border-line">
@@ -149,6 +149,47 @@ export default function RepairsTab({
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Mobile: card list instead of wide table */}
+      <div className="md:hidden divide-y divide-[var(--hairline)]">
+        {filtered.length === 0 && (
+          <div className="px-4 py-12 text-center text-sm text-ink-faint">
+            {q ? 'No repairs match your search.' : 'No repairs recorded yet.'}
+          </div>
+        )}
+        {filtered.map((r) => (
+          <div key={r.id} className="px-4 py-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-medium text-ink">{r.brand_model || '—'}</p>
+                <p className="mt-0.5 flex flex-wrap items-center gap-2">
+                  {r.serial_number ? <span className="mono-chip">{r.serial_number}</span> : null}
+                  <StatusChip status={r.status} />
+                </p>
+              </div>
+              <p className="font-mono text-sm font-medium text-ink">{inr(r.charge)}</p>
+            </div>
+            {r.issue && <p className="mt-1.5 text-xs text-ink-dim">{r.issue}</p>}
+            {r.notes && <p className="mt-0.5 text-[11px] text-ink-faint">{r.notes}</p>}
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] text-ink-dim">
+              {r.store_name && <span><span className="text-ink-faint">Store:</span> {r.store_name}</span>}
+              {r.vendor && <span><span className="text-ink-faint">Shop:</span> {r.vendor}</span>}
+              <span><span className="text-ink-faint">Cost:</span> <span className="font-mono">{inr(r.cost)}</span></span>
+              <span><span className="text-ink-faint">Profit:</span> <span className={`font-mono ${(Number(r.profit) || 0) > 0 ? 'text-stock-ok' : 'text-ink-faint'}`}>{inr(r.profit)}</span></span>
+            </div>
+            <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-[11px] text-ink-faint">
+              <span>{formatTime(r.updated_at || r.created_at)}</span>
+              {r.created_by && <span>by {r.created_by}</span>}
+            </div>
+            {canEditInventory && (
+              <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                <button onClick={() => onEdit(r)} className="btn-ghost">Edit</button>
+                <button onClick={() => onDelete(r)} className="btn-danger">Delete</button>
+              </div>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   );
