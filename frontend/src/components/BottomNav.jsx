@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { NAV_ITEMS } from '../App';
 
-export default function BottomNav({ tab, onNavigate }) {
+export default function BottomNav({ tab, onNavigate, hidden }) {
   const [tooltip, setTooltip] = useState(null);
   const navRef = useRef(null);
 
@@ -14,6 +14,10 @@ export default function BottomNav({ tab, onNavigate }) {
     return () => document.removeEventListener('mousedown', onDown);
   }, [tooltip]);
 
+  useEffect(() => {
+    if (hidden) setTooltip(null);
+  }, [hidden]);
+
   const handleNav = (idx, key) => {
     if (tooltip === idx) {
       setTooltip(null);
@@ -22,6 +26,8 @@ export default function BottomNav({ tab, onNavigate }) {
       setTooltip(idx);
     }
   };
+
+  if (hidden) return null;
 
   return (
     <nav ref={navRef} className="fixed left-0 top-14 bottom-0 z-50 w-16 border-r border-line bg-page/95 backdrop-blur-md sm:hidden overflow-y-auto">

@@ -1148,7 +1148,7 @@ export default function App() {
 
       {toast && <Toast key={toast.id} msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
 
-      <BottomNav tab={tab} onNavigate={setTab} />
+      <BottomNav tab={tab} onNavigate={setTab} hidden={!!(invModal || purchaseModal || repairModal || sellTarget || delTarget || repairDelTarget || purchaseDelTarget || settingsOpen || brandsOpen || vendorsOpen)} />
       </div>
     </LabelsProvider>
   );
