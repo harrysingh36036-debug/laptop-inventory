@@ -9,6 +9,19 @@ on:
     paths: ['backend/archive-to-sheets.js']
 
 jobs:
+- name: Disable IPv6
+        run: |
+          sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
+          sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
+          sudo sysctl -w net.ipv6.conf.lo.disable_ipv6=1
+
+      - name: Archive old Supabase data to Google Sheets
+        run: node backend/archive-to-sheets.js
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+          GAS_WEBAPP_URL: ${{ secrets.GAS_WEBAPP_URL }}
+          GAS_KEY: ${{ secrets.GAS_KEY }}
+          ARCHIVE_AGE_DAYS: ${{ vars.ARCHIVE_AGE_DAYS || 25 }}
   archive:
     runs-on: ubuntu-latest
     steps:
