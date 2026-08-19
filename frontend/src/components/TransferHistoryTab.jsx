@@ -66,7 +66,9 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [] }) {
       const fromId = Number(interFromStoreId);
       const toId = Number(interToStoreId);
       result = result.filter(
-        (l) => l.from_store_id === fromId && l.to_store_id === toId
+        (l) => interDirection === 'in'
+          ? Number(l.from_store_id) === toId && Number(l.to_store_id) === fromId
+          : Number(l.from_store_id) === fromId && Number(l.to_store_id) === toId
       );
     }
 
