@@ -64,6 +64,15 @@ body {
   background: transparent;
 }
 
+/* Hide scrollbar for horizontal chip rails (mobile quick-nav) */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* ------------------------------------------------------------------ *
  *  Reusable primitives
  * ------------------------------------------------------------------ */

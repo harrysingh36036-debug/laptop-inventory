@@ -52,6 +52,7 @@ import PurchasesTab from './components/PurchasesTab';
 import RepairsTab from './components/RepairsTab';
 import RepairModal from './components/RepairModal';
 import PurchaseModal from './components/PurchaseModal';
+import BottomNav from './components/BottomNav';
 
 const MENU_ICONS = {
   dashboard: (
@@ -98,6 +99,119 @@ function MenuRow({ label, icon, onClick, danger = false }) {
       <span className={`shrink-0 ${danger ? 'text-stock-risk' : 'text-accent'}`}>{MENU_ICONS[icon]}</span>
       {label}
     </button>
+  );
+}
+
+export const NAV_ITEMS = [
+  {
+    key: 'dashboard',
+    label: 'Dashboard',
+    icon: (
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h5a1 1 0 011 1v5a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm9 0a1 1 0 011-1h5a1 1 0 011 1v5a1 1 0 01-1 1h-5a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h5a1 1 0 011 1v5a1 1 0 01-1 1H5a1 1 0 01-1-1v-5zm9 0a1 1 0 011-1h5a1 1 0 011 1v5a1 1 0 01-1 1h-5a1 1 0 01-1-1v-5z" />
+      </svg>
+    )
+  },
+  {
+    key: 'inventory',
+    label: 'Inventory',
+    icon: (
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+        <rect x="4" y="5" width="16" height="11" rx="1.5" />
+        <path strokeLinecap="round" d="M2 19h20M9 16v3m6-3v3" />
+      </svg>
+    )
+  },
+  {
+    key: 'purchases',
+    label: 'Purchases',
+    icon: (
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h2l2.4 12.2a1 1 0 001 .8h9.2a1 1 0 001-.8L21 8H6" />
+        <circle cx="9" cy="20" r="1.3" />
+        <circle cx="18" cy="20" r="1.3" />
+      </svg>
+    )
+  },
+  {
+    key: 'repairs',
+    label: 'Repairs',
+    icon: (
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.83-5.83M3.75 5.25a4.5 4.5 0 016.36 0l4.5 4.5a4.5 4.5 0 010 6.36M3.75 5.25l4.5 4.5" />
+      </svg>
+    )
+  },
+  {
+    key: 'sales',
+    label: 'Sold',
+    icon: (
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8 5h7M8 5v14M8 12h6a3 3 0 000-6H8m0 6h6a3 3 0 010 6H8" />
+      </svg>
+    )
+  },
+  {
+    key: 'customers',
+    label: 'Customers',
+    icon: (
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 12a4 4 0 100-8 4 4 0 000 8zM4 20a8 8 0 0116 0" />
+      </svg>
+    )
+  },
+  {
+    key: 'stats',
+    label: 'Reports',
+    icon: (
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+      </svg>
+    )
+  },
+  {
+    key: 'transfers',
+    label: 'Transfers',
+    icon: (
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h11l-3-3M17 17H6l3 3" />
+      </svg>
+    )
+  }
+];
+
+function QuickNav({ tab, onNavigate }) {
+  const railRef = useRef(null);
+  useEffect(() => {
+    const el = railRef.current?.querySelector(`[data-nav="${tab}"]`);
+    el?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
+  }, [tab]);
+  return (
+    <nav className="sticky top-14 z-30 border-b border-line bg-page/85 backdrop-blur-md">
+      <div className="mx-auto max-w-[1440px] px-3">
+        <div ref={railRef} className="no-scrollbar flex gap-1 overflow-x-auto py-2">
+          {NAV_ITEMS.map((it) => {
+            const active = tab === it.key;
+            return (
+              <button
+                key={it.key}
+                data-nav={it.key}
+                onClick={() => onNavigate(it.key)}
+                aria-current={active ? 'page' : undefined}
+                className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors duration-150 ${
+                  active
+                    ? 'bg-accent-soft text-accent'
+                    : 'text-ink-dim hover:bg-surface-2 hover:text-ink'
+                }`}
+              >
+                <span className="h-4 w-4 shrink-0">{it.icon}</span>
+                {it.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </nav>
   );
 }
 
@@ -827,7 +941,9 @@ export default function App() {
         </div>
       </header>
 
-<main className="mx-auto max-w-[1440px] px-4 py-6 space-y-6">
+      <QuickNav tab={tab} onNavigate={setTab} />
+
+<main className="mx-auto max-w-[1440px] px-4 py-6 pb-24 sm:pb-6 space-y-6">
         {tab === 'dashboard' ? (
           <DashboardTab
             laptops={laptops}
@@ -1031,6 +1147,8 @@ export default function App() {
       )}
 
       {toast && <Toast key={toast.id} msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
+
+      <BottomNav tab={tab} onNavigate={setTab} />
       </div>
     </LabelsProvider>
   );
