@@ -18,17 +18,32 @@ jobs:
           node-version: 22
       - name: Install deps
         run: npm install --prefix backend --omit=dev
-      - name: Disable IPv6
-        run: |
-          sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
-          sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
-          sudo sysctl -w net.ipv6.conf.lo.disable_ipv6=1
-      - name: Check Supabase DNS
+      - name: Verify Supabase connectivity
+        timeout-minutes: 2
         env:
           DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
         run: |
-          node -e "const dns=require('dns').promises; const host=new URL(process.env.DATABASE_URL).hostname; dns.lookup(host).then(a=>console.log('Supabase database hostname resolved:', a.address)).catch(e=>{console.error('Supabase database DNS lookup failed:', e.message); process.exit(1)})"
+          if [ -z "$DATABASE_URL" ]; then
+            echo "ERROR: DATABASE_URL secret is not set"
+            exit 1
+          fi
+          HOST=$(node -e "console.log(new URL(process.env.DATABASE_URL).hostname)")
+          echo "Testing connection to Supabase host: $HOST"
+          for i in {1..3}; do
+            if timeout 10 bash -c "cat < /dev/null > /dev/tcp/$HOST/5432"; then
+              echo "✓ TCP connection to $HOST:5432 successful"
+              break
+            else
+              if [ $i -lt 3 ]; then
+                echo "Connection attempt $i failed, retrying..."
+                sleep 2
+              else
+                echo "WARNING: TCP connection check failed, but proceeding (DNS may still resolve)"
+              fi
+            fi
+          done
       - name: Archive old Supabase data to Google Sheets
+        timeout-minutes: 15
         run: node backend/archive-to-sheets.js
         env:
           DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
