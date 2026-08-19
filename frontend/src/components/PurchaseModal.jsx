@@ -98,7 +98,6 @@ aadhar_no: editing.purchaser_aadhar || editing.aadhar_no || '',
     if (form.aadhar_no.trim()) {
       payload.purchaser_aadhar = form.aadhar_no.trim();
       payload.purchaser_aadhar_hash = await hashAadhar(form.aadhar_no.trim());
-      payload.purchaser_aadhar = form.aadhar_no.trim();
     }
     setError('');
     await onSave(payload);
