@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { getTransferLogs } from '../api';
 import { formatTime } from '../utils';
 import { useLabels } from '../labels.jsx';
@@ -11,6 +11,17 @@ export default function TransferHistoryTab({ stores }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const limit = 100;
+
+  // --- Transfer filter state ---
+  const [filterMode, setFilterMode] = useState('all'); // 'all' | 'single' | 'inter'
+  const [singleStoreId, setSingleStoreId] = useState('');
+  const [interFromStoreId, setInterFromStoreId] = useState('');
+  const [interToStoreId, setInterToStoreId] = useState('');
+  const [interDirection, setInterDirection] = useState('out'); // 'in' | 'out'
+
+  // --- Date range filter state ---
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   useEffect(() => {
     let alive = true;
@@ -32,9 +43,46 @@ export default function TransferHistoryTab({ stores }) {
 
   const storeName = (id) => stores.find((s) => s.id === id)?.store_name;
 
+  // --- Parse a transfer log's changed_at into a YYYY-MM-DD string for date comparison ---
+  const toDateKey = (iso) => {
+    if (!iso) return '';
+    const d = new Date(iso.replace(' ', 'T') + 'Z');
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  };
+
+  // --- Apply transfer filters + date range to logs ---
+  const transferFiltered = useMemo(() => {
+    // 1) Store / direction filter
+    let result = logs;
+
+    if (filterMode === 'single' && singleStoreId) {
+      const sid = Number(singleStoreId);
+      result = result.filter((l) => l.from_store_id === sid || l.to_store_id === sid);
+    }
+
+    if (filterMode === 'inter' && interFromStoreId && interToStoreId) {
+      const fromId = Number(interFromStoreId);
+      const toId = Number(interToStoreId);
+      result = result.filter(
+        (l) => l.from_store_id === fromId && l.to_store_id === toId
+      );
+    }
+
+    // 2) Date range filter (applied on top of store filter)
+    if (dateFrom) {
+      result = result.filter((l) => toDateKey(l.changed_at) >= dateFrom);
+    }
+    if (dateTo) {
+      result = result.filter((l) => toDateKey(l.changed_at) <= dateTo);
+    }
+
+    return result;
+  }, [logs, filterMode, singleStoreId, interFromStoreId, interToStoreId, interDirection, dateFrom, dateTo]);
+
+  // --- Apply text search on top of transfer filter ---
   const q = search.trim().toLowerCase();
   const filtered = q
-    ? logs.filter((l) =>
+    ? transferFiltered.filter((l) =>
         [
           l.brand_model, l.serial_number, l.from_store_name, l.to_store_name, l.transferred_by,
           l.from_store_id && storeName(l.from_store_id), l.to_store_id && storeName(l.to_store_id)
@@ -42,15 +90,226 @@ export default function TransferHistoryTab({ stores }) {
           .filter(Boolean)
           .some((v) => String(v).toLowerCase().includes(q))
       )
-    : logs;
+    : transferFiltered;
+
+  // --- Compute stats for summary cards ---
+  const stats = useMemo(() => {
+    const base = transferFiltered;
+    const uniqueLaptops = new Set(base.map((l) => l.laptop_id)).size;
+
+    if (filterMode === 'single' && singleStoreId) {
+      const sid = Number(singleStoreId);
+      const incoming = base.filter((l) => l.to_store_id === sid).length;
+      const outgoing = base.filter((l) => l.from_store_id === sid).length;
+      return {
+        totalTransfers: base.length,
+        uniqueLaptops,
+        incoming,
+        outgoing,
+        storeLabel: storeName(sid) || 'Selected Store'
+      };
+    }
+
+    return {
+      totalTransfers: base.length,
+      uniqueLaptops,
+      incoming: null,
+      outgoing: null,
+      storeLabel: null
+    };
+  }, [transferFiltered, filterMode, singleStoreId]);
 
   const th = 'px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint';
   const td = 'px-4 py-3 align-middle';
 
-  const cards = [
-    { label: 'Total Transfers', value: String(logs.length), mono: true },
-    { label: 'Unique Laptops', value: String(new Set(logs.map((l) => l.laptop_id)).size), mono: true }
-  ];
+  // --- Filter controls section ---
+  const renderFilterControls = () => (
+    <div className="panel p-4 space-y-4">
+      <div className="flex items-center gap-3">
+        <label className="text-xs font-semibold uppercase tracking-wide text-ink-faint shrink-0">
+          View Transfers
+        </label>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => { setFilterMode('all'); setSingleStoreId(''); setInterFromStoreId(''); setInterToStoreId(''); setDateFrom(''); setDateTo(''); }}
+            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors duration-150 ${
+              filterMode === 'all'
+                ? 'border-accent-line bg-accent-soft text-accent'
+                : 'border-line bg-surface text-ink-dim hover:bg-surface-2 hover:text-ink'
+            }`}
+          >
+            All Stores
+          </button>
+          <button
+            onClick={() => { setFilterMode('single'); setInterFromStoreId(''); setInterToStoreId(''); setDateFrom(''); setDateTo(''); }}
+            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors duration-150 ${
+              filterMode === 'single'
+                ? 'border-accent-line bg-accent-soft text-accent'
+                : 'border-line bg-surface text-ink-dim hover:bg-surface-2 hover:text-ink'
+            }`}
+          >
+            Single Store
+          </button>
+          <button
+            onClick={() => { setFilterMode('inter'); setSingleStoreId(''); setDateFrom(''); setDateTo(''); }}
+            className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors duration-150 ${
+              filterMode === 'inter'
+                ? 'border-accent-line bg-accent-soft text-accent'
+                : 'border-line bg-surface text-ink-dim hover:bg-surface-2 hover:text-ink'
+            }`}
+          >
+            Inter-Store
+          </button>
+        </div>
+      </div>
+
+      {filterMode === 'single' && (
+        <div className="flex flex-wrap items-center gap-3 animate-fade">
+          <label className="text-xs font-medium text-ink-dim">Select store:</label>
+          <select
+            value={singleStoreId}
+            onChange={(e) => setSingleStoreId(e.target.value)}
+            className="field w-auto min-w-[180px]"
+          >
+            <option value="">Choose a store…</option>
+            {stores.map((s) => (
+              <option key={s.id} value={s.id}>{s.store_name}</option>
+            ))}
+          </select>
+          {singleStoreId && (
+            <span className="text-[11px] text-ink-faint">
+              Showing all transfers involving {storeName(Number(singleStoreId))}
+            </span>
+          )}
+        </div>
+      )}
+
+      {filterMode === 'inter' && (
+        <div className="flex flex-wrap items-center gap-3 animate-fade">
+          <label className="text-xs font-medium text-ink-dim">From store:</label>
+          <select
+            value={interFromStoreId}
+            onChange={(e) => setInterFromStoreId(e.target.value)}
+            className="field w-auto min-w-[160px]"
+          >
+            <option value="">Select origin…</option>
+            {stores.map((s) => (
+              <option key={s.id} value={s.id}>{s.store_name}</option>
+            ))}
+          </select>
+
+          <label className="text-xs font-medium text-ink-dim">To store:</label>
+          <select
+            value={interToStoreId}
+            onChange={(e) => setInterToStoreId(e.target.value)}
+            className="field w-auto min-w-[160px]"
+          >
+            <option value="">Select destination…</option>
+            {stores.map((s) => (
+              <option key={s.id} value={s.id}>{s.store_name}</option>
+            ))}
+          </select>
+
+          <label className="text-xs font-medium text-ink-dim">Direction:</label>
+          <select
+            value={interDirection}
+            onChange={(e) => setInterDirection(e.target.value)}
+            className="field w-auto min-w-[130px]"
+          >
+            <option value="out">Outgoing (From → To)</option>
+            <option value="in">Incoming (From → To)</option>
+          </select>
+
+          {interFromStoreId && interToStoreId && (
+            <span className="text-[11px] text-ink-faint">
+              {interDirection === 'in' ? 'Incoming' : 'Outgoing'} transfers{' '}
+              from {storeName(Number(interFromStoreId))} to {storeName(Number(interToStoreId))}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Date range row — always visible */}
+      <div className="flex flex-wrap items-center gap-3 pt-1 border-t border-line animate-fade">
+        <label className="text-xs font-semibold uppercase tracking-wide text-ink-faint shrink-0">
+          Date Range
+        </label>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            className="field max-w-[170px]"
+            placeholder="From"
+          />
+          <span className="text-xs text-ink-faint">to</span>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            className="field max-w-[170px]"
+            placeholder="To"
+          />
+          {(dateFrom || dateTo) && (
+            <button
+              onClick={() => { setDateFrom(''); setDateTo(''); }}
+              className="btn-ghost text-xs"
+            >
+              Clear dates
+            </button>
+          )}
+        </div>
+        {dateFrom || dateTo ? (
+          <span className="text-[11px] text-ink-faint">
+            Showing transfers{dateFrom ? ` from ${dateFrom}` : ''}{dateTo ? ` up to ${dateTo}` : ''}
+          </span>
+        ) : null}
+      </div>
+    </div>
+  );
+
+  // --- Summary cards based on filter mode ---
+  const renderCards = () => {
+    if (filterMode === 'single' && singleStoreId) {
+      return (
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div key="total" className="panel p-5">
+            <p className="text-xs uppercase tracking-wide text-ink-faint">Total Transfers</p>
+            <p className="mt-2 font-mono text-2xl font-medium tracking-tight text-ink">{stats.totalTransfers}</p>
+            <p className="mt-1 text-[11px] text-ink-faint">All transfers involving {stats.storeLabel}</p>
+          </div>
+          <div key="in" className="panel p-5">
+            <p className="text-xs uppercase tracking-wide text-ink-faint">Incoming</p>
+            <p className="mt-2 font-mono text-2xl font-medium tracking-tight text-stock-ok">{stats.incoming}</p>
+            <p className="mt-1 text-[11px] text-ink-faint">Laptops received at {stats.storeLabel}</p>
+          </div>
+          <div key="out" className="panel p-5">
+            <p className="text-xs uppercase tracking-wide text-ink-faint">Outgoing</p>
+            <p className="mt-2 font-mono text-2xl font-medium tracking-tight text-stock-risk">{stats.outgoing}</p>
+            <p className="mt-1 text-[11px] text-ink-faint">Laptops sent from {stats.storeLabel}</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div key="total" className="panel p-5">
+          <p className="text-xs uppercase tracking-wide text-ink-faint">Total Transfers</p>
+          <p className="mt-2 font-mono text-2xl font-medium tracking-tight text-ink">{stats.totalTransfers}</p>
+          {filterMode === 'inter' && interFromStoreId && interToStoreId && (
+            <p className="mt-1 text-[11px] text-ink-faint">
+              Between {storeName(Number(interFromStoreId))} and {storeName(Number(interToStoreId))}
+            </p>
+          )}
+        </div>
+        <div key="unique" className="panel p-5">
+          <p className="text-xs uppercase tracking-wide text-ink-faint">Unique Laptops</p>
+          <p className="mt-2 font-mono text-2xl font-medium tracking-tight text-ink">{stats.uniqueLaptops}</p>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -58,18 +317,15 @@ export default function TransferHistoryTab({ stores }) {
         value={search}
         onChange={setSearch}
         placeholder="Search transfers by laptop, serial, store or account…"
-        countLabel={`${filtered.length} of ${logs.length} transfers`}
+        countLabel={`${filtered.length} of ${transferFiltered.length} transfers`}
         className="max-w-md"
       />
+
+      {/* Filter controls */}
+      {renderFilterControls()}
+
       {/* Summary cards */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        {cards.map((c) => (
-          <div key={c.label} className="panel p-5">
-            <p className="text-xs uppercase tracking-wide text-ink-faint">{c.label}</p>
-            <p className="mt-2 font-mono text-2xl font-medium tracking-tight text-ink">{c.value}</p>
-          </div>
-        ))}
-      </div>
+      {renderCards()}
 
       {/* Transfer table (desktop) */}
       <div className="panel overflow-hidden">
