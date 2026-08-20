@@ -251,6 +251,8 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
   };
 
   const [delUser, setDelUser] = useState(null);
+  const [resetPwdUser, setResetPwdUser] = useState(null);
+  const [newPassword, setNewPassword] = useState('');
 
   const removeOneUser = (u) => setDelUser(u);
 
@@ -265,6 +267,24 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
       return '';
     } catch (e) {
       return e.message;
+    }
+  };
+
+  const resetPassword = async (u) => {
+    if (!newPassword || newPassword.length < 6) {
+      flash('Password must be at least 6 characters');
+      return;
+    }
+    setUsersBusy(true);
+    try {
+      await updateUser(u.id, { password: newPassword });
+      setResetPwdUser(null);
+      setNewPassword('');
+      flash(`Password updated for ${u.display_name || u.username}`);
+    } catch (e) {
+      flash(e.message);
+    } finally {
+      setUsersBusy(false);
     }
   };
 
@@ -472,7 +492,7 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
             </form>
 
             <p className="text-sm text-ink-faint">
-              Existing accounts — change a role or home store, then press Save.
+              Existing accounts — change a role or home store, then press Save. Admins can also reset passwords.
             </p>
             {!usersLoaded ? (
               <p className="text-sm text-ink-faint">Loading users…</p>
@@ -522,6 +542,15 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
                         >
                           Save
                         </button>
+                        {(isAdmin || isSuperAdmin) && (
+                          <button
+                            onClick={() => { setResetPwdUser(resetPwdUser?.id === u.id ? null : u); setNewPassword(''); }}
+                            disabled={usersBusy}
+                            className="btn-ghost disabled:opacity-50"
+                          >
+                            {resetPwdUser?.id === u.id ? 'Cancel' : 'Reset Password'}
+                          </button>
+                        )}
                         <button
                           onClick={() => removeOneUser(u)}
                           disabled={usersBusy || u.id === currentUserId}
@@ -530,6 +559,25 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
                           Delete
                         </button>
                       </div>
+                      {resetPwdUser?.id === u.id && (
+                        <div className="mt-3 flex items-center gap-2">
+                          <input
+                            type="password"
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            placeholder="New password (min 6 chars)"
+                            className="field flex-1"
+                            autoFocus
+                          />
+                          <button
+                            onClick={() => resetPassword(u)}
+                            disabled={usersBusy || !newPassword || newPassword.length < 6}
+                            className="btn-accent disabled:opacity-50"
+                          >
+                            {usersBusy ? 'Saving…' : 'Set Password'}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   );
                 })}

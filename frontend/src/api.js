@@ -206,8 +206,12 @@ export const createUser = (data = {}) =>
 export const updateUser = (id, data = {}) =>
   rpc('app_update_user', {
     p_id: id,
+    p_username: data.username || null,
+    p_password: data.password || null,
+    p_display_name: data.display_name || null,
     p_role: data.role || null,
-    p_store_id: data.store_id === null || data.store_id === undefined ? null : Number(data.store_id)
+    p_store_id: data.store_id === null || data.store_id === undefined ? null : Number(data.store_id),
+    p_allowed_store_ids: data.allowed_store_ids ?? null
   });
 export const deleteUser = (id, password = '', remarks = '') =>
   rpc('app_delete_user', { p_id: id, p_password: password, p_remarks: remarks });
