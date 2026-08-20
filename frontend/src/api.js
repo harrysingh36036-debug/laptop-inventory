@@ -267,13 +267,15 @@ export const updateLaptop = (id, data) =>
 export const deleteLaptop = (id, password = '', remarks = '') =>
   rpc('app_delete_laptop', { p_id: id, p_password: password, p_remarks: remarks });
 
-export const sellLaptop = async (id, salePrice, customerId = null) =>
+export const sellLaptop = async (id, salePrice, customerId = null, paymentMethod = null, paymentDetail = null) =>
   rpc('app_sell_laptop', {
     p_laptop_id: id,
     p_sale_price: salePrice,
     p_sold_by: await currentUsername(),
     p_customer_id: customerId,
-    p_purchaser_aadhar_hash: null
+    p_purchaser_aadhar_hash: null,
+    p_payment_method: paymentMethod,
+    p_payment_detail: paymentDetail
   });
 
 // Super admin only (enforced server-side).

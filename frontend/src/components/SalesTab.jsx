@@ -264,6 +264,7 @@ export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false
                 <th className={th}>Phone</th>
                 <th className={th}>Sale Price</th>
                 <th className={th}>Profit</th>
+                <th className={th}>Payment</th>
                 <th className={th}>Sold By</th>
                 <th className={th}>Sold At</th>
                 <th className={th}>Receipt</th>
@@ -274,7 +275,7 @@ export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false
             <tbody className="divide-y divide-[var(--hairline)]">
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={isSuperAdmin ? 11 : 10} className="px-4 py-10 text-center text-sm text-ink-faint">
+                  <td colSpan={isSuperAdmin ? 12 : 11} className="px-4 py-10 text-center text-sm text-ink-faint">
                     {q ? 'No sales match your search.' : 'No sales recorded yet.'}
                   </td>
                 </tr>
@@ -310,6 +311,13 @@ export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false
                   <td className={`${td} font-mono text-xs text-ink`}>{inr(s.sale_price)}</td>
                   <td className={`${td} font-mono text-xs font-medium ${s.profit >= 0 ? 'text-stock-ok' : 'text-stock-risk'}`}>
                     {inr(s.profit)}
+                  </td>
+                  <td className={`${td} text-xs text-ink-dim`}>
+                    {s.payment_method ? (
+                      <span>{s.payment_method}{s.payment_detail ? ` · ${s.payment_detail}` : ''}</span>
+                    ) : (
+                      <span className="text-ink-faint">—</span>
+                    )}
                   </td>
                   <td className={`${td} text-ink-dim`}>{s.sold_by || '—'}</td>
                   <td className={`${td} font-mono text-[11px] text-ink-faint`}>{formatTime(s.sold_at)}</td>
@@ -370,6 +378,11 @@ export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false
                 <p className={`font-mono text-[11px] ${s.profit >= 0 ? 'text-stock-ok' : 'text-stock-risk'}`}>{inr(s.profit)}</p>
               </div>
             </div>
+            {s.payment_method && (
+              <p className="mt-1 text-[11px] text-ink-dim">
+                <span className="text-ink-faint">Payment:</span> {s.payment_method}{s.payment_detail ? ` · ${s.payment_detail}` : ''}
+              </p>
+            )}
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-[11px] text-ink-dim">
               <span>
                 <span className="text-ink-faint">Customer:</span>{' '}

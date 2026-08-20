@@ -803,7 +803,7 @@ export default function App() {
     setSellTarget(laptop);
   };
 
-  const handleSellConfirm = async (price, { customerId, aadharHash, aadharError } = {}) => {
+  const handleSellConfirm = async (price, { customerId, aadharHash, aadharError, paymentMethod, paymentDetail } = {}) => {
     const l = sellTarget;
     setSellTarget(null);
     if (!l) return;
@@ -817,7 +817,7 @@ export default function App() {
       return;
     }
     try {
-      await sellLaptop(l.id, num, customerId, aadharHash);
+      await sellLaptop(l.id, num, customerId, aadharHash, paymentMethod, paymentDetail);
       notify(
         `Sold ${l.brand_model} for \u20b9${num.toLocaleString('en-IN')}${customerId ? ' (customer recorded)' : ''}`,
         'success'

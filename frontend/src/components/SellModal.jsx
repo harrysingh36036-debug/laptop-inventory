@@ -8,6 +8,9 @@ export default function SellModal({ open, laptop, customers, onSave, onAddCustom
   const [newCustomer, setNewCustomer] = useState(false);
   const [newForm, setNewForm] = useState(EMPTY_NEW);
   const [busy, setBusy] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('Cash');
+  const [paymentDetail, setPaymentDetail] = useState('');
+  const [payError, setPayError] = useState('');
 
   useEffect(() => {
     if (open) {
@@ -18,6 +21,9 @@ export default function SellModal({ open, laptop, customers, onSave, onAddCustom
       setBuyer('');
       setNewCustomer(false);
       setNewForm(EMPTY_NEW);
+      setPaymentMethod('Cash');
+      setPaymentDetail('');
+      setPayError('');
     }
   }, [open, laptop]);
 
@@ -29,6 +35,11 @@ export default function SellModal({ open, laptop, customers, onSave, onAddCustom
     if (!Number.isFinite(num) || num < 0) {
       return onSave?.(null, { cost: laptop?.cost_price });
     }
+    if ((paymentMethod === 'UPI' || paymentMethod === 'Credit Card') && !paymentDetail.trim()) {
+      setPayError(paymentMethod === 'UPI' ? 'Please enter the UPI name' : 'Please enter the machine name');
+      return;
+    }
+    setPayError('');
     setBusy(true);
     try {
       if (newCustomer) {
@@ -37,9 +48,9 @@ export default function SellModal({ open, laptop, customers, onSave, onAddCustom
         const added = await onAddCustomer?.({ name: n, phone: newForm.phone, email: newForm.email, address: newForm.address, notes: newForm.notes });
         if (!added) return;
         setBuyer(added.id);
-        onSave?.(num, { customerId: added.id });
+        onSave?.(num, { customerId: added.id, paymentMethod, paymentDetail });
       } else {
-        onSave?.(num, { customerId: buyer ? Number(buyer) : null });
+        onSave?.(num, { customerId: buyer ? Number(buyer) : null, paymentMethod, paymentDetail });
       }
     } finally {
       setBusy(false);
@@ -102,6 +113,25 @@ export default function SellModal({ open, laptop, customers, onSave, onAddCustom
               <FormRow label="Address" value={newForm.address} onChange={(address) => setNewForm({ ...newForm, address })} placeholder="Shipping / billing address" />
             </div>
           )}
+
+          <div className="space-y-3">
+            <div>
+              <label className="flabel">Payment Method</label>
+              <select value={paymentMethod} onChange={(e) => { setPaymentMethod(e.target.value); setPaymentDetail(''); setPayError(''); }} className="field mt-1 w-full">
+                <option value="Cash">Cash</option>
+                <option value="UPI">UPI</option>
+                <option value="Credit Card">Credit Card</option>
+              </select>
+            </div>
+
+            {paymentMethod === 'UPI' && (
+              <FormRow label="UPI Name" value={paymentDetail} onChange={setPaymentDetail} placeholder="e.g. Priya Sharma (UPI)" required />
+            )}
+            {paymentMethod === 'Credit Card' && (
+              <FormRow label="Machine Name" value={paymentDetail} onChange={setPaymentDetail} placeholder="e.g. POS 02" required />
+            )}
+            {payError && <p className="text-sm text-stock-risk">{payError}</p>}
+          </div>
 
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={onClose} className="btn-ghost">Cancel</button>
