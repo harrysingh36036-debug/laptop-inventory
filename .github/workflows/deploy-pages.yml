@@ -40,6 +40,8 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
           VITE_GAS_URL: ${{ secrets.VITE_GAS_URL }}
           VITE_GAS_KEY: ${{ secrets.VITE_GAS_KEY }}
+          VITE_MONGO_READ_API_URL: ${{ secrets.VITE_MONGO_READ_API_URL }}
+          VITE_MONGO_READ_API_KEY: ${{ secrets.VITE_MONGO_READ_API_KEY }}
         run: npm run build
 
       - name: Upload Pages Artifact

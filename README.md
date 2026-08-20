@@ -55,6 +55,29 @@ VITE_SUPABASE_URL=https://<project>.supabase.co
 VITE_SUPABASE_ANON_KEY=<anon-key>
 ```
 
+## MongoDB overflow (when the free tier runs out)
+
+Supabase free tier is capped at 500 MB. When usage crosses **90%**, the
+[automation repo](https://github.com/harrysingh36036-debug/automation)
+workflow moves the **oldest history** — sold laptops, transfer logs, sales,
+purchases and repairs — into a free MongoDB Atlas cluster (verify → delete,
+so nothing is lost).
+
+The app keeps showing that migrated history. After migrating, Supabase reads
+return empty, and `frontend/src/mongoApi.js` falls back to the automation
+repo's read-only API and merges the transferred records back into the UI.
+
+Optional env vars (set only once the read API is deployed):
+
+```
+VITE_MONGO_READ_API_URL=https://<service>.onrender.com
+VITE_MONGO_READ_API_KEY=<your READ_API_KEY>
+```
+
+Active "In Stock" / "In Transit" inventory stays in Supabase, so live editing
+and Realtime are unaffected. See the automation repo's README for secrets,
+table mapping and the free read-API deployment.
+
 ## Database
 
 The schema is defined by the `supabase-*.sql` migration files at the repo root.

@@ -46,7 +46,7 @@ export function printSaleReceipt(s, storeName, sellerName, customerPhone) {
   w.document.write(`<!doctype html><html><head><title>Receipt ${s.serial_number}</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1d24; padding: 24px; }
+  body { font-family: 'Inter', Arial, sans-serif; color: #1a1d24; padding: 24px; }
   .receipt { max-width: 460px; margin: 0 auto; border: 1px dashed #cbd2dc; border-radius: 12px; padding: 24px; }
   h1 { font-size: 18px; margin-bottom: 2px; }
   .muted { color: #6b7280; font-size: 12px; }

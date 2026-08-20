@@ -41,7 +41,8 @@ const PERMISSION_FIELDS = [
   ['renameStores', 'Rename stores'],
   ['editLabels', 'Edit buttons & labels'],
   ['manageVendors', 'Manage vendors (add / edit / delete)'],
-  ['manageCustomers', 'Manage customers (add / edit / delete)']
+  ['manageCustomers', 'Manage customers (add / edit / delete)'],
+  ['viewPII', 'View PII (customer name / phone / Aadhar)']
 ];
 
 const DEFAULT_PERMISSIONS = {
@@ -52,7 +53,8 @@ const DEFAULT_PERMISSIONS = {
     renameStores: true,
     editLabels: true,
     manageVendors: false,
-    manageCustomers: false
+    manageCustomers: false,
+    viewPII: true
   },
   manager: {
     editInventory: true,
@@ -61,7 +63,8 @@ const DEFAULT_PERMISSIONS = {
     renameStores: true,
     editLabels: false,
     manageVendors: false,
-    manageCustomers: false
+    manageCustomers: false,
+    viewPII: false
   },
   staff: {
     editInventory: false,
@@ -70,7 +73,8 @@ const DEFAULT_PERMISSIONS = {
     renameStores: false,
     editLabels: false,
     manageVendors: false,
-    manageCustomers: false
+    manageCustomers: false,
+    viewPII: false
   }
 };
 

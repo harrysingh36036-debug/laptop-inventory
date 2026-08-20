@@ -31,7 +31,7 @@ import {
   renameStore,
   deleteStore
 } from './api';
-import { socket, setSocketAuth, setLocalRole } from './socket';
+import { socket, setSocketAuth, setLocalRole, setLocalPII } from './socket';
 import { LabelsProvider } from './labels.jsx';
 import Login from './components/Login';
 import StoreFilter from './components/StoreFilter';
@@ -291,14 +291,22 @@ export default function App() {
     }
   })();
   const defaultPerms = {
-    manager: { editInventory: true, transferLaptops: true, createStaff: true, renameStores: true, editLabels: false, manageVendors: false, manageCustomers: false },
-    staff: { editInventory: false, transferLaptops: false, createStaff: false, renameStores: false, editLabels: false, manageVendors: false, manageCustomers: false }
+    manager: { editInventory: true, transferLaptops: true, createStaff: true, renameStores: true, editLabels: false, manageVendors: false, manageCustomers: false, viewPII: false },
+    staff: { editInventory: false, transferLaptops: false, createStaff: false, renameStores: false, editLabels: false, manageVendors: false, manageCustomers: false, viewPII: false }
   };
   const myPerms = rolePerms?.[user?.role] || defaultPerms[user?.role] || {};
   const can = (perm) => (isAdmin ? true : !!myPerms[perm]);
   const canEditInventory = can('editInventory');
   const canTransfer = can('transferLaptops');
   const canRenameStores = can('renameStores');
+  // PII (purchaser name / phone / Aadhar) is admin-aligned: admins always see
+  // it; managers and staff only when the admin grants the "View PII" permission.
+  const canViewPII = isAdmin || can('viewPII');
+
+  // Keep the realtime bridge's PII masking in sync with the current permission.
+  useEffect(() => {
+    setLocalPII(canViewPII);
+  }, [canViewPII]);
   // Vendor / Customer management is granted by the super admin — even for admins.
   const canManageVendors = isSuperAdmin || !!((rolePerms || {})[user?.role] || {})['manageVendors'];
   const canManageCustomers = isSuperAdmin || !!((rolePerms || {})[user?.role] || {})['manageCustomers'];
@@ -678,6 +686,8 @@ export default function App() {
         storage: form.storage,
         graphics: form.graphics,
         purchased_from: form.purchased_from,
+        source_type: form.source_type || 'others',
+        source_id: form.source_id === '' || form.source_id == null ? null : Number(form.source_id),
         purchase_rate: form.purchase_rate === '' || form.purchase_rate == null ? 0 : Number(form.purchase_rate),
         extra_charges: form.extra_charges === '' || form.extra_charges == null ? 0 : Number(form.extra_charges),
         quantity: Number(form.quantity) || 1,
@@ -979,7 +989,7 @@ export default function App() {
             canTransfer={canTransfer}
             canSell={canEditInventory}
             canManageCustomers={canManageCustomers}
-            showSensitive={isAdmin}
+            showSensitive={canViewPII}
             onTransfer={handleTransfer}
             onSell={handleSell}
             onEdit={(laptop) => setInvModal({ laptop })}
@@ -991,6 +1001,7 @@ export default function App() {
             purchases={purchases}
             summary={purchasesSummary}
             canEditInventory={canEditInventory}
+            canViewPII={canViewPII}
             onAddPurchase={() => setPurchaseModal({})}
             onEditPurchase={(purchase) => setPurchaseModal({ purchase })}
             onDeletePurchase={handlePurchaseDelete}
@@ -1004,7 +1015,7 @@ export default function App() {
             onDelete={handleRepairDelete}
           />
         ) : tab === 'sales' ? (
-          <SalesTab stores={stores} isSuperAdmin={isSuperAdmin} canSeeCustomer={isAdmin} onNotify={notify} />
+          <SalesTab stores={stores} isSuperAdmin={isSuperAdmin} canSeeCustomer={canViewPII} onNotify={notify} />
         ) : tab === 'customers' ? (
           <div className="space-y-4">
             <p className="text-sm text-ink-dim">Manage your customers. Linked to sales when a laptop is sold to them.</p>
@@ -1027,7 +1038,7 @@ export default function App() {
         ) : tab === 'transfers' ? (
           <TransferHistoryTab stores={stores} initialLogs={logs} />
         ) : (
-          <SalesTab stores={stores} isSuperAdmin={isSuperAdmin} canSeeCustomer={isAdmin} onNotify={notify} />
+          <SalesTab stores={stores} isSuperAdmin={isSuperAdmin} canSeeCustomer={canViewPII} onNotify={notify} />
         )}
       </main>
 
@@ -1046,6 +1057,8 @@ export default function App() {
       {purchaseModal && (
         <PurchaseModal
           stores={stores}
+          customers={customers}
+          vendors={vendors}
           editing={purchaseModal.purchase}
           onSave={handlePurchaseSave}
           onClose={() => setPurchaseModal(null)}

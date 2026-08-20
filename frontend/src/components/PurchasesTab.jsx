@@ -11,6 +11,7 @@ export default function PurchasesTab({
   purchases = [],
   summary = null,
   canEditInventory = false,
+  canViewPII = false,
   onAddPurchase,
   onEditPurchase,
   onDeletePurchase
@@ -117,7 +118,14 @@ export default function PurchasesTab({
                       {p.serial_number ? <span className="mono-chip">{p.serial_number}</span> : <span className="text-ink-faint">—</span>}
                     </td>
                     <td className={`${td} text-xs text-ink-dim`}>{p.graphics || <span className="text-ink-faint">—</span>}</td>
-                    <td className={`${td} text-xs text-ink-dim`}>{p.purchased_from || <span className="text-ink-faint">—</span>}</td>
+                    <td className={`${td} text-xs text-ink-dim`}>
+                      {p.purchased_from || <span className="text-ink-faint">—</span>}
+                      {p.source_type && (
+                        <span className="ml-1.5 rounded-full border border-line px-1.5 py-0.5 text-[9px] uppercase tracking-wide text-ink-faint">
+                          {p.source_type}
+                        </span>
+                      )}
+                    </td>
                     <td className={`${td} font-mono text-xs text-ink-dim`}>{p.purchase_rate != null ? inr(p.purchase_rate) : '—'}</td>
                     <td className={`${td} font-mono text-xs text-ink-dim`}>{p.extra_charges ? inr(p.extra_charges) : '—'}</td>
                     <td className={`${td} font-mono text-xs text-ink-dim`}>×{p.quantity || 1}</td>
@@ -145,7 +153,19 @@ export default function PurchasesTab({
                     <tr className="bg-surface-2/50">
                       <td colSpan={canEditInventory ? 10 : 9} className="px-4 py-2 text-sm text-ink-dim">
                         <div className="p-3 rounded-lg border border-accent-line bg-accent-soft">
-                          <p className="font-semibold text-ink mb-2">Purchase Details</p>
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="font-semibold text-ink">Purchase Details</p>
+                            <button
+                              onClick={() => setExpandedId(null)}
+                              className="text-ink-faint hover:text-ink transition-colors"
+                              aria-label="Close purchase details"
+                            >
+                              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                          {canViewPII ? (
                           <div className="grid gap-x-6 gap-y-1 text-[11px] sm:grid-cols-2 lg:grid-cols-3">
                             <p><span className="text-ink-faint">Aadhar:</span> <span className="font-mono text-ink">
                               {p.purchaser_aadhar && revealedAadhars.has(p.id)
@@ -167,12 +187,11 @@ export default function PurchasesTab({
                             <p><span className="text-ink-faint">Store:</span> {p.current_store_name || '—'}</p>
                             <p><span className="text-ink-faint">Status:</span> {p.status || '—'}</p>
                           </div>
-                          <button
-                            onClick={() => setExpandedId(null)}
-                            className="mt-3 text-accent underline cursor-pointer"
-                          >
-                            Close
-                          </button>
+                          ) : (
+                            <p className="text-[11px] text-ink-faint">
+                              Customer name, phone and Aadhar are restricted. Ask an admin to grant you the “View PII” permission.
+                            </p>
+                          )}
                         </div>
                       </td>
                     </tr>

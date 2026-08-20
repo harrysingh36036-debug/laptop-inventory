@@ -1,7 +1,27 @@
 import supabase from './supabaseClient';
+import {
+  isMongoConfigured,
+  mongoGetLaptops,
+  mongoGetTransferLogs,
+  mongoGetSales,
+  mongoGetSalesSummary,
+  mongoGetPurchases,
+  mongoGetPurchasesSummary,
+  mongoGetRepairs,
+  mongoGetRepairsSummary,
+  mongoGetStores,
+  mongoGetBrands,
+  mongoGetVendors,
+  mongoGetCustomers
+} from './mongoApi';
 
 // Thin Supabase client wrapper that exposes the same function signatures the
 // React components already use, so the UI code needed no rewriting.
+//
+// Read fallback: when the Supabase free tier has exceeded 90% and the
+// automation workflow migrated old history to MongoDB, Supabase reads return
+// empty.  If the Mongo read API is configured, we merge its results in so the
+// transferred data stays visible.  Supabase rows always win (live data).
 
 const TOKEN_KEY = 'laptop_inventory_token';
 
@@ -66,6 +86,33 @@ async function table(name) {
   const { data, error } = await supabase.from(name).select('*');
   if (error) throw unwrap(error);
   return data || [];
+}
+
+// Merge Supabase rows (live) with Mongo read-API rows (migrated history).
+// Dedupes by id; a Supabase row always overrides the migrated copy.
+function mergeById(primary, fallback) {
+  if (!isMongoConfigured()) return primary || [];
+  const map = new Map();
+  for (const row of primary || []) {
+    if (row && row.id != null) map.set(String(row.id), row);
+  }
+  for (const row of fallback || []) {
+    if (row && row.id != null && !map.has(String(row.id))) map.set(String(row.id), row);
+  }
+  return Array.from(map.values());
+}
+
+// Return fallback only when Supabase returned nothing for this collection.
+async function withMongoFallback(supabasePromise, mongoPromise) {
+  const primary = await supabasePromise;
+  if (isMongoConfigured() && (!primary || primary.length === 0)) {
+    try {
+      return mergeById(primary, await mongoPromise);
+    } catch {
+      return primary || [];
+    }
+  }
+  return primary || [];
 }
 
 // Username -> email. Users sign in with a username in the UI, but Supabase
@@ -143,7 +190,7 @@ export const getMe = async () => {
 // ------------------------------- Inventory -------------------------------
 
 // --------------------------------- Inventory -------------------------------
-export const getStores = () => table('stores');
+export const getStores = () => withMongoFallback(table('stores'), mongoGetStores());
 
 // ------------------------------- Users (admin) -------------------------------
 export const getUsers = () => rpc('app_get_users');
@@ -166,17 +213,21 @@ export const deleteUser = (id, password = '', remarks = '') =>
   rpc('app_delete_user', { p_id: id, p_password: password, p_remarks: remarks });
 
 export const getLaptops = async (params = {}) => {
-  const rows = await rpc('app_get_laptops', {
-    p_store_id: params.storeId ? Number(params.storeId) : null,
-    p_status: params.status || null,
-    p_search: params.search || null
-  });
+  const rows = await withMongoFallback(
+    rpc('app_get_laptops', {
+      p_store_id: params.storeId ? Number(params.storeId) : null,
+      p_status: params.status || null,
+      p_search: params.search || null
+    }),
+    mongoGetLaptops(params)
+  );
   if (rows && rows.length > 0) return rows;
   if (params.search && GAS_URL) return searchSheetsLaptops(params.search);
   return rows || [];
 };
 
-export const getTransferLogs = (limit = 100) => rpc('app_get_transfer_logs', { p_limit: limit });
+export const getTransferLogs = (limit = 100) =>
+  withMongoFallback(rpc('app_get_transfer_logs', { p_limit: limit }), mongoGetTransferLogs(limit));
 
 export const transferLaptop = (id, toStoreId) =>
   rpc('app_transfer_laptop', { p_laptop_id: id, p_to_store: toStoreId });
@@ -220,7 +271,7 @@ async function currentUsername() {
 }
 
 // ----------------------------------- Brands --------------------------------
-export const getBrands = () => table('brands');
+export const getBrands = () => withMongoFallback(table('brands'), mongoGetBrands());
 export const addBrand = (data) =>
   rpc('app_add_brand', { p_name: data.name, p_serial_prefix: data.serial_prefix || '' });
 export const updateBrand = (id, data) =>
@@ -233,7 +284,7 @@ export const deleteBrand = (id, password = '', remarks = '') =>
   rpc('app_delete_brand', { p_id: id, p_password: password, p_remarks: remarks });
 
 // ---------------------------------- Vendors --------------------------------
-export const getVendors = () => table('vendors');
+export const getVendors = () => withMongoFallback(table('vendors'), mongoGetVendors());
 export const addVendor = (data) =>
   rpc('app_add_vendor', { p_name: data.name, p_contact: data.contact || '' });
 export const updateVendor = (id, data) =>
@@ -244,16 +295,20 @@ export const bulkDeleteVendors = (ids, password = '', remarks = '') =>
   rpc('app_bulk_delete_vendors', { p_ids: ids, p_password: password, p_remarks: remarks });
 
 // ----------------------------------- Sales ---------------------------------
-export const getSales = () => rpc('app_get_sales');
-export const getSalesSummary = () => rpc('app_sales_summary');
+export const getSales = () =>
+  withMongoFallback(rpc('app_get_sales'), mongoGetSales());
+export const getSalesSummary = () =>
+  withMongoFallback(rpc('app_sales_summary'), mongoGetSalesSummary());
 
 // ---------------------------- Daily reports --------------------------------
 export const getDailyReport = (date) => rpc('app_daily_report', { p_date: date });
 export const getDailyStoreSales = (date) => rpc('app_daily_store_sales', { p_date: date });
 
 // --------------------------------- Repairs ---------------------------------
-export const getRepairs = () => rpc('app_get_repairs');
-export const getRepairsSummary = () => rpc('app_repairs_summary');
+export const getRepairs = () =>
+  withMongoFallback(rpc('app_get_repairs'), mongoGetRepairs());
+export const getRepairsSummary = () =>
+  withMongoFallback(rpc('app_repairs_summary'), mongoGetRepairsSummary());
 export const getRepairsByStore = () => rpc('app_repairs_by_store');
 export const createRepair = (data) =>
   rpc('app_create_repair', {
@@ -285,15 +340,18 @@ export const deleteRepair = (id, password = '', remarks = '') =>
   rpc('app_delete_repair', { p_id: id, p_password: password, p_remarks: remarks });
 
 // -------------------------------- Purchases (ledger) --------------------------------
-export const getPurchases = () => rpc('app_get_purchases');
-export const getPurchasesSummary = () => rpc('app_purchases_summary');
+export const getPurchases = () =>
+  withMongoFallback(rpc('app_get_purchases'), mongoGetPurchases());
+export const getPurchasesSummary = () =>
+  withMongoFallback(rpc('app_purchases_summary'), mongoGetPurchasesSummary());
 export const createPurchase = (data) => rpc('app_create_purchase', { p_data: data });
 export const updatePurchase = (id, data) => rpc('app_update_purchase', { p_id: id, p_data: data });
 export const deletePurchase = (id, password = '', remarks = '') =>
   rpc('app_delete_purchase', { p_id: id, p_password: password, p_remarks: remarks });
 
 // --------------------------------- Customers -------------------------------
-export const getCustomers = () => rpc('app_get_customers');
+export const getCustomers = () =>
+  withMongoFallback(rpc('app_get_customers'), mongoGetCustomers());
 export const addCustomer = (data) =>
   rpc('app_add_customer', {
     p_name: data.name,
@@ -332,9 +390,9 @@ export const getPermissions = async () => {
   const settings = await getSettings();
   const raw = settings?.role_permissions;
   const fallback = {
-    admin: { editInventory: true, transferLaptops: true, createStaff: true, renameStores: true, editLabels: true, manageVendors: false },
-    manager: { editInventory: true, transferLaptops: true, createStaff: true, renameStores: true, editLabels: false, manageVendors: false },
-    staff: { editInventory: false, transferLaptops: false, createStaff: false, renameStores: false, editLabels: false, manageVendors: false }
+    admin: { editInventory: true, transferLaptops: true, createStaff: true, renameStores: true, editLabels: true, manageVendors: false, manageCustomers: false, viewPII: true },
+    manager: { editInventory: true, transferLaptops: true, createStaff: true, renameStores: true, editLabels: false, manageVendors: false, manageCustomers: false, viewPII: false },
+    staff: { editInventory: false, transferLaptops: false, createStaff: false, renameStores: false, editLabels: false, manageVendors: false, manageCustomers: false, viewPII: false }
   };
   try {
     const parsed = JSON.parse(raw || '{}');
