@@ -114,7 +114,7 @@ BEGIN
 
   SELECT * INTO v_pt FROM public.pending_transfers WHERE id = p_transfer_id;
   IF v_pt.id IS NULL THEN RAISE EXCEPTION 'Transfer request not found'; END IF;
-  IF v_pt.status <> 'pending' THEN RAISE EXCEPTION 'Transfer already ' || v_pt.status; END IF;
+  IF v_pt.status <> 'pending' THEN RAISE EXCEPTION 'Transfer already %', v_pt.status; END IF;
 
   -- Only the destination store manager (or admin/superadmin) can accept
   IF v_role = 'manager' THEN
@@ -167,7 +167,7 @@ BEGIN
 
   SELECT * INTO v_pt FROM public.pending_transfers WHERE id = p_transfer_id;
   IF v_pt.id IS NULL THEN RAISE EXCEPTION 'Transfer request not found'; END IF;
-  IF v_pt.status <> 'pending' THEN RAISE EXCEPTION 'Transfer already ' || v_pt.status; END IF;
+  IF v_pt.status <> 'pending' THEN RAISE EXCEPTION 'Transfer already %', v_pt.status; END IF;
 
   -- Only the destination store manager (or admin/superadmin) can reject
   IF v_role = 'manager' THEN
@@ -239,7 +239,7 @@ BEGIN
 
   SELECT * INTO v_pt FROM public.pending_transfers WHERE id = p_transfer_id;
   IF v_pt.id IS NULL THEN RAISE EXCEPTION 'Transfer request not found'; END IF;
-  IF v_pt.status <> 'pending' THEN RAISE EXCEPTION 'Transfer already ' || v_pt.status; END IF;
+  IF v_pt.status <> 'pending' THEN RAISE EXCEPTION 'Transfer already %', v_pt.status; END IF;
 
   -- Manager can only cancel transfers they initiated from their store
   IF v_role = 'manager' THEN
