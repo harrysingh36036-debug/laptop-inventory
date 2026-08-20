@@ -236,6 +236,18 @@ export const getTransferLogs = (limit = 100) =>
 export const transferLaptop = (id, toStoreId) =>
   rpc('app_transfer_laptop', { p_laptop_id: id, p_to_store: toStoreId });
 
+// ---- Transfer approval workflow ----
+export const initiateTransfer = (laptopId, toStoreId) =>
+  rpc('app_initiate_transfer', { p_laptop_id: laptopId, p_to_store: toStoreId });
+export const acceptTransfer = (transferId) =>
+  rpc('app_accept_transfer', { p_transfer_id: transferId });
+export const rejectTransfer = (transferId) =>
+  rpc('app_reject_transfer', { p_transfer_id: transferId });
+export const cancelTransfer = (transferId) =>
+  rpc('app_cancel_transfer', { p_transfer_id: transferId });
+export const getPendingTransfers = () =>
+  rpc('app_get_pending_transfers');
+
 export const createLaptop = (data) => {
   const quantity = data.quantity != null ? Number(data.quantity) : 1;
   if (quantity > 1) return createLaptopsBulk(data, quantity);

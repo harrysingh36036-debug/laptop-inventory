@@ -4,6 +4,11 @@ import {
   getLaptops,
   getTransferLogs,
   transferLaptop,
+  initiateTransfer,
+  acceptTransfer,
+  rejectTransfer,
+  cancelTransfer,
+  getPendingTransfers,
   createLaptop,
   updateLaptop,
   deleteLaptop,
@@ -230,6 +235,7 @@ export default function App() {
   const [purchasesSummary, setPurchasesSummary] = useState(null);
   const [repairs, setRepairs] = useState([]);
   const [repairsSummary, setRepairsSummary] = useState(null);
+  const [pendingTransfers, setPendingTransfers] = useState([]);
 
   // Filters / state
   const [storeId, setStoreId] = useState('');
@@ -361,6 +367,7 @@ export default function App() {
       getCustomers().then(setCustomers).catch(() => {});
       reloadPurchases();
       reloadRepairs();
+      reloadPendingTransfers();
     };
     load().catch((e) => notify(e.message, 'error'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -383,6 +390,14 @@ export default function App() {
       const [list, sum] = await Promise.all([getRepairs(), getRepairsSummary()]);
       setRepairs(list);
       setRepairsSummary(sum);
+    } catch (e) {
+      /* transient */
+    }
+  }, []);
+
+  const reloadPendingTransfers = useCallback(async () => {
+    try {
+      setPendingTransfers(await getPendingTransfers());
     } catch (e) {
       /* transient */
     }
@@ -476,6 +491,9 @@ export default function App() {
     const onRepairsChanged = () => reloadRepairs();
     socket.on('repairs:updated', onRepairsChanged);
 
+    const onPendingTransfersChanged = () => reloadPendingTransfers();
+    socket.on('pending_transfers:updated', onPendingTransfersChanged);
+
     const reloadBrands = async () => {
       try {
         setBrands(await getBrands());
@@ -519,6 +537,7 @@ export default function App() {
         getBrands().then(setBrands).catch(() => {});
         reloadPurchases();
         reloadRepairs();
+        reloadPendingTransfers();
         notify('Data refreshed', 'info');
       } catch (e) {
         /* ignore transient errors */
@@ -534,6 +553,7 @@ export default function App() {
       socket.off('laptop:bulk', onBulk);
       socket.off('sale:new', onSale);
       socket.off('repairs:updated', onRepairsChanged);
+      socket.off('pending_transfers:updated', onPendingTransfersChanged);
       socket.off('brands:updated', reloadBrands);
       socket.off('laptop:updated', onUpdate);
       socket.off('laptop:deleted', onDelete);
@@ -569,8 +589,38 @@ export default function App() {
   // ---- Transfer action -----------------------------------------------------
   const handleTransfer = async (laptopId, toStoreId) => {
     try {
-      await transferLaptop(laptopId, toStoreId);
-      notify('Transfer confirmed', 'success');
+      await initiateTransfer(laptopId, toStoreId);
+      notify('Transfer request sent — awaiting acceptance from destination store', 'success');
+      await refresh();
+    } catch (e) {
+      notify(e.message, 'error');
+    }
+  };
+
+  const handleAcceptTransfer = async (transferId) => {
+    try {
+      await acceptTransfer(transferId);
+      notify('Transfer accepted — laptop moved', 'success');
+      await refresh();
+    } catch (e) {
+      notify(e.message, 'error');
+    }
+  };
+
+  const handleRejectTransfer = async (transferId) => {
+    try {
+      await rejectTransfer(transferId);
+      notify('Transfer rejected', 'success');
+      await refresh();
+    } catch (e) {
+      notify(e.message, 'error');
+    }
+  };
+
+  const handleCancelTransfer = async (transferId) => {
+    try {
+      await cancelTransfer(transferId);
+      notify('Transfer cancelled', 'success');
       await refresh();
     } catch (e) {
       notify(e.message, 'error');
@@ -1037,7 +1087,16 @@ export default function App() {
             }}
           />
         ) : tab === 'transfers' ? (
-          <TransferHistoryTab stores={stores} initialLogs={logs} />
+          <TransferHistoryTab
+            stores={stores}
+            initialLogs={logs}
+            pendingTransfers={pendingTransfers}
+            userRole={user?.role}
+            userHomeStoreId={user?.home_store_id}
+            onAcceptTransfer={handleAcceptTransfer}
+            onRejectTransfer={handleRejectTransfer}
+            onCancelTransfer={handleCancelTransfer}
+          />
         ) : (
           <SalesTab stores={stores} isSuperAdmin={isSuperAdmin} isAdmin={isAdmin} canSeeCustomer={canViewPII} onNotify={notify} />
         )}

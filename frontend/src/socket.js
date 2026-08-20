@@ -185,6 +185,11 @@ function handleChange(table, event, row) {
     return;
   }
 
+  if (table === 'pending_transfers') {
+    _emit('pending_transfers:updated');
+    return;
+  }
+
   if (table === 'settings') {
     getSettings().then((settings) => {
       _emit('settings:updated', settings);
@@ -230,6 +235,7 @@ function ensureConnected() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'transferlogs' }, onPostgresChange)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, onPostgresChange)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'repairs' }, onPostgresChange)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'pending_transfers' }, onPostgresChange)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'brands' }, onPostgresChange)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, onPostgresChange)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, onPostgresChange);

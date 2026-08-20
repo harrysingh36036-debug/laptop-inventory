@@ -22,7 +22,7 @@ export const DEFAULT_LABELS = {
   viewOnly: 'View only',
   editButton: 'Edit',
   deleteButton: 'Delete',
-  transferButton: 'Confirm Transfer',
+  transferButton: 'Request Transfer',
   transferHistory: 'Transfer History',
   transferHistorySubtitle: 'Audit trail of every location change',
   addLaptopTitle: 'Add Laptop to Inventory',

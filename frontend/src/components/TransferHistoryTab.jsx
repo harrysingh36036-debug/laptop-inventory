@@ -4,7 +4,7 @@ import { formatTime } from '../utils';
 import { useLabels } from '../labels.jsx';
 import SearchBox from './SearchBox';
 
-export default function TransferHistoryTab({ stores = [], initialLogs = [] }) {
+export default function TransferHistoryTab({ stores = [], initialLogs = [], pendingTransfers = [], userRole, userHomeStoreId, onAcceptTransfer, onRejectTransfer, onCancelTransfer }) {
   const t = useLabels();
   const [logs, setLogs] = useState(Array.isArray(initialLogs) ? initialLogs : []);
   const [search, setSearch] = useState('');
@@ -328,6 +328,167 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [] }) {
 
   return (
     <div className="space-y-6">
+      {/* Pending Transfers — requires action */}
+      {pendingTransfers.length > 0 && (
+        <div className="panel overflow-hidden border border-amber-300/40">
+          <div className="flex items-center gap-2 border-b border-amber-200/60 bg-amber-50/60 px-5 py-3">
+            <span className="inline-block h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+            <h2 className="font-display text-sm font-semibold text-amber-800">Pending Transfers</h2>
+            <span className="ml-auto rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+              {pendingTransfers.length}
+            </span>
+          </div>
+
+          {/* Desktop */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full min-w-[780px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-line">
+                  <th className={th}>Requested</th>
+                  <th className={th}>{t.tableBrand}</th>
+                  <th className={th}>{t.tableSerial}</th>
+                  <th className={th}>From Store</th>
+                  <th className={th}>To Store</th>
+                  <th className={th}>Requested By</th>
+                  <th className={`${th} text-right`}>Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--hairline)]">
+                {pendingTransfers.map((pt) => {
+                  const isDestinationManager = userRole === 'manager' && Number(userHomeStoreId) === Number(pt.to_store_id);
+                  const isInitiator = userRole === 'manager' && Number(userHomeStoreId) === Number(pt.from_store_id);
+                  const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+                  return (
+                    <tr key={pt.id} className="transition-colors duration-150 hover:bg-amber-50/30">
+                      <td className={`${td} font-mono text-[11px] text-ink-faint`}>
+                        {formatTime(pt.created_at)}
+                      </td>
+                      <td className={td}>
+                        <p className="font-medium text-ink">{pt.brand_model}</p>
+                      </td>
+                      <td className={td}>
+                        <span className="mono-chip">{pt.serial_number}</span>
+                      </td>
+                      <td className={td}>
+                        <span className="rounded-md border border-line bg-surface-2 px-1.5 py-0.5 font-medium text-ink-dim">
+                          {pt.from_store_name || '—'}
+                        </span>
+                      </td>
+                      <td className={td}>
+                        <span className="rounded-md border border-line bg-surface-2 px-1.5 py-0.5 font-medium text-ink-dim">
+                          {pt.to_store_name || '—'}
+                        </span>
+                      </td>
+                      <td className={td}>
+                        <span className="mono-chip">{pt.initiated_by}</span>
+                      </td>
+                      <td className={`${td} text-right`}>
+                        <div className="flex items-center justify-end gap-2">
+                          {isDestinationManager && (
+                            <>
+                              <button
+                                onClick={() => onAcceptTransfer?.(pt.id)}
+                                className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors"
+                              >
+                                Accept
+                              </button>
+                              <button
+                                onClick={() => onRejectTransfer?.(pt.id)}
+                                className="rounded-md bg-red-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-600 transition-colors"
+                              >
+                                Reject
+                              </button>
+                            </>
+                          )}
+                          {isAdmin && (
+                            <button
+                              onClick={() => onRejectTransfer?.(pt.id)}
+                              className="rounded-md border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          )}
+                          {isInitiator && !isDestinationManager && (
+                            <button
+                              onClick={() => onCancelTransfer?.(pt.id)}
+                              className="rounded-md border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mobile cards */}
+          <div className="md:hidden divide-y divide-[var(--hairline)]">
+            {pendingTransfers.map((pt) => {
+              const isDestinationManager = userRole === 'manager' && Number(userHomeStoreId) === Number(pt.to_store_id);
+              const isInitiator = userRole === 'manager' && Number(userHomeStoreId) === Number(pt.from_store_id);
+              const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+              return (
+                <div key={pt.id} className="px-4 py-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="font-medium text-ink">{pt.brand_model}</p>
+                    <span className="shrink-0 font-mono text-[11px] text-ink-faint">
+                      {formatTime(pt.created_at)}
+                    </span>
+                  </div>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                    <span className="mono-chip">{pt.serial_number}</span>
+                  </div>
+                  <div className="mt-2 flex items-center gap-2 text-xs">
+                    <span className="rounded-md border border-line bg-surface-2 px-1.5 py-0.5 font-medium text-ink-dim">
+                      {pt.from_store_name || '—'}
+                    </span>
+                    <svg className="h-3.5 w-3.5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                    </svg>
+                    <span className="rounded-md border border-line bg-surface-2 px-1.5 py-0.5 font-medium text-ink-dim">
+                      {pt.to_store_name || '—'}
+                    </span>
+                  </div>
+                  <p className="mt-1.5 text-[11px] text-ink-faint">
+                    Requested by <span className="font-medium text-ink-dim">{pt.initiated_by}</span>
+                  </p>
+                  <div className="mt-3 flex items-center gap-2">
+                    {isDestinationManager && (
+                      <>
+                        <button
+                          onClick={() => onAcceptTransfer?.(pt.id)}
+                          className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"
+                        >
+                          Accept
+                        </button>
+                        <button
+                          onClick={() => onRejectTransfer?.(pt.id)}
+                          className="rounded-md bg-red-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-600"
+                        >
+                          Reject
+                        </button>
+                      </>
+                    )}
+                    {(isAdmin || isInitiator) && !isDestinationManager && (
+                      <button
+                        onClick={() => onCancelTransfer?.(pt.id)}
+                        className="rounded-md border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50"
+                      >
+                        Cancel
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <SearchBox
         value={search}
         onChange={setSearch}
