@@ -306,9 +306,9 @@ export const deleteBrand = (id, password = '', remarks = '') =>
 // ---------------------------------- Vendors --------------------------------
 export const getVendors = () => withMongoFallback(table('vendors'), mongoGetVendors());
 export const addVendor = (data) =>
-  rpc('app_add_vendor', { p_name: data.name, p_contact: data.contact || '' });
+  rpc('app_add_vendor', { p_name: data.name, p_contact: data.contact || '', p_address: data.address || '' });
 export const updateVendor = (id, data) =>
-  rpc('app_update_vendor', { p_id: id, p_name: data.name, p_contact: data.contact || '' });
+  rpc('app_update_vendor', { p_id: id, p_name: data.name, p_contact: data.contact || '', p_address: data.address || '' });
 export const deleteVendor = (id, password = '', remarks = '') =>
   rpc('app_delete_vendor', { p_id: id, p_password: password, p_remarks: remarks });
 export const bulkDeleteVendors = (ids, password = '', remarks = '') =>

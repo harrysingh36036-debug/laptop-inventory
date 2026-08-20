@@ -64,7 +64,7 @@ export default function LaptopTable({
             )}
             {laptops.map((l) => {
               const sel = pending[l.id] ?? '';
-              const spec = [l.product_line, l.ram, l.processor_type, l.storage_size, l.storage_type].filter(Boolean).join(' · ');
+              const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.storage_size} ${l.storage_type || ''}`.trim() : l.storage_type].filter(Boolean).join(' · ');
               const gfx = l.graphics === 'yes' ? `GPU: ${l.graphics_type || '—'}${l.graphics_model ? ` ${l.graphics_model}` : ''}` : '';
                const isSold = l.status === 'Sold';
                return (
@@ -287,7 +287,7 @@ export default function LaptopTable({
         )}
         {laptops.map((l) => {
           const sel = pending[l.id] ?? '';
-          const spec = [l.product_line, l.ram, l.processor_type, l.storage_size, l.storage_type].filter(Boolean).join(' · ');
+          const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.storage_size} ${l.storage_type || ''}`.trim() : l.storage_type].filter(Boolean).join(' · ');
           const gfx = l.graphics === 'yes' ? `GPU: ${l.graphics_type || '—'}${l.graphics_model ? ` ${l.graphics_model}` : ''}` : '';
           const isSold = l.status === 'Sold';
           return (
