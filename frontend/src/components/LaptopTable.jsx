@@ -64,14 +64,17 @@ export default function LaptopTable({
             )}
             {laptops.map((l) => {
               const sel = pending[l.id] ?? '';
-const spec = [l.product_line, l.processor_type, l.generation, l.ram, l.storage_size ? `${l.storage_size} ${l.storage_type || ''}`.trim() : l.storage_type].filter(Boolean).join(' · ');
+const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.storage_size} ${l.storage_type || ''}`.trim() : l.storage_type].filter(Boolean).join(' · ');
               const gfx = l.graphics === 'yes' ? `GPU: ${l.graphics_type || '—'}${l.graphics_model ? ` ${l.graphics_model}` : ''}` : '';
                const isSold = l.status === 'Sold';
                return (
                  <React.Fragment key={l.id}>
                    <tr className="group transition-colors duration-150 hover:bg-surface-2/60" data-row={rowId ? rowId(l) : undefined}>
                    <td className={td}>
-                     <p className="font-medium text-ink">{l.brand_model}</p>
+                     <p className="font-medium text-ink">{l.brand}{l.product_line ? ` ${l.product_line}` : ''}</p>
+                     {l.brand_model && l.brand_model !== l.product_line && (
+                       <p className="mt-0.5 text-[11px] text-ink-faint">{l.brand_model}</p>
+                     )}
 {l.purchased_from && (
                         <p className="mt-0.5 text-[11px] text-ink-faint">From {l.purchased_from}</p>
                       )}
@@ -288,14 +291,17 @@ const spec = [l.product_line, l.processor_type, l.generation, l.ram, l.storage_s
         )}
         {laptops.map((l) => {
           const sel = pending[l.id] ?? '';
-          const spec = [l.product_line, l.processor_type, l.generation, l.ram, l.storage_size ? `${l.storage_size} ${l.storage_type || ''}`.trim() : l.storage_type].filter(Boolean).join(' · ');
+          const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.storage_size} ${l.storage_type || ''}`.trim() : l.storage_type].filter(Boolean).join(' · ');
           const gfx = l.graphics === 'yes' ? `GPU: ${l.graphics_type || '—'}${l.graphics_model ? ` ${l.graphics_model}` : ''}` : '';
           const isSold = l.status === 'Sold';
           return (
             <div key={l.id} className="px-4 py-3" data-row={rowId ? rowId(l) : undefined}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="font-medium text-ink">{l.brand_model}</p>
+                  <p className="font-medium text-ink">{l.brand}{l.product_line ? ` ${l.product_line}` : ''}</p>
+                  {l.brand_model && l.brand_model !== l.product_line && (
+                    <p className="mt-0.5 text-[11px] text-ink-faint">{l.brand_model}</p>
+                  )}
                   {l.purchased_from && (
                     <p className="mt-0.5 text-[11px] text-ink-faint">From {l.purchased_from}</p>
                   )}
