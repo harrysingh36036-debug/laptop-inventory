@@ -4,6 +4,7 @@ import { formatTime, inr } from '../utils';
 import { socket } from '../socket';
 import SearchBox from './SearchBox';
 import DangerConfirmModal from './DangerConfirmModal';
+import ReturnSaleModal from './ReturnSaleModal';
 
 function csvEscape(v) {
   const s = String(v ?? '');
@@ -75,7 +76,7 @@ function escapeHtml(v) {
   return String(v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-export default function SalesTab({ stores, isSuperAdmin = false, canSeeCustomer = false, onNotify }) {
+export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false, canSeeCustomer = false, onNotify }) {
   const [sales, setSales] = useState([]);
   const [summary, setSummary] = useState(null);
   const [search, setSearch] = useState('');
@@ -83,6 +84,7 @@ export default function SalesTab({ stores, isSuperAdmin = false, canSeeCustomer 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [danger, setDanger] = useState(null); // { sale }
+  const [returnModal, setReturnModal] = useState(null); // { sale }
   const [revealedPhones, setRevealedPhones] = useState(new Set());
 
   const storeName = (id) => stores.find((s) => s.id === id)?.store_name;
@@ -265,13 +267,14 @@ export default function SalesTab({ stores, isSuperAdmin = false, canSeeCustomer 
                 <th className={th}>Sold By</th>
                 <th className={th}>Sold At</th>
                 <th className={th}>Receipt</th>
+                {(isAdmin || isSuperAdmin) && <th className={th}>Return</th>}
                 {isSuperAdmin && <th className={th}>Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--hairline)]">
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={isSuperAdmin ? 10 : 9} className="px-4 py-10 text-center text-sm text-ink-faint">
+                  <td colSpan={isSuperAdmin ? 11 : 10} className="px-4 py-10 text-center text-sm text-ink-faint">
                     {q ? 'No sales match your search.' : 'No sales recorded yet.'}
                   </td>
                 </tr>
@@ -319,6 +322,17 @@ export default function SalesTab({ stores, isSuperAdmin = false, canSeeCustomer 
                       Receipt
                     </button>
                   </td>
+                  {(isAdmin || isSuperAdmin) && (
+                    <td className={td}>
+                      <button
+                        onClick={() => setReturnModal({ sale: s })}
+                        className="btn-ghost"
+                        title="Return this sale"
+                      >
+                        Return
+                      </button>
+                    </td>
+                  )}
                   {isSuperAdmin && (
                     <td className={td}>
                       <button
@@ -394,6 +408,15 @@ export default function SalesTab({ stores, isSuperAdmin = false, canSeeCustomer 
               >
                 Receipt
               </button>
+              {(isAdmin || isSuperAdmin) && (
+                <button
+                  onClick={() => setReturnModal({ sale: s })}
+                  className="btn-ghost"
+                  title="Return this sale"
+                >
+                  Return
+                </button>
+              )}
               {isSuperAdmin && (
                 <button onClick={() => setDanger({ sale: s })} className="btn-danger ml-auto" title="Delete this sale (laptop returns to In Stock)">
                   Delete
@@ -410,6 +433,16 @@ export default function SalesTab({ stores, isSuperAdmin = false, canSeeCustomer 
           warning={`Sale of "${danger.sale.brand_model}" (${danger.sale.serial_number}) — ₹${inr(danger.sale.sale_price)} will be removed and the laptop returns to In Stock. This cannot be undone.`}
           onConfirm={handleDelete}
           onClose={() => setDanger(null)}
+        />
+      )}
+
+      {returnModal && (
+        <ReturnSaleModal
+          sale={returnModal.sale}
+          stores={stores}
+          onNotify={onNotify}
+          onClose={() => setReturnModal(null)}
+          onDone={() => { setReturnModal(null); reload(); }}
         />
       )}
     </div>

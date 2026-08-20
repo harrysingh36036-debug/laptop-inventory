@@ -627,14 +627,15 @@ export default function App() {
 
   const handleRepairSave = async (form) => {
     try {
+      const isEdit = !!repairModal?.repair;
       const payload = {
         laptop_id: form.laptop_id ? Number(form.laptop_id) : null,
         serial_number: form.serial_number,
         brand_model: form.brand_model,
         issue: form.issue,
         vendor: form.vendor,
-        cost: form.cost === '' || form.cost == null ? 0 : Number(form.cost),
-        charge: form.charge === '' || form.charge == null ? 0 : Number(form.charge),
+        cost: form.cost === '' || form.cost == null ? (isEdit ? null : 0) : Number(form.cost),
+        charge: form.charge === '' || form.charge == null ? (isEdit ? null : 0) : Number(form.charge),
         store_id: form.store_id === '' || form.store_id == null ? null : Number(form.store_id),
         status: form.status,
         notes: form.notes
@@ -1015,7 +1016,7 @@ export default function App() {
             onDelete={handleRepairDelete}
           />
         ) : tab === 'sales' ? (
-          <SalesTab stores={stores} isSuperAdmin={isSuperAdmin} canSeeCustomer={canViewPII} onNotify={notify} />
+          <SalesTab stores={stores} isSuperAdmin={isSuperAdmin} isAdmin={isAdmin} canSeeCustomer={canViewPII} onNotify={notify} />
         ) : tab === 'customers' ? (
           <div className="space-y-4">
             <p className="text-sm text-ink-dim">Manage your customers. Linked to sales when a laptop is sold to them.</p>
@@ -1038,7 +1039,7 @@ export default function App() {
         ) : tab === 'transfers' ? (
           <TransferHistoryTab stores={stores} initialLogs={logs} />
         ) : (
-          <SalesTab stores={stores} isSuperAdmin={isSuperAdmin} canSeeCustomer={canViewPII} onNotify={notify} />
+          <SalesTab stores={stores} isSuperAdmin={isSuperAdmin} isAdmin={isAdmin} canSeeCustomer={canViewPII} onNotify={notify} />
         )}
       </main>
 
