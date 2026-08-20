@@ -11,6 +11,7 @@ export default function SellModal({ open, laptop, customers, onSave, onAddCustom
   const [paymentMethod, setPaymentMethod] = useState('Cash');
   const [paymentDetail, setPaymentDetail] = useState('');
   const [payError, setPayError] = useState('');
+  const [priceError, setPriceError] = useState('');
 
   useEffect(() => {
     if (open) {
@@ -24,6 +25,7 @@ export default function SellModal({ open, laptop, customers, onSave, onAddCustom
       setPaymentMethod('Cash');
       setPaymentDetail('');
       setPayError('');
+      setPriceError('');
     }
   }, [open, laptop]);
 
@@ -32,9 +34,11 @@ export default function SellModal({ open, laptop, customers, onSave, onAddCustom
   const handleSubmit = async (e) => {
     e.preventDefault();
     const num = Number(price);
-    if (!Number.isFinite(num) || num < 0) {
-      return onSave?.(null, { cost: laptop?.cost_price });
+    if (!Number.isFinite(num) || num < 0 || !Number.isInteger(num)) {
+      setPriceError('Amount must be a whole number (no decimals).');
+      return;
     }
+    setPriceError('');
     if ((paymentMethod === 'UPI' || paymentMethod === 'Credit Card') && !paymentDetail.trim()) {
       setPayError(paymentMethod === 'UPI' ? 'Please enter the UPI name' : 'Please enter the machine name');
       return;
@@ -76,12 +80,17 @@ export default function SellModal({ open, laptop, customers, onSave, onAddCustom
             <label className="flabel">Sale Price (₹)</label>
             <input
               value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              type="number" min="0" step="any"
+              onChange={(e) => {
+                const v = e.target.value.replace(/[^0-9]/g, '');
+                setPrice(v);
+                setPriceError('');
+              }}
+              type="text" inputMode="numeric" pattern="[0-9]*"
               placeholder={cost ? String(cost) : ''}
               className="field w-full"
               autoFocus
             />
+            {priceError && <p className="mt-1 text-sm text-stock-risk">{priceError}</p>}
             {cost ? <p className="mt-1 text-xs text-ink-faint">Cost: ₹{Math.round(cost).toLocaleString('en-IN')}</p> : null}
           </div>
 

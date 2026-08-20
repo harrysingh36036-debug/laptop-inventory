@@ -49,7 +49,7 @@ export default function ReturnSaleModal({ sale, stores, onNotify, onClose, onDon
     e.preventDefault();
     if (!selectedLaptop) { setError('Select a replacement laptop.'); return; }
     const price = Number(salePrice);
-    if (!price || price <= 0) { setError('Enter a valid sale price.'); return; }
+    if (!price || price <= 0 || !Number.isInteger(price)) { setError('Enter a valid whole-number sale price (no decimals).'); return; }
     setBusy(true);
     setError('');
     try {
@@ -147,7 +147,7 @@ export default function ReturnSaleModal({ sale, stores, onNotify, onClose, onDon
             </div>
             <div>
               <label className="flabel">Exchange sale price (₹)</label>
-              <input type="number" min="0" step="any" value={salePrice} onChange={(e) => setSalePrice(e.target.value)} placeholder="Enter the new sale price" className="field mt-1.5" />
+              <input type="text" inputMode="numeric" pattern="[0-9]*" value={salePrice} onChange={(e) => setSalePrice(e.target.value.replace(/[^0-9]/g, ''))} placeholder="Enter the new sale price" className="field mt-1.5" />
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <button type="button" onClick={() => { setStep('choose'); setError(''); setSelectedLaptop(''); setSalePrice(''); }} className="btn-ghost">Back</button>
