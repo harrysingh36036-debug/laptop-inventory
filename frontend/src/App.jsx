@@ -1057,6 +1057,7 @@ export default function App() {
       {purchaseModal && (
         <PurchaseModal
           stores={stores}
+          customers={customers}
           vendors={vendors}
           editing={purchaseModal.purchase}
           onSave={handlePurchaseSave}
