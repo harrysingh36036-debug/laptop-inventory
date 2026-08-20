@@ -33,7 +33,7 @@ const EMPTY = {
   purchaser_phone: ''
 };
 
-export default function PurchaseModal({ stores, customers = [], vendors = [], editing, onSave, onClose }) {
+export default function PurchaseModal({ stores, vendors = [], editing, onSave, onClose }) {
   const [form, setForm] = useState(EMPTY);
   const [error, setError] = useState('');
 
@@ -71,24 +71,13 @@ aadhar_no: editing.purchaser_aadhar || editing.aadhar_no || '',
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const setN = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value === '' ? '' : Number(e.target.value) }));
 
-  // Selecting a customer / vendor from the saved lists fills the "bought from"
-  // name; customers also pre-fill their PII into the purchaser fields.
+  // Selecting a vendor from the saved list fills the "bought from" name.
   const pickSource = (type, id) => {
     if (!id) {
       setForm((f) => ({ ...f, source_id: '', purchased_from: '' }));
       return;
     }
-    if (type === 'customer') {
-      const c = customers.find((x) => Number(x.id) === Number(id));
-      setForm((f) => ({
-        ...f,
-        source_type: 'customer',
-        source_id: c ? c.id : '',
-        purchased_from: c ? c.name : '',
-        purchaser_name: c ? c.name : f.purchaser_name,
-        purchaser_phone: c && c.phone ? String(c.phone).replace(/\D/g, '').slice(0, 10) : f.purchaser_phone
-      }));
-    } else if (type === 'vendor') {
+    if (type === 'vendor') {
       const v = vendors.find((x) => Number(x.id) === Number(id));
       setForm((f) => ({
         ...f,
@@ -105,7 +94,7 @@ aadhar_no: editing.purchaser_aadhar || editing.aadhar_no || '',
       ...f,
       source_type: type,
       source_id: '',
-      purchased_from: type === 'others' ? f.purchased_from : ''
+      purchased_from: type === 'others' || type === 'customer' ? f.purchased_from : ''
     }));
   };
 
@@ -191,18 +180,9 @@ aadhar_no: editing.purchaser_aadhar || editing.aadhar_no || '',
               </select>
             </div>
             <div>
-              <label className="flabel">{form.source_type === 'customer' ? 'Customer' : form.source_type === 'vendor' ? 'Vendor' : 'Dealer / Shop / Other'}</label>
+              <label className="flabel">{form.source_type === 'vendor' ? 'Vendor' : form.source_type === 'customer' ? 'Customer Name' : 'Dealer / Shop / Other'}</label>
               {form.source_type === 'customer' && (
-                <select
-                  value={form.source_id}
-                  onChange={(e) => pickSource('customer', e.target.value)}
-                  className="field mt-1.5"
-                >
-                  <option value="">— Choose customer —</option>
-                  {customers.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}{c.phone ? ` · ${c.phone}` : ''}</option>
-                  ))}
-                </select>
+                <input value={form.purchased_from} onChange={set('purchased_from')} placeholder="Name of the customer…" className="field mt-1.5" />
               )}
               {form.source_type === 'vendor' && (
                 <select
