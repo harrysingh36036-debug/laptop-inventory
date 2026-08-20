@@ -64,7 +64,7 @@ export default function LaptopTable({
             )}
             {laptops.map((l) => {
               const sel = pending[l.id] ?? '';
-              const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.storage_size} ${l.storage_type || ''}`.trim() : l.storage_type].filter(Boolean).join(' · ');
+const spec = [l.product_line, l.processor_type, l.generation, l.ram, l.storage_size ? `${l.storage_size} ${l.storage_type || ''}`.trim() : l.storage_type].filter(Boolean).join(' · ');
               const gfx = l.graphics === 'yes' ? `GPU: ${l.graphics_type || '—'}${l.graphics_model ? ` ${l.graphics_model}` : ''}` : '';
                const isSold = l.status === 'Sold';
                return (
@@ -204,6 +204,7 @@ export default function LaptopTable({
                             </span></p>
                            <p><span className="text-ink-faint">Purchaser name:</span> {l.purchaser_name || '—'}</p>
                            <p><span className="text-ink-faint">Purchaser phone:</span> {l.purchaser_phone || '—'}</p>
+                           <p><span className="text-ink-faint">Product line:</span> {l.product_line || '—'}</p>
                            <p><span className="text-ink-faint">Purchase comment:</span> {l.purchase_comment || '—'}</p>
                            <p><span className="text-ink-faint">Charger:</span> {l.charger || '—'}</p>
                            <p><span className="text-ink-faint">Added:</span> {formatTime(l.created_at)}</p>
@@ -287,7 +288,7 @@ export default function LaptopTable({
         )}
         {laptops.map((l) => {
           const sel = pending[l.id] ?? '';
-          const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.storage_size} ${l.storage_type || ''}`.trim() : l.storage_type].filter(Boolean).join(' · ');
+          const spec = [l.product_line, l.processor_type, l.generation, l.ram, l.storage_size ? `${l.storage_size} ${l.storage_type || ''}`.trim() : l.storage_type].filter(Boolean).join(' · ');
           const gfx = l.graphics === 'yes' ? `GPU: ${l.graphics_type || '—'}${l.graphics_model ? ` ${l.graphics_model}` : ''}` : '';
           const isSold = l.status === 'Sold';
           return (
@@ -422,6 +423,7 @@ export default function LaptopTable({
                     </span></p>
                     <p><span className="text-ink-faint">Purchaser name:</span> {l.purchaser_name || '—'}</p>
                     <p><span className="text-ink-faint">Purchaser phone:</span> {l.purchaser_phone || '—'}</p>
+                    <p><span className="text-ink-faint">Product line:</span> {l.product_line || '—'}</p>
                     <p><span className="text-ink-faint">Charger:</span> {l.charger || '—'}</p>
                     <p><span className="text-ink-faint">Purchase comment:</span> {l.purchase_comment || '—'}</p>
                     <p><span className="text-ink-faint">Purchased from:</span> {l.purchased_from || '—'}</p>
