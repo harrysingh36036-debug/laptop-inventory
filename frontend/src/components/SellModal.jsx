@@ -77,7 +77,7 @@ export default function SellModal({ open, laptop, customers, onSave, onAddCustom
             <input
               value={price}
               onChange={(e) => setPrice(e.target.value)}
-              type="number" min="0" step="1000"
+              type="number" min="0" step="any"
               placeholder={cost ? String(cost) : ''}
               className="field w-full"
               autoFocus
