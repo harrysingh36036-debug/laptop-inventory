@@ -237,6 +237,8 @@ export default function App() {
   const [repairs, setRepairs] = useState([]);
   const [repairsSummary, setRepairsSummary] = useState(null);
   const [pendingTransfers, setPendingTransfers] = useState([]);
+  const [shownTransferIds, setShownTransferIds] = useState(new Set());
+  const [activeTransferPopup, setActiveTransferPopup] = useState(null);
 
   // Filters / state
   const [storeId, setStoreId] = useState('');
@@ -403,6 +405,18 @@ export default function App() {
       /* transient */
     }
   }, []);
+
+  // Show popup when a new pending transfer arrives for this user's store
+  useEffect(() => {
+    if (!pendingTransfers.length || !user?.home_store_id) return;
+    const incoming = pendingTransfers.find(
+      (pt) => Number(pt.to_store_id) === Number(user.home_store_id) && !shownTransferIds.has(pt.id)
+    );
+    if (incoming && !activeTransferPopup) {
+      setActiveTransferPopup(incoming);
+      setShownTransferIds((prev) => new Set([...prev, incoming.id]));
+    }
+  }, [pendingTransfers, user, shownTransferIds, activeTransferPopup]);
 
   // ---- Refetch laptops whenever a filter changes ---------------------------
   const refresh = useCallback(async () => {
@@ -1222,6 +1236,56 @@ export default function App() {
           onSave={handleSellConfirm}
           onClose={() => setSellTarget(null)}
         />
+      )}
+
+      {/* Transfer approval popup */}
+      {activeTransferPopup && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50">
+          <div className="panel mx-4 w-full max-w-sm p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-display text-sm font-semibold text-ink">Incoming Transfer Request</h3>
+                <p className="text-[11px] text-ink-faint">Requested by {activeTransferPopup.initiated_by}</p>
+              </div>
+            </div>
+            <div className="rounded-lg border border-line bg-surface-2/60 p-3 space-y-1.5">
+              <p className="text-sm font-medium text-ink">{activeTransferPopup.brand_model}</p>
+              <p className="text-xs text-ink-faint">Serial: <span className="mono-chip">{activeTransferPopup.serial_number}</span></p>
+              <div className="flex items-center gap-2 text-xs">
+                <span className="rounded-md border border-line bg-surface px-1.5 py-0.5 font-medium text-ink-dim">{activeTransferPopup.from_store_name}</span>
+                <svg className="h-3.5 w-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+                <span className="rounded-md border border-accent-line bg-accent-soft px-1.5 py-0.5 font-medium text-accent">{activeTransferPopup.to_store_name}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => { handleAcceptTransfer(activeTransferPopup.id); setActiveTransferPopup(null); }}
+                className="flex-1 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors"
+              >
+                Accept
+              </button>
+              <button
+                onClick={() => { handleRejectTransfer(activeTransferPopup.id); setActiveTransferPopup(null); }}
+                className="flex-1 rounded-lg bg-red-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-600 transition-colors"
+              >
+                Reject
+              </button>
+            </div>
+            <button
+              onClick={() => setActiveTransferPopup(null)}
+              className="w-full text-center text-[11px] text-ink-faint hover:text-ink-dim transition-colors"
+            >
+              Dismiss (decide later)
+            </button>
+          </div>
+        </div>
       )}
 
       {toast && <Toast key={toast.id} msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
