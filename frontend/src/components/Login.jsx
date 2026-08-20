@@ -9,6 +9,7 @@ export default function Login({ onSuccess }) {
   const [usernames, setUsernames] = useState([]);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [customUser, setCustomUser] = useState(false);
 
   useEffect(() => {
     getStores()
@@ -78,8 +79,15 @@ export default function Login({ onSuccess }) {
             <div>
               <label className="flabel">Username</label>
               <select
-                value={form.username}
-                onChange={set('username')}
+                value={customUser ? '__custom__' : form.username}
+                onChange={(e) => {
+                  if (e.target.value === '__custom__') {
+                    setCustomUser(true);
+                  } else {
+                    setCustomUser(false);
+                    set('username')(e);
+                  }
+                }}
                 autoComplete="username"
                 required
                 className="field mt-1.5"
@@ -90,13 +98,14 @@ export default function Login({ onSuccess }) {
                     {u.display_name ? `${u.display_name} (${u.username})` : u.username}
                   </option>
                 ))}
+                <option value="__custom__">Type username…</option>
               </select>
-              {usernames.length === 0 && (
+              {customUser && (
                 <input
                   value={form.username}
                   onChange={set('username')}
                   autoComplete="username"
-                  placeholder="your username"
+                  placeholder="type username"
                   required
                   className="field mt-1.5"
                 />
