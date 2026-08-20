@@ -940,6 +940,9 @@ export default function App() {
                 className={`h-1.5 w-1.5 rounded-full ${connected ? 'bg-stock-ok' : 'bg-stock-risk'}`}
               />
               <span className="hidden sm:inline">{connected ? 'Live · synced' : 'Reconnecting…'}</span>
+              {user?.home_store_id && (
+                <span className="hidden sm:inline text-ink-faint">· {stores.find((s) => s.id === user.home_store_id)?.store_name || ''}</span>
+              )}
             </span>
 
             <span className="flex items-center gap-1 rounded-full border border-line bg-surface p-1">
@@ -947,12 +950,8 @@ export default function App() {
                 {(user.display_name || user.username).slice(0, 1)}
               </span>
               <span className="hidden md:block leading-tight px-1">
+                <span className="block max-w-[120px] truncate text-xs font-medium text-ink">{user.display_name || user.username}</span>
                 <span className="block text-[10px] uppercase tracking-wide text-ink-faint">{user.role}</span>
-                {user.home_store_id && (
-                  <span className="block max-w-[120px] truncate text-[10px] text-ink-faint">
-                    {stores.find((s) => s.id === user.home_store_id)?.store_name || ''}
-                  </span>
-                )}
               </span>
             </span>
 
