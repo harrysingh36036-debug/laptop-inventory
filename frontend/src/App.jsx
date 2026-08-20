@@ -1085,7 +1085,7 @@ export default function App() {
             onDelete={handleRepairDelete}
           />
         ) : tab === 'sales' ? (
-          <SalesTab stores={stores} isSuperAdmin={isSuperAdmin} isAdmin={isAdmin} canSeeCustomer={canViewPII} onNotify={notify} />
+          <SalesTab stores={stores} isSuperAdmin={isSuperAdmin} isAdmin={isAdmin} canSeeCustomer={canViewPII} userRole={user?.role} homeStoreId={user?.home_store_id ?? null} onNotify={notify} />
         ) : tab === 'customers' ? (
           <div className="space-y-4">
             <p className="text-sm text-ink-dim">Manage your customers. Linked to sales when a laptop is sold to them.</p>
@@ -1119,7 +1119,7 @@ export default function App() {
             onCancelTransfer={handleCancelTransfer}
           />
         ) : (
-          <SalesTab stores={stores} isSuperAdmin={isSuperAdmin} isAdmin={isAdmin} canSeeCustomer={canViewPII} onNotify={notify} />
+          <SalesTab stores={stores} isSuperAdmin={isSuperAdmin} isAdmin={isAdmin} canSeeCustomer={canViewPII} userRole={user?.role} homeStoreId={user?.home_store_id ?? null} onNotify={notify} />
         )}
       </main>
 

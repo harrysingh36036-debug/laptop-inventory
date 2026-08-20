@@ -76,7 +76,7 @@ function escapeHtml(v) {
   return String(v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false, canSeeCustomer = false, onNotify }) {
+export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false, canSeeCustomer = false, userRole = '', homeStoreId = null, onNotify }) {
   const [sales, setSales] = useState([]);
   const [summary, setSummary] = useState(null);
   const [search, setSearch] = useState('');
@@ -171,6 +171,13 @@ export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false
   const th = 'px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint';
   const td = 'px-4 py-3 align-middle';
   const activeStore = stores.find((s) => String(s.id) === storeF);
+  // Managers can process returns only for sales made from their own store.
+  const isManager = userRole === 'manager';
+  const canReturnCol = isAdmin || isSuperAdmin || isManager;
+  const canReturnRow = (s) =>
+    isAdmin || isSuperAdmin ||
+    (isManager && homeStoreId != null && String(s.store_id) === String(homeStoreId));
+  const emptyCols = 10 + (canReturnCol ? 1 : 0) + (isSuperAdmin ? 1 : 0);
 
   return (
     <div className="space-y-6">
@@ -268,14 +275,14 @@ export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false
                 <th className={th}>Sold By</th>
                 <th className={th}>Sold At</th>
                 <th className={th}>Receipt</th>
-                {(isAdmin || isSuperAdmin) && <th className={th}>Return</th>}
+                {canReturnCol && <th className={th}>Return</th>}
                 {isSuperAdmin && <th className={th}>Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--hairline)]">
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={isSuperAdmin ? 12 : 11} className="px-4 py-10 text-center text-sm text-ink-faint">
+                  <td colSpan={emptyCols} className="px-4 py-10 text-center text-sm text-ink-faint">
                     {q ? 'No sales match your search.' : 'No sales recorded yet.'}
                   </td>
                 </tr>
@@ -330,7 +337,7 @@ export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false
                       Receipt
                     </button>
                   </td>
-                  {(isAdmin || isSuperAdmin) && (
+                  {canReturnRow(s) && (
                     <td className={td}>
                       <button
                         onClick={() => setReturnModal({ sale: s })}
@@ -421,7 +428,7 @@ export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false
               >
                 Receipt
               </button>
-              {(isAdmin || isSuperAdmin) && (
+              {canReturnRow(s) && (
                 <button
                   onClick={() => setReturnModal({ sale: s })}
                   className="btn-ghost"
