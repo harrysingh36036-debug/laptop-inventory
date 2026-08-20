@@ -192,6 +192,10 @@ export const getMe = async () => {
 // --------------------------------- Inventory -------------------------------
 export const getStores = () => withMongoFallback(table('stores'), mongoGetStores());
 
+// ------------------------------- Login (public) -------------------------------
+// Returns [{ username, display_name }] for the login-page username dropdown.
+export const getLoginUsernames = () => rpc('app_list_usernames');
+
 // ------------------------------- Users (admin) -------------------------------
 export const getUsers = () => rpc('app_get_users');
 export const createUser = (data = {}) =>

@@ -1,9 +1,12 @@
 import { useEffect, useState } from 'react';
-import { login, getStores } from '../api';
+import { login, getStores, getLoginUsernames } from '../api';
+
+const CACHE_KEY = 'laptop-inventory.usernames';
 
 export default function Login({ onSuccess }) {
   const [form, setForm] = useState({ username: '', password: '', storeId: '' });
   const [stores, setStores] = useState([]);
+  const [usernames, setUsernames] = useState([]);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -11,6 +14,29 @@ export default function Login({ onSuccess }) {
     getStores()
       .then(setStores)
       .catch(() => setStores([]));
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    getLoginUsernames()
+      .then((rows) => {
+        if (cancelled) return;
+        const list = Array.isArray(rows) ? rows : [];
+        setUsernames(list);
+        if (list.length) localStorage.setItem(CACHE_KEY, JSON.stringify(list));
+      })
+      .catch(() => {
+        if (cancelled) return;
+        try {
+          const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || '[]');
+          if (Array.isArray(cached) && cached.length) setUsernames(cached);
+        } catch {
+          /* ignore */
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -51,14 +77,30 @@ export default function Login({ onSuccess }) {
           <form onSubmit={submit} className="mt-6 space-y-4">
             <div>
               <label className="flabel">Username</label>
-              <input
+              <select
                 value={form.username}
                 onChange={set('username')}
                 autoComplete="username"
-                placeholder="your username"
                 required
                 className="field mt-1.5"
-              />
+              >
+                <option value="">Select username…</option>
+                {usernames.map((u) => (
+                  <option key={u.username} value={u.username}>
+                    {u.display_name ? `${u.display_name} (${u.username})` : u.username}
+                  </option>
+                ))}
+              </select>
+              {usernames.length === 0 && (
+                <input
+                  value={form.username}
+                  onChange={set('username')}
+                  autoComplete="username"
+                  placeholder="your username"
+                  required
+                  className="field mt-1.5"
+                />
+              )}
             </div>
 
             <div>
