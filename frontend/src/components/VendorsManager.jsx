@@ -40,13 +40,15 @@ export default function VendorsManager({ onNotify }) {
     e.preventDefault();
     const name = form.name.trim();
     if (!name) return onNotify?.('Vendor name is required', 'error');
+    const contact = form.contact.trim();
+    if (contact && !/^\d{10}$/.test(contact)) return onNotify?.('Contact must be a 10-digit phone number', 'error');
     setBusy(true);
     try {
       if (editingId) {
-        await updateVendor(editingId, { ...form, name });
+        await updateVendor(editingId, { ...form, name, contact });
         onNotify?.('Vendor updated', 'success');
       } else {
-        await addVendor({ ...form, name });
+        await addVendor({ ...form, name, contact });
         onNotify?.('Vendor added', 'success');
       }
       cancelEdit();
@@ -117,11 +119,14 @@ export default function VendorsManager({ onNotify }) {
             />
           </div>
           <div>
-            <label className="flabel">Contact</label>
+            <label className="flabel">Contact (Phone)</label>
             <input
+              type="tel"
+              inputMode="numeric"
               value={form.contact}
-              onChange={(e) => setForm({ ...form, contact: e.target.value })}
-              placeholder="e.g. Rajesh · 98xxxxxx"
+              maxLength={10}
+              onChange={(e) => setForm({ ...form, contact: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+              placeholder="e.g. 9876543210"
               className="field mt-1.5"
             />
           </div>
