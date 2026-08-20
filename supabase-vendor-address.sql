@@ -1,7 +1,11 @@
 -- Add address column to vendors table
 ALTER TABLE public.vendors ADD COLUMN IF NOT EXISTS address text NOT NULL DEFAULT '';
 
--- Update app_add_vendor to accept address
+-- Drop old signatures first (different param count = different function in PG)
+DROP FUNCTION IF EXISTS public.app_add_vendor(text, text);
+DROP FUNCTION IF EXISTS public.app_update_vendor(bigint, text, text);
+
+-- Recreate app_add_vendor with address
 CREATE OR REPLACE FUNCTION public.app_add_vendor(p_name text, p_contact text DEFAULT '', p_address text DEFAULT '')
 RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
@@ -15,7 +19,7 @@ BEGIN
 END $$;
 GRANT EXECUTE ON FUNCTION public.app_add_vendor(text, text, text) TO authenticated;
 
--- Update app_update_vendor to accept address
+-- Recreate app_update_vendor with address
 CREATE OR REPLACE FUNCTION public.app_update_vendor(p_id bigint, p_name text, p_contact text DEFAULT '', p_address text DEFAULT '')
 RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
