@@ -941,7 +941,7 @@ export default function App() {
               />
               <span className="hidden sm:inline">{connected ? 'Live · synced' : 'Reconnecting…'}</span>
               {user?.home_store_id && (
-                <span className="hidden sm:inline text-ink-faint">· {stores.find((s) => s.id === user.home_store_id)?.store_name || ''}</span>
+                <span className="text-ink-faint">· {stores.find((s) => s.id === user.home_store_id)?.store_name || ''}</span>
               )}
             </span>
 
