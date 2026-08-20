@@ -13,3 +13,4 @@ frontend/vite.log
 .agents/mcp_config.json
 .env
 .env.*
+!.env.example
