@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, lazy, Suspense } from 'react';
 import {
   getStores,
   getLaptops,
@@ -52,12 +52,13 @@ import CustomersManager from './components/CustomersManager';
 import SellModal from './components/SellModal';
 import TransferHistoryTab from './components/TransferHistoryTab';
 import DashboardTab from './components/DashboardTab';
-import ReportsTab from './components/ReportsTab';
 import PurchasesTab from './components/PurchasesTab';
 import RepairsTab from './components/RepairsTab';
 import RepairModal from './components/RepairModal';
 import PurchaseModal from './components/PurchaseModal';
 import BottomNav from './components/BottomNav';
+
+const ReportsTab = lazy(() => import('./components/ReportsTab'));
 
 const MENU_ICONS = {
   dashboard: (
@@ -1073,7 +1074,8 @@ export default function App() {
             <CustomersManager onNotify={notify} />
           </div>
 ) : tab === 'stats' ? (
-          <ReportsTab
+          <Suspense fallback={<div className="py-10 text-center text-sm text-ink-faint">Loading reports…</div>}>
+            <ReportsTab
             stores={stores}
             logs={logs}
             laptops={laptops}
@@ -1086,6 +1088,7 @@ export default function App() {
               setTab('inventory');
             }}
           />
+          </Suspense>
         ) : tab === 'transfers' ? (
           <TransferHistoryTab
             stores={stores}
