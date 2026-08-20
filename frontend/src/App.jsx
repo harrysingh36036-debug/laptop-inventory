@@ -947,8 +947,12 @@ export default function App() {
                 {(user.display_name || user.username).slice(0, 1)}
               </span>
               <span className="hidden md:block leading-tight px-1">
-                <span className="block max-w-[120px] truncate text-xs font-medium text-ink">{user.display_name || user.username}</span>
                 <span className="block text-[10px] uppercase tracking-wide text-ink-faint">{user.role}</span>
+                {user.home_store_id && (
+                  <span className="block max-w-[120px] truncate text-[10px] text-ink-faint">
+                    {stores.find((s) => s.id === user.home_store_id)?.store_name || ''}
+                  </span>
+                )}
               </span>
             </span>
 
