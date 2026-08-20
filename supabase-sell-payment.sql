@@ -34,6 +34,13 @@ BEGIN
   SELECT * INTO v_cur FROM public.laptops WHERE id = p_laptop_id;
   IF v_cur.id IS NULL THEN RAISE EXCEPTION 'Laptop not found'; END IF;
   IF v_cur.status = 'Sold' THEN RAISE EXCEPTION 'Laptop is already sold'; END IF;
+  -- Managers may only sell laptops currently assigned to their own store.
+  IF public.app_role() = 'manager' THEN
+    IF v_cur.current_store_id IS DISTINCT FROM
+       (SELECT home_store_id FROM public.profiles WHERE id = auth.uid()) THEN
+      RAISE EXCEPTION 'You can only sell laptops assigned to your own store';
+    END IF;
+  END IF;
   IF p_sale_price IS NULL OR p_sale_price < 0 THEN RAISE EXCEPTION 'sale_price is required'; END IF;
   IF p_customer_id IS NOT NULL THEN
     SELECT * INTO v_customer FROM public.customers WHERE id = p_customer_id;

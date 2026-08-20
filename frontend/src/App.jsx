@@ -1057,6 +1057,7 @@ export default function App() {
             canEdit={canEditInventory}
             canTransfer={canTransfer}
             canSell={canEditInventory}
+            sellStoreId={!isAdmin && user?.role === 'manager' ? (user?.home_store_id ?? null) : null}
             canManageCustomers={canManageCustomers}
             showSensitive={canViewPII}
             onTransfer={handleTransfer}

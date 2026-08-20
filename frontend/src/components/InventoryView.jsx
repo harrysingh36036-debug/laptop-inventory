@@ -18,6 +18,7 @@ export default function InventoryView({
   canEdit,
   canTransfer,
   canSell,
+  sellStoreId = null,
   canManageCustomers = false,
   showSensitive = false,
   focusSerial,
@@ -218,6 +219,7 @@ export default function InventoryView({
               canEdit={canEdit}
               canTransfer={canTransfer}
               canSell={canSell}
+              sellStoreId={sellStoreId}
               canManageCustomers={canManageCustomers}
               showSensitive={showSensitive}
               onTransfer={onTransfer}

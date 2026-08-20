@@ -5,7 +5,7 @@ import StatusChip from './StatusChip';
 
 export default function LaptopTable({
   laptops, stores, onTransfer, onEdit, onDelete, onSell,
-  canEdit = true, canTransfer = true, canSell = false, canManageCustomers = false, rowId, showSensitive = false, onDetail
+  canEdit = true, canTransfer = true, canSell = false, canManageCustomers = false, rowId, showSensitive = false, onDetail, sellStoreId = null
 }) {
   const [detailLaptopId, setDetailLaptopId] = useState(null);
   const [adminDetailId, setAdminDetailId] = useState(null);
@@ -67,6 +67,7 @@ export default function LaptopTable({
 const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.storage_size} ${l.storage_type || ''}`.trim() : l.storage_type].filter(Boolean).join(' · ');
               const gfx = l.graphics === 'yes' ? `GPU: ${l.graphics_type || '—'}${l.graphics_model ? ` ${l.graphics_model}` : ''}` : '';
                const isSold = l.status === 'Sold';
+               const canSellRow = canSell && !isSold && (sellStoreId == null || String(l.current_store_id) === String(sellStoreId));
                return (
                  <React.Fragment key={l.id}>
                    <tr className="group transition-colors duration-150 hover:bg-surface-2/60" data-row={rowId ? rowId(l) : undefined}>
@@ -150,14 +151,14 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                            </button>
                          </>
                        )}
-{canSell && !isSold && (
-                          <button
-                            onClick={() => handleSell(l)}
-                            className="btn-accent"
-                          >
-                            {t.sellButton || 'Sell'}
-                          </button>
-                        )}
+{canSellRow && (
+                           <button
+                             onClick={() => handleSell(l)}
+                             className="btn-accent"
+                           >
+                             {t.sellButton || 'Sell'}
+                           </button>
+                         )}
                         {isSold && (
                           <button
                             onClick={() => toggleDetail(l.id)}
@@ -294,6 +295,7 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
           const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.storage_size} ${l.storage_type || ''}`.trim() : l.storage_type].filter(Boolean).join(' · ');
           const gfx = l.graphics === 'yes' ? `GPU: ${l.graphics_type || '—'}${l.graphics_model ? ` ${l.graphics_model}` : ''}` : '';
           const isSold = l.status === 'Sold';
+          const canSellRow = canSell && !isSold && (sellStoreId == null || String(l.current_store_id) === String(sellStoreId));
           return (
             <div key={l.id} className="px-4 py-3" data-row={rowId ? rowId(l) : undefined}>
               <div className="flex items-start justify-between gap-3">
@@ -378,7 +380,7 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                       </button>
                     </>
                   )}
-                  {canSell && !isSold && (
+                  {canSellRow && (
                     <button onClick={() => handleSell(l)} className="btn-accent">
                       {t.sellButton || 'Sell'}
                     </button>
