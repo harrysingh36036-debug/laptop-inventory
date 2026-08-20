@@ -16,7 +16,8 @@ AS $$
       'display_name', p.display_name
     ) ORDER BY p.display_name NULLS LAST, p.username),
     '[]'::jsonb)
-  FROM public.profiles p;
+  FROM public.profiles p
+  WHERE p.role IS DISTINCT FROM 'superadmin';
 $$;
 
 GRANT EXECUTE ON FUNCTION public.app_list_usernames() TO anon, authenticated;
