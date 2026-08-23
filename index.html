@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AG Design Consultant &amp; Associates — Integrated MEP Engineering</title>
+<meta name="description" content="AG Design Consultant & Associates is a Delhi-based MEP engineering firm delivering HVAC, electrical, plumbing and building-management designs as a single coordinated system for hospitals, metros, hotels and complex buildings across India and overseas." />
+<meta name="theme-color" content="#070C17" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800;900&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+    <script>if('IntersectionObserver' in window){document.documentElement.classList.add('reveal-on')}</script>
+    <script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+</script>
+</head>
+<body>
+<!--
+DIRECTION CONTRACT — AG Design Consultant & Associates
+THESIS: Present an MEP consultancy as a precision drafting practice, not a generic vendor. Refuses the GoDaddy-builder template it replaces and the "icon + heading + text" card grid the category defaults to.
+OWN-WORLD: Deep blueprint-navy ground (#070C17), electric-blue primary line (#2E6BFF), drafting-grid texture and dimension ticks (legitimate: engineers read drawings daily), discipline monograms HV / EL / PF / BM, Archivo display + Source Sans 3 body, crisp white ink. One SVG building-systems schematic as the authored hero moment.
+STORY: A visitor (architect, developer, facility owner) understands within seconds that AGDC coordinates every building system in-house, trusts 15+ years / 100+ projects, and knows to start a project.
+FIRST VIEWPORT: Full-bleed drafting grid; left — bold three-word discipline statement + subhead + two CTAs + thin credential ticks; right — animated blueprint of a building's HVAC/electrical/plumbing lines drawing in. Primary action "Start a project" sits bottom-left of the statement block.
+FORM: Replacement visual world (new-work, Persuade). Seed key: DRAFTING-BOARD-AGDC-001.
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance.
+-->
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-header" id="siteHeader">
+  <div class="wrap header-inner">
+    <a class="brand" href="#top" aria-label="AG Design Consultant and Associates — home">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 40 40" width="34" height="34" fill="none" stroke="currentColor" stroke-width="2.2">
+          <rect x="3.5" y="3.5" width="33" height="33" rx="4" />
+          <path d="M3.5 14h33M14 14v23M3.5 27h33" />
+          <circle cx="24" cy="24" r="4.4" />
+        </svg>
+      </span>
+      <span class="brand-text">
+        <span class="brand-name">AG Design</span>
+        <span class="brand-sub">Consultant &amp; Associates</span>
+      </span>
+    </a>
+
+    <nav class="primary-nav" aria-label="Primary">
+      <a href="#disciplines">Disciplines</a>
+      <a href="#approach">Approach</a>
+      <a href="#projects">Projects</a>
+      <a href="#about">About</a>
+      <a href="#contact">Contact</a>
+    </nav>
+
+    <div class="header-actions">
+      <a class="btn btn-primary" href="#contact">Start a project</a>
+      <button class="nav-toggle" id="navToggle" aria-expanded="false" aria-controls="mobileNav" aria-label="Open menu">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+  <nav class="mobile-nav" id="mobileNav" aria-label="Mobile" hidden>
+    <a href="#disciplines">Disciplines</a>
+    <a href="#approach">Approach</a>
+    <a href="#projects">Projects</a>
+    <a href="#about">About</a>
+    <a href="#contact">Contact</a>
+    <a class="btn btn-primary" href="#contact">Start a project</a>
+  </nav>
+</header>
+
+<main id="main">
+<section class="hero" id="top">
+  <canvas id="bg3d" aria-hidden="true"></canvas>
+  <div class="blueprint" aria-hidden="true"></div>
+  <div class="blueprint-glow" aria-hidden="true"></div>
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <h1 class="hero-title">Mechanical. Electrical.<br />Plumbing. <span class="ink-accent">Engineered as one.</span></h1>
+      <p class="hero-lead">AG Design Consultant &amp; Associates is a Delhi-based MEP practice that delivers HVAC, electrical, plumbing and building-management designs as a single coordinated system — for hospitals, metros, hotels and the buildings that cannot afford to fail.</p>
+      <div class="hero-cta">
+        <a class="btn btn-primary btn-lg" href="#contact">Start a project</a>
+        <a class="btn btn-ghost btn-lg" href="#disciplines">See our disciplines</a>
+      </div>
+      <dl class="hero-ticks" aria-label="Firm at a glance">
+        <div><dt>15+</dt><dd>years delivering</dd></div>
+        <div><dt>100+</dt><dd>projects engineered</dd></div>
+        <div><dt>4</dt><dd>disciplines in-house</dd></div>
+        <div><dt>4</dt><dd>countries reached</dd></div>
+      </dl>
+
+      <button class="engage-btn" id="engageBtn" aria-pressed="false" type="button">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/><circle cx="12" cy="12" r="3.2"/></svg>
+        <span class="engage-label">Engage systems</span>
+      </button>
+    </div>
+  </div>
+  <a class="scroll-cue" href="#disciplines" aria-label="Scroll to disciplines">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M6 13l6 6 6-6"/></svg>
+  </a>
+</section>
+
+<section class="band" id="disciplines" aria-labelledby="disc-h">
+  <div class="wrap">
+    <h2 class="section-title" id="disc-h">Four disciplines, one coordinated drawing set</h2>
+    <p class="section-lead">Every system is designed by the same in-house team, against the same model, so the duct, the conduit and the pipe never fight for the same metre of space.</p>
+    <div class="disc-grid">
+      <article class="disc">
+        <span class="mono">HV</span>
+        <h3>Heating, Ventilation &amp; Air-Conditioning</h3>
+        <p>Full professional consultancy across Heating, Ventilation, Air-Conditioning, Building Management System and Energy Conservation — for shopping complexes, offices, commercial projects, hotels, hospitals, data centres, pharma laboratories and residential projects.</p>
+        <ul class="disc-list">
+          <li>Cooling &amp; ventilation load design</li>
+          <li>Clean-room &amp; lab air systems</li>
+          <li>Energy modelling &amp; retrofits</li>
+        </ul>
+      </article>
+      <article class="disc">
+        <span class="mono">EL</span>
+        <h3>Electrical Engineering</h3>
+        <p>External electrical installation including sub-station and internal electrical, emergency power generation, vertical transportation (elevators &amp; escalators), telephone, master-antenna television, fire alarm &amp; detection, data networking and UPS systems.</p>
+        <ul class="disc-list">
+          <li>Sub-station &amp; internal wiring</li>
+          <li>Emergency power &amp; UPS</li>
+          <li>Fire alarm, data &amp; ELV systems</li>
+        </ul>
+      </article>
+      <article class="disc">
+        <span class="mono">PF</span>
+        <h3>Plumbing &amp; Fire Fighting</h3>
+        <p>Internal cold &amp; hot water supply, soil &amp; waste water disposal, external sewage, storm-water drainage and water-supply fixtures &amp; fittings — plus laundries, kitchens, toilets and low-cost sanitation. Fire protection: hydrant, sprinkler, extinguishers and clean-agent suppression with storage calculation.</p>
+        <ul class="disc-list">
+          <li>Cold, hot &amp; sanitary water systems</li>
+          <li>Hydrant &amp; sprinkler networks</li>
+          <li>Clean-agent suppression</li>
+        </ul>
+      </article>
+      <article class="disc">
+        <span class="mono">BM</span>
+        <h3>Building Management System</h3>
+        <p>Building automation, fire detection &amp; alarm, public address, access control and closed-circuit television security — tying mechanical and electrical assets into one controllable, observable building.</p>
+        <ul class="disc-list">
+          <li>BMS &amp; automation</li>
+          <li>Fire detection &amp; alarm</li>
+          <li>CCTV, PA &amp; access control</li>
+        </ul>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="band band-alt" id="approach" aria-labelledby="appr-h">
+  <div class="wrap approach-grid">
+    <div class="approach-copy">
+      <h2 class="section-title" id="appr-h">Integrated by design, not by coincidence</h2>
+      <p class="section-lead">The company works closely with the client, architect and every consultant so MEP services arrive as one coordinated offer — high-quality, innovative and time-bound.</p>
+      <ol class="steps">
+        <li><span class="step-n">A</span><div><h3>Coordinate</h3><p>We sit with the architect and consultants from day one, so scopes never overlap silently.</p></div></li>
+        <li><span class="step-n">B</span><div><h3>Design in-house</h3><p>HVAC, electrical, plumbing and BMS engineers and draftsmen work the same model together.</p></div></li>
+        <li><span class="step-n">C</span><div><h3>Deliver to standard</h3><p>Designs follow international standards and are handed over cost-effectively and on schedule.</p></div></li>
+      </ol>
+    </div>
+    <aside class="approach-card" aria-label="What sets the practice apart">
+      <h3>In-house, end to end</h3>
+      <p>The working experience differs from other consultants because the service is delivered in-house — one accountable team across all four disciplines.</p>
+      <ul class="check-list">
+        <li>HVAC design engineers</li>
+        <li>Electrical engineers</li>
+        <li>MEP coordinators</li>
+        <li>Plumbing &amp; fire-fighting designers</li>
+        <li>Talented draftsmen</li>
+      </ul>
+    </aside>
+  </div>
+</section>
+
+<section class="band" id="projects" aria-labelledby="proj-h">
+  <div class="wrap">
+    <h2 class="section-title" id="proj-h">Built where it matters</h2>
+    <p class="section-lead">From a flagship hospital to metro infrastructure and overseas industry, the work spans the buildings people rely on every day.</p>
+
+    <article class="flagship">
+      <div class="flagship-media" aria-hidden="true">
+        <svg viewBox="0 0 400 260" preserveAspectRatio="xMidYMid slice" class="flagship-art">
+          <rect width="400" height="260" fill="#0c1626"/>
+          <path class="ln draw" d="M40 210h320M70 210v-120h90v120M190 210v-150h120v150" />
+          <path class="ln draw accent" d="M70 150h90M70 110h90M190 130h120M190 90h120" />
+          <path class="ln draw amber" d="M115 90v120M250 60v150M70 170h320" />
+          <path class="ln draw cyan" d="M70 210h320M40 180h30M340 180h20" />
+        </svg>
+      </div>
+      <div class="flagship-body">
+        <h3>NENC Hospital, Guwahati</h3>
+        <p>Our flagship healthcare engagement: a full MEP engineering assignment for a major hospital in Guwahati — coordinated HVAC, electrical, plumbing and fire-fighting design delivered to clinical-grade standards.</p>
+        <a class="link-arrow" href="#contact">Discuss a similar engagement
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+      </div>
+    </article>
+
+    <ul class="project-grid" aria-label="Selected projects">
+      <li><span class="p-tag">Healthcare</span><h3>Paras Hospital</h3><p>Kanpur, Uttar Pradesh</p></li>
+      <li><span class="p-tag">Institutional</span><h3>CDAC Head Office</h3><p>Pune, Maharashtra</p></li>
+      <li><span class="p-tag">Commercial</span><h3>RPS 12th Avenue</h3><p>Faridabad</p></li>
+      <li><span class="p-tag">Institutional</span><h3>IIT Indore</h3><p>Indore, Madhya Pradesh</p></li>
+      <li><span class="p-tag">Institutional</span><h3>JNU — Lecture Hall &amp; Incubation Centre</h3><p>New Delhi</p></li>
+      <li><span class="p-tag">Healthcare</span><h3>Government Institute of Medical Sciences</h3><p>Greater Noida</p></li>
+      <li><span class="p-tag">Healthcare</span><h3>Meenakshi International Hospital</h3><p>Madurai, Tamil Nadu</p></li>
+      <li><span class="p-tag">Healthcare</span><h3>Apollo Hospital</h3><p>Hyderabad, Telangana</p></li>
+      <li><span class="p-tag">Residential</span><h3>Paras Dews</h3><p>Gurgaon, Haryana</p></li>
+      <li><span class="p-tag">Healthcare</span><h3>Apollo One</h3><p>Panchsheel, New Delhi</p></li>
+      <li><span class="p-tag">Healthcare</span><h3>Apollo Hospital</h3><p>Chennai</p></li>
+      <li><span class="p-tag">Commercial</span><h3>Bihar Trade Tower</h3><p>Patna</p></li>
+      <li><span class="p-tag">Institutional</span><h3>Aviation Defence Gallery</h3><p>Ahmedabad, Gujarat</p></li>
+      <li><span class="p-tag">Healthcare</span><h3>Apollo Hospital</h3><p>Indore</p></li>
+      <li><span class="p-tag">Healthcare</span><h3>Medical College</h3><p>Surat</p></li>
+      <li><span class="p-tag">Residential</span><h3>Paras, Sector 59</h3><p>Gurugram, Haryana</p></li>
+      <li><span class="p-tag">Commercial</span><h3>Grand OMAXE</h3><p>Lucknow</p></li>
+      <li><span class="p-tag">Institutional</span><h3>Gujarat Biotech University</h3><p>Incite Building, Gujarat</p></li>
+      <li><span class="p-tag">Institutional</span><h3>IIT Guwahati</h3><p>Assam</p></li>
+    </ul>
+
+    <h3 class="gallery-title">Coordinated MEP drawings</h3>
+    <ul class="drawing-gallery" aria-label="Sample coordinated MEP drawings">
+      <li><img loading="lazy" decoding="async" src="https://img1.wsimg.com/isteam/ip/1b52dce9-2bce-452f-9af4-46f0c87f1580/090226-AG%20DESIGN(MEP)_page-0001.jpg/:/rs=w:1300,h:800" alt="AG Design MEP coordinated drawing, sheet 1" /></li>
+      <li><img loading="lazy" decoding="async" src="https://img1.wsimg.com/isteam/ip/1b52dce9-2bce-452f-9af4-46f0c87f1580/090226-AG%20DESIGN(MEP)_page-0002.jpg/:/rs=w:1300,h:800" alt="AG Design MEP coordinated drawing, sheet 2" /></li>
+      <li><img loading="lazy" decoding="async" src="https://img1.wsimg.com/isteam/ip/1b52dce9-2bce-452f-9af4-46f0c87f1580/090226-AG%20DESIGN(MEP)_page-0003.jpg/:/rs=w:1300,h:800" alt="AG Design MEP coordinated drawing, sheet 3" /></li>
+      <li><img loading="lazy" decoding="async" src="https://img1.wsimg.com/isteam/ip/1b52dce9-2bce-452f-9af4-46f0c87f1580/090226-AG%20DESIGN(MEP)_page-0004.jpg/:/rs=w:1300,h:800" alt="AG Design MEP coordinated drawing, sheet 4" /></li>
+      <li><img loading="lazy" decoding="async" src="https://img1.wsimg.com/isteam/ip/1b52dce9-2bce-452f-9af4-46f0c87f1580/090226-AG%20DESIGN(MEP)_page-0005.jpg/:/rs=w:1300,h:800" alt="AG Design MEP coordinated drawing, sheet 5" /></li>
+      <li><img loading="lazy" decoding="async" src="https://img1.wsimg.com/isteam/ip/1b52dce9-2bce-452f-9af4-46f0c87f1580/090226-AG%20DESIGN(MEP)_page-0006.jpg/:/rs=w:1300,h:800" alt="AG Design MEP coordinated drawing, sheet 6" /></li>
+    </ul>
+  </div>
+</section>
+
+<section class="band band-alt" id="about" aria-labelledby="about-h">
+  <div class="wrap about-grid">
+    <div class="about-copy">
+      <h2 class="section-title" id="about-h">An MEP firm led by engineering, not overhead</h2>
+      <p class="section-lead">AG Design Consultant &amp; Associates was founded by Mr. Dr. A G Nasim after more than 15 years as a design engineer and associate in reputed firms.</p>
+      <p>In that time the practice has worked on more than 100 projects — commercial complexes, hospitals, hotels, laboratories and industrial buildings — for developers, PWD, CPWD, MES, EPIL, HSCC, IREO, PIONEER, UINTECH, M3M, Ghaziabad Nagar Nigam and the Noida Metro Rail Corporation, plus overseas work in Egypt, Dubai, Nepal and Bahrain.</p>
+      <p class="mission">Our mission: work closely with client, architect and consultants to deliver integrated, high-quality and innovative MEP designs for the fullest satisfaction of the client.</p>
+    </div>
+    <aside class="about-stats" aria-label="Practice at a glance">
+      <div class="stat"><span class="stat-n">15+</span><span class="stat-l">years of practice</span></div>
+      <div class="stat"><span class="stat-n">100+</span><span class="stat-l">projects delivered</span></div>
+      <div class="stat"><span class="stat-n">4</span><span class="stat-l">in-house disciplines</span></div>
+      <div class="stat"><span class="stat-n">2</span><span class="stat-l">office cities + branch</span></div>
+    </aside>
+  </div>
+  <figure class="about-figure">
+    <img loading="lazy" decoding="async" src="https://img1.wsimg.com/isteam/ip/1b52dce9-2bce-452f-9af4-46f0c87f1580/1000_F_1572832990_DZSgYTk7soyLjARRNRb3fRXW2ppP.jpg/:/rs=w:1300,h:800" alt="AG Design Consultant and Associates MEP project" />
+    <figcaption>A coordinated MEP installation delivered by the in-house engineering team.</figcaption>
+  </figure>
+</section>
+
+<section class="band" id="credentials" aria-labelledby="cred-h">
+  <div class="wrap">
+    <h2 class="section-title" id="cred-h">Accredited &amp; associated</h2>
+    <p class="section-lead">The practice works alongside government departments, developers and infrastructure agencies, and is delivered by one in-house core team.</p>
+
+    <figure class="assoc">
+      <img loading="lazy" decoding="async" src="https://img1.wsimg.com/isteam/ip/1b52dce9-2bce-452f-9af4-46f0c87f1580/blob-70ee655.png/:/rs=w:1300,h:800" alt="Organisations AG Design Consultant and Associates is associated with" />
+    </figure>
+
+    <h3 class="cred-sub">Clients &amp; departments engaged</h3>
+    <ul class="client-tags" aria-label="Clients and departments">
+      <li>PWD</li><li>CPWD</li><li>MES</li><li>EPIL</li><li>HSCC</li><li>IREO</li><li>PIONEER</li><li>UINTECH</li><li>M3M</li><li>Ghaziabad Nagar Nigam</li><li>Noida Metro Rail Corporation</li>
+    </ul>
+
+    <h3 class="cred-sub">Core team</h3>
+    <ul class="team-grid" aria-label="Core team">
+      <li><span class="mono">HV</span><h4>HVAC design engineers</h4></li>
+      <li><span class="mono">EL</span><h4>Electrical engineers</h4></li>
+      <li><span class="mono">CO</span><h4>MEP coordinators</h4></li>
+      <li><span class="mono">PF</span><h4>Plumbing &amp; fire-fighting designers</h4></li>
+      <li><span class="mono">DR</span><h4>Talented draftsmen</h4></li>
+    </ul>
+  </div>
+</section>
+
+<section class="band" id="contact" aria-labelledby="contact-h">
+  <div class="wrap contact-grid">
+    <div class="contact-copy">
+      <h2 class="section-title" id="contact-h">Better yet, see us in person</h2>
+      <p class="section-lead">We love our customers — visit during normal business hours, or send the brief and we will respond.</p>
+
+      <ul class="contact-list">
+        <li>
+          <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16v16H4z"/><path d="M4 6l8 6 8-6"/></svg></span>
+          <div><h3>Email</h3><a href="mailto:agdesignc@gmail.com">agdesignc@gmail.com</a></div>
+        </li>
+        <li>
+          <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 4h4l2 5-3 2a12 12 0 0 0 5 5l2-3 5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg></span>
+          <div><h3>Phone</h3><a href="tel:+919971988813">+91 99719 88813</a> &nbsp;·&nbsp; <a href="tel:+911202970069">+91 120 2970069</a></div>
+        </li>
+        <li>
+          <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 21s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/></svg></span>
+          <div>
+            <h3>Offices</h3>
+            <p>Registered: H8CC+XVQ, K-27, Noida Sector 18, Uttar Pradesh 201301<br />
+            Correspondence: 98-LGF, Ansal Fortune Arcade, Sec-18, Noida (UP)<br />
+            Head: AF Enclave-II, Kalindi–Jasola Road, New Delhi<br />
+            Branch: Shanti Bagh, Gaya, Bihar</p>
+            <p><a class="dir-link" href="https://www.google.com/maps/search/?api=1&amp;query=AG+Design+Consultant+Noida+Sector+18" target="_blank" rel="noopener">Get directions
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg></a></p>
+          </div>
+        </li>
+        <li>
+          <span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+          <div><h3>Hours</h3><p>Mon–Sat, normal business hours. Today: closed.</p></div>
+        </li>
+      </ul>
+
+      <a class="btn btn-accent btn-lg" href="https://wa.me/919868371875" rel="noopener">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 20l1.5-4A8 8 0 1 1 8 18l-4 2z"/><path d="M9 9c0 4 2 6 6 6"/></svg>
+        Message us on WhatsApp
+      </a>
+    </div>
+
+    <form class="contact-form" id="projectForm" novalidate>
+      <h3>Start a project</h3>
+      <div class="field">
+        <label for="f-name">Your name</label>
+        <input id="f-name" name="name" type="text" autocomplete="name" required />
+        <p class="err" id="e-name" hidden>Please tell us your name.</p>
+      </div>
+      <div class="field">
+        <label for="f-email">Email</label>
+        <input id="f-email" name="email" type="email" autocomplete="email" required />
+        <p class="err" id="e-email" hidden>Enter a valid email address.</p>
+      </div>
+      <div class="field">
+        <label for="f-type">Discipline of interest</label>
+        <select id="f-type" name="type">
+          <option>HVAC</option><option>Electrical</option><option>Plumbing &amp; Fire Fighting</option><option>Building Management</option><option>Full MEP (integrated)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="f-msg">Brief</label>
+        <textarea id="f-msg" name="msg" rows="4" placeholder="Building type, location, scope and timeline"></textarea>
+      </div>
+      <button class="btn btn-primary btn-lg" type="submit">Send brief</button>
+      <p class="form-note" id="formNote" role="status" aria-live="polite"></p>
+    </form>
+  </div>
+</section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <span class="brand-name">AG Design Consultant &amp; Associates</span>
+      <p>Integrated MEP engineering — HVAC, electrical, plumbing &amp; building management — from Delhi, across India and overseas.</p>
+    </div>
+    <nav class="footer-nav" aria-label="Footer">
+      <a href="#disciplines">Disciplines</a>
+      <a href="#projects">Projects</a>
+      <a href="#about">About</a>
+      <a href="#contact">Contact</a>
+    </nav>
+    <p class="copyright">© 2026 AG Design Consultant &amp; Associates — All Rights Reserved.</p>
+  </div>
+</footer>
+
+<script src="main.js" defer></script>
+<script>window.addEventListener('load',function(){setTimeout(function(){document.querySelectorAll('.reveal:not(.in),.stagger:not(.in)').forEach(function(e){e.classList.add('in')})},2000)})</script>
+<script type="module" src="machine3d.js"></script>
+</body>
+</html>
