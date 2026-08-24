@@ -5,7 +5,7 @@ export default defineConfig({
   base: './',
   plugins: [react()],
   server: {
-    port: 3000,
+    port: 3695,
     proxy: {
       // Proxy REST + Socket.io to the backend during development.
       '/api': { target: 'http://localhost:4000', changeOrigin: true },

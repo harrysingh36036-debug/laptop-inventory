@@ -4,13 +4,18 @@ import { login, getStores } from '../api';
 export default function Login({ onSuccess }) {
   const [form, setForm] = useState({ username: '', password: '', storeId: '' });
   const [stores, setStores] = useState([]);
+  const [storeError, setStoreError] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     getStores()
       .then(setStores)
-      .catch(() => setStores([]));
+      .catch((err) => {
+        console.error('getStores failed:', err);
+        setStores([]);
+        setStoreError('Could not load the store list. Check your connection, or contact an admin if this persists.');
+      });
   }, []);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -89,6 +94,9 @@ export default function Login({ onSuccess }) {
                   </option>
                 ))}
               </select>
+              {storeError && (
+                <p className="mt-1.5 text-sm text-stock-risk">{storeError}</p>
+              )}
             </div>
 
             {error && (

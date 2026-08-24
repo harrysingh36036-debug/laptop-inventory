@@ -49,6 +49,7 @@ import TransferHistoryTab from './components/TransferHistoryTab';
 import DashboardTab from './components/DashboardTab';
 import ReportsTab from './components/ReportsTab';
 import PurchasesTab from './components/PurchasesTab';
+import VendorLaptopsTab from './components/VendorLaptopsTab';
 import RepairsTab from './components/RepairsTab';
 import RepairModal from './components/RepairModal';
 import PurchaseModal from './components/PurchaseModal';
@@ -170,11 +171,11 @@ export const NAV_ITEMS = [
     )
   },
   {
-    key: 'transfers',
-    label: 'Transfers',
+    key: 'vendor-laptops',
+    label: 'Vendor Laptops',
     icon: (
       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M7 7h11l-3-3M17 17H6l3 3" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V5a2 2 0 012-2h2a2 2 0 012 2v14m6-8v8m0-8v8m6-4h-8l-4-4m4 4V4" />
       </svg>
     )
   }
@@ -1022,6 +1023,18 @@ export default function App() {
               setStatus('');
               setSearch(q || '');
               setTab('inventory');
+            }}
+          />
+        ) : tab === 'vendor-laptops' ? (
+          <VendorLaptopsTab
+            stores={stores}
+            vendors={vendors}
+            brands={brands}
+            isAdmin={isAdmin}
+            onNotify={notify}
+            onRefresh={async () => {
+              const data = await getLaptops({ storeId, status, search });
+              setLaptops(data);
             }}
           />
         ) : tab === 'transfers' ? (

@@ -27,7 +27,7 @@ const EMPTY = {
   purchase_comment: ''
 };
 
-export default function InventoryModal({ stores, brands = [], vendors = [], productLines = [], editing, onSave, onClose }) {
+export default function InventoryModal({ stores, brands = [], vendors = [], productLines = [], editing, onSave, onClose, title, vendorSelect = false }) {
   const t = useLabels();
   const [form, setForm] = useState(EMPTY);
   const [error, setError] = useState('');
@@ -107,7 +107,7 @@ export default function InventoryModal({ stores, brands = [], vendors = [], prod
       <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-line bg-surface shadow-pop">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-surface/95 px-6 py-4 backdrop-blur">
           <h2 className="font-display text-base font-semibold tracking-tight text-ink">
-            {editing ? t.editLaptopTitle : t.addLaptopTitle}
+            {title || (editing ? t.editLaptopTitle : t.addLaptopTitle)}
           </h2>
           <button onClick={onClose} className="text-ink-faint hover:text-ink transition-colors" aria-label="Close">
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -235,18 +235,33 @@ export default function InventoryModal({ stores, brands = [], vendors = [], prod
             </div>
             <div>
               <label className={label}>Purchased From (Customer / Dealer)</label>
-              <input
-                value={form.purchased_from}
-                onChange={set('purchased_from')}
-                list="vendor-list"
-                placeholder="e.g. HP Direct"
-                className={input()}
-              />
-              <datalist id="vendor-list">
-                {vendors.map((v) => (
-                  <option key={v.id} value={v.name} />
-                ))}
-              </datalist>
+              {vendorSelect ? (
+                <select
+                  value={form.purchased_from}
+                  onChange={set('purchased_from')}
+                  className={input()}
+                >
+                  <option value="">Select vendor…</option>
+                  {vendors.map((v) => (
+                    <option key={v.id} value={v.name}>{v.name}</option>
+                  ))}
+                </select>
+              ) : (
+                <>
+                  <input
+                    value={form.purchased_from}
+                    onChange={set('purchased_from')}
+                    list="vendor-list"
+                    placeholder="e.g. HP Direct"
+                    className={input()}
+                  />
+                  <datalist id="vendor-list">
+                    {vendors.map((v) => (
+                      <option key={v.id} value={v.name} />
+                    ))}
+                  </datalist>
+                </>
+              )}
             </div>
           </div>
 

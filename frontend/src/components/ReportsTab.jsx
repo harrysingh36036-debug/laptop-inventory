@@ -142,6 +142,18 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
     return { headers, rows };
   };
 
+  const buildVendorPurchases = () => {
+    const headers = ['Serial Number', 'Brand Model', 'Purchased From', 'Purchase Date', 'Purchase Rate'];
+    const rows = (laptops || []).map((l) => [
+      l.serial_number,
+      l.brand_model || '',
+      l.purchased_from || '',
+      l.created_at ? l.created_at.substring(0, 10) : '',
+      l.purchase_rate != null ? l.purchase_rate : ''
+    ]);
+    return { headers, rows };
+  };
+
   const downloadInventory = () => {
     const { headers, rows } = buildInventory();
     saveCsv(`inventory-report-${new Date().toISOString().slice(0, 10)}.csv`, [headers, ...rows]);
@@ -367,6 +379,21 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
       icon: (
         <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.6">
           <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+        </svg>
+      )
+    },
+    {
+      title: 'Vendor Purchases',
+      desc: `Laptops purchased from vendors · ${laptops.length} total`,
+      action: buildVendorPurchases,
+      pdfAction: () => {
+        const { headers, rows } = buildVendorPurchases();
+        savePdf(`vendor-purchases-${new Date().toISOString().slice(0, 10)}.pdf`, 'Vendor Purchases', `${rows.length} entries · generated ${new Date().toLocaleString()}`, headers, rows);
+      },
+      disabled: !laptops.length,
+      icon: (
+        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.6">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
         </svg>
       )
     },

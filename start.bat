@@ -7,5 +7,5 @@ start "Laptop-Backend" /min cmd /k "node server.js"
 popd
 
 pushd frontend
-start "Laptop-Frontend" /min cmd /k "npm run dev"
+start "Laptop-Frontend" /min cmd /k "npm run dev -- --port 3695"
 popd

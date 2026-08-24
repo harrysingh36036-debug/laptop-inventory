@@ -27,6 +27,17 @@ const CARDS = [
     )
   },
   {
+    key: 'vendor-purchases',
+    title: 'Vendor Purchase',
+    subtitle: 'Laptops bought from vendors',
+    target: 'vendor-laptops',
+    icon: (
+      <svg className="h-7 w-7 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.6">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h11v8H3V7zm11 3h4l3 3v2h-7V10zM6 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm10 0a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
+      </svg>
+    )
+  },
+  {
     key: 'repair',
     title: 'Repair',
     subtitle: 'Units at the workshop',
@@ -172,6 +183,10 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
       sub: purchaseValue
         ? `₹${purchaseValue.toLocaleString('en-IN')} invested`
         : 'units bought & money invested'
+    },
+    'vendor-purchases': {
+      main: laptops.filter((l) => l?.purchased_from).length,
+      sub: 'from registered vendors'
     },
     repair: {
       main: repairs.length,
