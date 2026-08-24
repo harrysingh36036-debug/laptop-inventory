@@ -175,6 +175,7 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
   );
   const repairPending = (repairs || []).filter((r) => r?.status === 'Pending').length;
   const repairInProgress = (repairs || []).filter((r) => r?.status === 'In Progress').length;
+  const repairActive = (repairs || []).filter((r) => r?.status !== 'Repaired').length;
 
   const counts = {
     inventory: { main: laptops.length, sub: `${inStockCount} in stock · ${inTransitCount} in transit` },
@@ -189,7 +190,7 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
       sub: 'from registered vendors'
     },
     repair: {
-      main: repairs.length,
+      main: repairActive,
       sub: `${repairPending} pending · ${repairInProgress} in progress`
     },
     transfers: { main: logs.length, sub: 'store-to-store movements' },

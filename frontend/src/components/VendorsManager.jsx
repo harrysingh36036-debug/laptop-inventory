@@ -4,7 +4,7 @@ import { createLaptop } from '../api';
 import { getLaptops } from '../api';
 import DangerConfirmModal from './DangerConfirmModal';
 
-const EMPTY = { name: '', contact: '', brand: '', model: '', serial_number: '', purchase_rate: '', storage: '', ram: '', processor: '', generation: '' };
+const EMPTY = { name: '', contact: '', address: '', brand: '', model: '', serial_number: '', purchase_rate: '', storage: '', ram: '', processor: '', generation: '' };
 
 export default function VendorsManager({ onNotify }) {
   const [vendors, setVendors] = useState([]);
@@ -42,7 +42,7 @@ export default function VendorsManager({ onNotify }) {
 
   const startEdit = (v) => {
     setEditingId(v.id);
-    setForm({ name: v.name, contact: v.contact || '' });
+    setForm({ name: v.name, contact: v.contact || '', address: v.address || '' });
   };
 
   const cancelEdit = () => {
@@ -54,13 +54,15 @@ export default function VendorsManager({ onNotify }) {
     e.preventDefault();
     const name = form.name.trim();
     if (!name) return onNotify?.('Vendor name is required', 'error');
+    const contact = form.contact.trim();
+    if (contact && !/^\d{10}$/.test(contact)) return onNotify?.('Contact must be a 10-digit phone number', 'error');
     setBusy(true);
     try {
       if (editingId) {
-        await updateVendor(editingId, { ...form, name });
+        await updateVendor(editingId, { ...form, name, contact });
         onNotify?.('Vendor updated', 'success');
       } else {
-        await addVendor({ ...form, name });
+        await addVendor({ ...form, name, contact });
         onNotify?.('Vendor added', 'success');
       }
       cancelEdit();
@@ -197,11 +199,14 @@ export default function VendorsManager({ onNotify }) {
             />
           </div>
           <div>
-            <label className="flabel">Contact</label>
+            <label className="flabel">Contact (Phone)</label>
             <input
+              type="tel"
+              inputMode="numeric"
               value={form.contact}
-              onChange={(e) => setForm({ ...form, contact: e.target.value })}
-              placeholder="e.g. Rajesh · 98xxxxxx"
+              maxLength={10}
+              onChange={(e) => setForm({ ...form, contact: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+              placeholder="e.g. 9876543210"
               className="field mt-1.5"
             />
           </div>
@@ -251,6 +256,15 @@ export default function VendorsManager({ onNotify }) {
             onChange={(e) => setMaxPrice(e.target.value)}
             placeholder="Max ₹"
             className="field w-32 rounded-lg border border-line bg-surface-2 px-2 py-1.5 text-sm"
+          />
+        </div>
+        <div>
+          <label className="flabel">Address</label>
+          <input
+            value={form.address}
+            onChange={(e) => setForm({ ...form, address: e.target.value })}
+            placeholder="e.g. 123 Main St, Delhi"
+            className="field mt-1.5"
           />
         </div>
         <div className="flex justify-end gap-2">
@@ -367,7 +381,8 @@ export default function VendorsManager({ onNotify }) {
         </div>
       )}
 
-      <div className="overflow-hidden rounded-xl border border-line">
+      {/* Desktop table */}
+      <div className="hidden md:block overflow-hidden rounded-xl border border-line">
         <table className="w-full text-left text-sm">
           <thead className="bg-surface-2/50 text-[10px] uppercase tracking-wider text-ink-faint">
             <tr>
@@ -382,12 +397,13 @@ export default function VendorsManager({ onNotify }) {
               </th>
               <th className="px-4 py-2.5 font-semibold">Vendor</th>
               <th className="px-4 py-2.5 font-semibold">Contact</th>
+              <th className="px-4 py-2.5 font-semibold">Address</th>
               <th className="px-4 py-2.5 font-semibold text-right">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--hairline)]">
             {vendors.length === 0 && (
-              <tr><td colSpan={4} className="px-4 py-8 text-center text-ink-faint">No vendors yet.</td></tr>
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-ink-faint">No vendors yet.</td></tr>
             )}
             {vendors.map((v) => (
               <tr key={v.id} className="transition-colors duration-150 hover:bg-surface-2/60">
@@ -402,6 +418,7 @@ export default function VendorsManager({ onNotify }) {
                 </td>
                 <td className="px-4 py-2.5 font-medium text-ink">{v.name}</td>
                 <td className="px-4 py-2.5 text-ink-dim">{v.contact || '—'}</td>
+                <td className="px-4 py-2.5 text-ink-dim">{v.address || '—'}</td>
                 <td className="px-4 py-2.5">
                   <div className="flex items-center justify-end gap-2">
                     <button onClick={() => startEdit(v)} className="btn-ghost">Edit</button>
@@ -412,6 +429,35 @@ export default function VendorsManager({ onNotify }) {
             ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile cards */}
+      <div className="md:hidden space-y-2">
+        {vendors.length === 0 && (
+          <p className="text-center text-sm text-ink-faint py-6">No vendors yet.</p>
+        )}
+        {vendors.map((v) => (
+          <div key={v.id} className="rounded-xl border border-line bg-surface-2/40 p-4 space-y-2">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0 flex-1">
+                <p className="font-medium text-ink">{v.name}</p>
+                {v.contact && <p className="text-xs text-ink-dim mt-0.5">{v.contact}</p>}
+                {v.address && <p className="text-xs text-ink-faint mt-0.5">{v.address}</p>}
+              </div>
+              <input
+                type="checkbox"
+                checked={selected.has(v.id)}
+                onChange={() => toggle(v.id)}
+                className="h-4 w-4 rounded accent-accent shrink-0 mt-0.5"
+                aria-label={`Select ${v.name}`}
+              />
+            </div>
+            <div className="flex items-center gap-2 pt-1 border-t border-line">
+              <button onClick={() => startEdit(v)} className="btn-ghost text-xs">Edit</button>
+              <button onClick={() => setDanger({ kind: 'one', v })} className="btn-danger text-xs">Delete</button>
+            </div>
+          </div>
+        ))}
       </div>
 
       {danger && (

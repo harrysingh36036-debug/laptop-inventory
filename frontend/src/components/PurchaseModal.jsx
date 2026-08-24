@@ -3,6 +3,12 @@ import { hashAadhar } from '../utils';
 
 const STATUSES = ['In Stock', 'In Transit'];
 
+const SOURCE_TYPES = [
+  ['customer', 'Customer'],
+  ['vendor', 'Vendor'],
+  ['others', 'Others']
+];
+
 const EMPTY = {
   purchased_at: '',
   brand: '',
@@ -13,6 +19,8 @@ const EMPTY = {
   ram: '',
   storage: '',
   graphics: '',
+  source_type: 'others',
+  source_id: '',
   purchased_from: '',
   purchase_rate: '',
   extra_charges: '',
@@ -25,7 +33,7 @@ const EMPTY = {
   purchaser_phone: ''
 };
 
-export default function PurchaseModal({ stores, editing, onSave, onClose }) {
+export default function PurchaseModal({ stores, vendors = [], editing, onSave, onClose }) {
   const [form, setForm] = useState(EMPTY);
   const [error, setError] = useState('');
 
@@ -42,6 +50,8 @@ export default function PurchaseModal({ stores, editing, onSave, onClose }) {
             ram: editing.ram || '',
             storage: editing.storage || '',
             graphics: editing.graphics || '',
+            source_type: editing.source_type || 'others',
+            source_id: editing.source_id ?? '',
             purchased_from: editing.purchased_from || '',
             purchase_rate: editing.purchase_rate ?? '',
             extra_charges: editing.extra_charges ?? '',
@@ -60,6 +70,33 @@ aadhar_no: editing.purchaser_aadhar || editing.aadhar_no || '',
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const setN = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value === '' ? '' : Number(e.target.value) }));
+
+  // Selecting a vendor from the saved list fills the "bought from" name.
+  const pickSource = (type, id) => {
+    if (!id) {
+      setForm((f) => ({ ...f, source_id: '', purchased_from: '' }));
+      return;
+    }
+    if (type === 'vendor') {
+      const v = vendors.find((x) => Number(x.id) === Number(id));
+      setForm((f) => ({
+        ...f,
+        source_type: 'vendor',
+        source_id: v ? v.id : '',
+        purchased_from: v ? v.name : ''
+      }));
+    }
+  };
+
+  const switchSourceType = (e) => {
+    const type = e.target.value;
+    setForm((f) => ({
+      ...f,
+      source_type: type,
+      source_id: '',
+      purchased_from: type === 'others' || type === 'customer' ? f.purchased_from : ''
+    }));
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -95,6 +132,8 @@ aadhar_no: editing.purchaser_aadhar || editing.aadhar_no || '',
     const payload = { ...form };
     payload.purchaser_name = form.purchaser_name.trim();
     payload.purchaser_phone = form.purchaser_phone.trim();
+    payload.source_type = form.source_type || 'others';
+    payload.source_id = form.source_id === '' || form.source_id == null ? null : Number(form.source_id);
     if (form.aadhar_no.trim()) {
       payload.purchaser_aadhar = form.aadhar_no.trim();
       payload.purchaser_aadhar_hash = await hashAadhar(form.aadhar_no.trim());
@@ -106,12 +145,21 @@ aadhar_no: editing.purchaser_aadhar || editing.aadhar_no || '',
   return (
     <div className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm">
       <div className="my-8 w-full max-w-2xl rounded-2xl border border-line bg-surface p-6 shadow-pop">
-        <h3 className="font-display text-base font-semibold tracking-tight text-ink">
-          {editing ? 'Edit Purchase Record' : 'Record a Purchase'}
-        </h3>
-        <p className="mt-1 text-xs text-ink-faint">
-          Separate spending ledger — records how much money was spent buying the system. Not linked to inventory units.
-        </p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="font-display text-base font-semibold tracking-tight text-ink">
+              {editing ? 'Edit Purchase Record' : 'Record a Purchase'}
+            </h3>
+            <p className="mt-1 text-xs text-ink-faint">
+              Separate spending ledger — records how much money was spent buying the system. Not linked to inventory units.
+            </p>
+          </div>
+          <button onClick={onClose} className="text-ink-faint hover:text-ink transition-colors" aria-label="Close purchase modal">
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
 
         {error && (
           <p className="mt-3 rounded-lg border border-stock-risk/30 bg-stock-risk/10 px-3 py-2 text-sm text-stock-risk">{error}</p>
@@ -125,7 +173,32 @@ aadhar_no: editing.purchaser_aadhar || editing.aadhar_no || '',
             </div>
             <div>
               <label className="flabel">Vendor / Bought From</label>
-              <input value={form.purchased_from} onChange={set('purchased_from')} placeholder="Dealer, customer or shop…" className="field mt-1.5" />
+              <select value={form.source_type} onChange={switchSourceType} className="field mt-1.5">
+                {SOURCE_TYPES.map(([k, n]) => (
+                  <option key={k} value={k}>{n}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="flabel">{form.source_type === 'vendor' ? 'Vendor' : form.source_type === 'customer' ? 'Customer Name' : 'Dealer / Shop / Other'}</label>
+              {form.source_type === 'customer' && (
+                <input value={form.purchased_from} onChange={set('purchased_from')} placeholder="Name of the customer…" className="field mt-1.5" />
+              )}
+              {form.source_type === 'vendor' && (
+                <select
+                  value={form.source_id}
+                  onChange={(e) => pickSource('vendor', e.target.value)}
+                  className="field mt-1.5"
+                >
+                  <option value="">— Choose vendor —</option>
+                  {vendors.map((v) => (
+                    <option key={v.id} value={v.id}>{v.name}</option>
+                  ))}
+                </select>
+              )}
+              {form.source_type === 'others' && (
+                <input value={form.purchased_from} onChange={set('purchased_from')} placeholder="Dealer, shop or person…" className="field mt-1.5" />
+              )}
             </div>
             <div>
               <label className="flabel">Purchaser Aadhar No. {!editing && <span className="text-stock-risk">*</span>}</label>

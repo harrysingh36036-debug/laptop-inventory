@@ -29,9 +29,9 @@ module.exports = {
         }
       },
       fontFamily: {
-        display: ['"Inter Tight"', 'Inter', 'system-ui', 'sans-serif'],
+        display: ['Inter', 'system-ui', 'sans-serif'],
         sans: ['Inter', 'system-ui', 'sans-serif'],
-        mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace']
+        mono: ['Inter', 'system-ui', 'sans-serif']
       },
       fontSize: {
         xs: ['11.5px', '1.5'],

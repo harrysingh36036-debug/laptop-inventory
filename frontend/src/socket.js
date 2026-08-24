@@ -72,6 +72,13 @@ export function setLocalRole(role) {
   localRole = role;
 }
 
+// Whether the local user may see PII (name / phone / Aadhar) on realtime rows.
+// Mirrors the server-side viewPII permission; admins always pass true.
+let localCanViewPII = false;
+export function setLocalPII(canSee) {
+  localCanViewPII = !!canSee;
+}
+
 function num(v) {
   return v == null || !Number.isFinite(Number(v)) ? null : Number(v);
 }
@@ -99,8 +106,8 @@ function laptopFromRow(row) {
     status: row.status,
     charger: row.charger,
     purchase_comment: row.purchase_comment,
-    purchaser_aadhar_hash: localRole === 'admin' || localRole === 'superadmin' ? row.purchaser_aadhar_hash : null,
-    purchaser_aadhar: localRole === 'admin' || localRole === 'superadmin' ? row.purchaser_aadhar : null,
+    purchaser_aadhar_hash: localCanViewPII ? row.purchaser_aadhar_hash : null,
+    purchaser_aadhar: localCanViewPII ? row.purchaser_aadhar : null,
     created_at: row.created_at,
     updated_at: row.updated_at
   };
@@ -178,6 +185,11 @@ function handleChange(table, event, row) {
     return;
   }
 
+  if (table === 'pending_transfers') {
+    _emit('pending_transfers:updated');
+    return;
+  }
+
   if (table === 'settings') {
     getSettings().then((settings) => {
       _emit('settings:updated', settings);
@@ -223,6 +235,7 @@ function ensureConnected() {
     .on('postgres_changes', { event: '*', schema: 'public', table: 'transferlogs' }, onPostgresChange)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'sales' }, onPostgresChange)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'repairs' }, onPostgresChange)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'pending_transfers' }, onPostgresChange)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'brands' }, onPostgresChange)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, onPostgresChange)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, onPostgresChange);

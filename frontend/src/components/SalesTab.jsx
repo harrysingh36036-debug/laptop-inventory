@@ -4,6 +4,7 @@ import { formatTime, inr } from '../utils';
 import { socket } from '../socket';
 import SearchBox from './SearchBox';
 import DangerConfirmModal from './DangerConfirmModal';
+import ReturnSaleModal from './ReturnSaleModal';
 
 function csvEscape(v) {
   const s = String(v ?? '');
@@ -46,7 +47,7 @@ export function printSaleReceipt(s, storeName, sellerName, customerPhone) {
   w.document.write(`<!doctype html><html><head><title>Receipt ${s.serial_number}</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1d24; padding: 24px; }
+  body { font-family: 'Inter', Arial, sans-serif; color: #1a1d24; padding: 24px; }
   .receipt { max-width: 460px; margin: 0 auto; border: 1px dashed #cbd2dc; border-radius: 12px; padding: 24px; }
   h1 { font-size: 18px; margin-bottom: 2px; }
   .muted { color: #6b7280; font-size: 12px; }
@@ -75,7 +76,7 @@ function escapeHtml(v) {
   return String(v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-export default function SalesTab({ stores, isSuperAdmin = false, canSeeCustomer = false, onNotify }) {
+export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false, canSeeCustomer = false, userRole = '', homeStoreId = null, onNotify }) {
   const [sales, setSales] = useState([]);
   const [summary, setSummary] = useState(null);
   const [search, setSearch] = useState('');
@@ -83,6 +84,7 @@ export default function SalesTab({ stores, isSuperAdmin = false, canSeeCustomer 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [danger, setDanger] = useState(null); // { sale }
+  const [returnModal, setReturnModal] = useState(null); // { sale }
   const [revealedPhones, setRevealedPhones] = useState(new Set());
 
   const storeName = (id) => stores.find((s) => s.id === id)?.store_name;
@@ -169,6 +171,13 @@ export default function SalesTab({ stores, isSuperAdmin = false, canSeeCustomer 
   const th = 'px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint';
   const td = 'px-4 py-3 align-middle';
   const activeStore = stores.find((s) => String(s.id) === storeF);
+  // Managers can process returns only for sales made from their own store.
+  const isManager = userRole === 'manager';
+  const canReturnCol = isAdmin || isSuperAdmin || isManager;
+  const canReturnRow = (s) =>
+    isAdmin || isSuperAdmin ||
+    (isManager && homeStoreId != null && String(s.store_id) === String(homeStoreId));
+  const emptyCols = 10 + (canReturnCol ? 1 : 0) + (isSuperAdmin ? 1 : 0);
 
   return (
     <div className="space-y-6">
@@ -262,16 +271,18 @@ export default function SalesTab({ stores, isSuperAdmin = false, canSeeCustomer 
                 <th className={th}>Phone</th>
                 <th className={th}>Sale Price</th>
                 <th className={th}>Profit</th>
+                <th className={th}>Payment</th>
                 <th className={th}>Sold By</th>
                 <th className={th}>Sold At</th>
                 <th className={th}>Receipt</th>
+                {canReturnCol && <th className={th}>Return</th>}
                 {isSuperAdmin && <th className={th}>Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--hairline)]">
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={isSuperAdmin ? 10 : 9} className="px-4 py-10 text-center text-sm text-ink-faint">
+                  <td colSpan={emptyCols} className="px-4 py-10 text-center text-sm text-ink-faint">
                     {q ? 'No sales match your search.' : 'No sales recorded yet.'}
                   </td>
                 </tr>
@@ -308,6 +319,13 @@ export default function SalesTab({ stores, isSuperAdmin = false, canSeeCustomer 
                   <td className={`${td} font-mono text-xs font-medium ${s.profit >= 0 ? 'text-stock-ok' : 'text-stock-risk'}`}>
                     {inr(s.profit)}
                   </td>
+                  <td className={`${td} text-xs text-ink-dim`}>
+                    {s.payment_method ? (
+                      <span>{s.payment_method}{s.payment_detail ? ` · ${s.payment_detail}` : ''}</span>
+                    ) : (
+                      <span className="text-ink-faint">—</span>
+                    )}
+                  </td>
                   <td className={`${td} text-ink-dim`}>{s.sold_by || '—'}</td>
                   <td className={`${td} font-mono text-[11px] text-ink-faint`}>{formatTime(s.sold_at)}</td>
                   <td className={td}>
@@ -319,6 +337,17 @@ export default function SalesTab({ stores, isSuperAdmin = false, canSeeCustomer 
                       Receipt
                     </button>
                   </td>
+                  {canReturnRow(s) && (
+                    <td className={td}>
+                      <button
+                        onClick={() => setReturnModal({ sale: s })}
+                        className="btn-ghost"
+                        title="Return this sale"
+                      >
+                        Return
+                      </button>
+                    </td>
+                  )}
                   {isSuperAdmin && (
                     <td className={td}>
                       <button
@@ -356,6 +385,11 @@ export default function SalesTab({ stores, isSuperAdmin = false, canSeeCustomer 
                 <p className={`font-mono text-[11px] ${s.profit >= 0 ? 'text-stock-ok' : 'text-stock-risk'}`}>{inr(s.profit)}</p>
               </div>
             </div>
+            {s.payment_method && (
+              <p className="mt-1 text-[11px] text-ink-dim">
+                <span className="text-ink-faint">Payment:</span> {s.payment_method}{s.payment_detail ? ` · ${s.payment_detail}` : ''}
+              </p>
+            )}
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-[11px] text-ink-dim">
               <span>
                 <span className="text-ink-faint">Customer:</span>{' '}
@@ -394,6 +428,15 @@ export default function SalesTab({ stores, isSuperAdmin = false, canSeeCustomer 
               >
                 Receipt
               </button>
+              {canReturnRow(s) && (
+                <button
+                  onClick={() => setReturnModal({ sale: s })}
+                  className="btn-ghost"
+                  title="Return this sale"
+                >
+                  Return
+                </button>
+              )}
               {isSuperAdmin && (
                 <button onClick={() => setDanger({ sale: s })} className="btn-danger ml-auto" title="Delete this sale (laptop returns to In Stock)">
                   Delete
@@ -410,6 +453,16 @@ export default function SalesTab({ stores, isSuperAdmin = false, canSeeCustomer 
           warning={`Sale of "${danger.sale.brand_model}" (${danger.sale.serial_number}) — ₹${inr(danger.sale.sale_price)} will be removed and the laptop returns to In Stock. This cannot be undone.`}
           onConfirm={handleDelete}
           onClose={() => setDanger(null)}
+        />
+      )}
+
+      {returnModal && (
+        <ReturnSaleModal
+          sale={returnModal.sale}
+          stores={stores}
+          onNotify={onNotify}
+          onClose={() => setReturnModal(null)}
+          onDone={() => { setReturnModal(null); reload(); }}
         />
       )}
     </div>

@@ -337,7 +337,7 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
     w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Daily Report — ${escapeHtml(d.date)}</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', Arial, sans-serif; color: #1a1d24; padding: 28px; }
+  body { font-family: 'Inter', Arial, sans-serif; color: #1a1d24; padding: 28px; }
   h1 { font-size: 20px; }
   .meta { color: #6b7280; font-size: 12px; margin: 2px 0 18px; }
   h2 { font-size: 14px; margin: 22px 0 8px; }

@@ -18,17 +18,53 @@ jobs:
           node-version: 22
       - name: Install deps
         run: npm install --prefix backend --omit=dev
-      - name: Disable IPv6
-        run: |
-          sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
-          sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
-          sudo sysctl -w net.ipv6.conf.lo.disable_ipv6=1
-      - name: Check Supabase DNS
+      - name: Validate environment secrets
         env:
           DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
         run: |
-          node -e "const dns=require('dns').promises; const host=new URL(process.env.DATABASE_URL).hostname; dns.lookup(host).then(a=>console.log('Supabase database hostname resolved:', a.address)).catch(e=>{console.error('Supabase database DNS lookup failed:', e.message); process.exit(1)})"
+          if [ -z "$DATABASE_URL" ]; then
+            echo "❌ ERROR: SUPABASE_DATABASE_URL secret is not configured"
+            echo "Please add it in Settings → Secrets and variables → Actions"
+            exit 1
+          fi
+          
+          # Check if it looks like a valid postgres connection string
+          if ! echo "$DATABASE_URL" | grep -qE "postgres(ql)?://.*@.*\.supabase\.co"; then
+            echo "❌ WARNING: DATABASE_URL doesn't look like a valid Supabase connection string"
+            echo "Expected format: postgres://user:password@db.*.supabase.co:5432/postgres"
+          else
+            echo "✓ DATABASE_URL appears to be valid"
+          fi
+      - name: Diagnose network connectivity
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+        run: |
+          set +e  # Don't exit on errors
+          
+          echo "=== Extracting hostname ==="
+          HOST=$(node -e "console.log(new URL(process.env.DATABASE_URL).hostname)" 2>&1)
+          echo "Extracted host: $HOST"
+          
+          echo -e "\n=== DNS Resolution Tests ==="
+          echo "1. Using nslookup:"
+          nslookup $HOST || echo "nslookup FAILED"
+          
+          echo -e "\n2. Using dig:"
+          dig $HOST +short || echo "dig FAILED"
+          
+          echo -e "\n3. Using host:"
+          host $HOST || echo "host FAILED"
+          
+          echo -e "\n4. Checking resolver configuration:"
+          cat /etc/resolv.conf
+          
+          echo -e "\n=== Connectivity Tests ==="
+          echo "5. Pinging DNS resolver:"
+          ping -c 1 8.8.8.8 || echo "ping FAILED"
+          
+          set -e  # Re-enable exit on error
       - name: Archive old Supabase data to Google Sheets
+        timeout-minutes: 15
         run: node backend/archive-to-sheets.js
         env:
           DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}

@@ -1,9 +1,14 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, lazy, Suspense } from 'react';
 import {
   getStores,
   getLaptops,
   getTransferLogs,
   transferLaptop,
+  initiateTransfer,
+  acceptTransfer,
+  rejectTransfer,
+  cancelTransfer,
+  getPendingTransfers,
   createLaptop,
   updateLaptop,
   deleteLaptop,
@@ -31,7 +36,7 @@ import {
   renameStore,
   deleteStore
 } from './api';
-import { socket, setSocketAuth, setLocalRole } from './socket';
+import { socket, setSocketAuth, setLocalRole, setLocalPII } from './socket';
 import { LabelsProvider } from './labels.jsx';
 import Login from './components/Login';
 import StoreFilter from './components/StoreFilter';
@@ -47,13 +52,14 @@ import CustomersManager from './components/CustomersManager';
 import SellModal from './components/SellModal';
 import TransferHistoryTab from './components/TransferHistoryTab';
 import DashboardTab from './components/DashboardTab';
-import ReportsTab from './components/ReportsTab';
 import PurchasesTab from './components/PurchasesTab';
 import VendorLaptopsTab from './components/VendorLaptopsTab';
 import RepairsTab from './components/RepairsTab';
 import RepairModal from './components/RepairModal';
 import PurchaseModal from './components/PurchaseModal';
 import BottomNav from './components/BottomNav';
+
+const ReportsTab = lazy(() => import('./components/ReportsTab'));
 
 const MENU_ICONS = {
   dashboard: (
@@ -231,6 +237,9 @@ export default function App() {
   const [purchasesSummary, setPurchasesSummary] = useState(null);
   const [repairs, setRepairs] = useState([]);
   const [repairsSummary, setRepairsSummary] = useState(null);
+  const [pendingTransfers, setPendingTransfers] = useState([]);
+  const [shownTransferIds, setShownTransferIds] = useState(new Set());
+  const [activeTransferPopup, setActiveTransferPopup] = useState(null);
 
   // Filters / state
   const [storeId, setStoreId] = useState('');
@@ -292,14 +301,22 @@ export default function App() {
     }
   })();
   const defaultPerms = {
-    manager: { editInventory: true, transferLaptops: true, createStaff: true, renameStores: true, editLabels: false, manageVendors: false, manageCustomers: false },
-    staff: { editInventory: false, transferLaptops: false, createStaff: false, renameStores: false, editLabels: false, manageVendors: false, manageCustomers: false }
+    manager: { editInventory: true, transferLaptops: true, createStaff: true, renameStores: true, editLabels: false, manageVendors: false, manageCustomers: false, viewPII: false },
+    staff: { editInventory: false, transferLaptops: false, createStaff: false, renameStores: false, editLabels: false, manageVendors: false, manageCustomers: false, viewPII: false }
   };
   const myPerms = rolePerms?.[user?.role] || defaultPerms[user?.role] || {};
   const can = (perm) => (isAdmin ? true : !!myPerms[perm]);
   const canEditInventory = can('editInventory');
   const canTransfer = can('transferLaptops');
   const canRenameStores = can('renameStores');
+  // PII (purchaser name / phone / Aadhar) is admin-aligned: admins always see
+  // it; managers and staff only when the admin grants the "View PII" permission.
+  const canViewPII = isAdmin || can('viewPII');
+
+  // Keep the realtime bridge's PII masking in sync with the current permission.
+  useEffect(() => {
+    setLocalPII(canViewPII);
+  }, [canViewPII]);
   // Vendor / Customer management is granted by the super admin — even for admins.
   const canManageVendors = isSuperAdmin || !!((rolePerms || {})[user?.role] || {})['manageVendors'];
   const canManageCustomers = isSuperAdmin || !!((rolePerms || {})[user?.role] || {})['manageCustomers'];
@@ -354,6 +371,7 @@ export default function App() {
       getCustomers().then(setCustomers).catch(() => {});
       reloadPurchases();
       reloadRepairs();
+      reloadPendingTransfers();
     };
     load().catch((e) => notify(e.message, 'error'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -380,6 +398,26 @@ export default function App() {
       /* transient */
     }
   }, []);
+
+  const reloadPendingTransfers = useCallback(async () => {
+    try {
+      setPendingTransfers(await getPendingTransfers());
+    } catch (e) {
+      /* transient */
+    }
+  }, []);
+
+  // Show popup when a new pending transfer arrives for this user's store
+  useEffect(() => {
+    if (!pendingTransfers.length || !user?.home_store_id) return;
+    const incoming = pendingTransfers.find(
+      (pt) => Number(pt.to_store_id) === Number(user.home_store_id) && !shownTransferIds.has(pt.id)
+    );
+    if (incoming && !activeTransferPopup) {
+      setActiveTransferPopup(incoming);
+      setShownTransferIds((prev) => new Set([...prev, incoming.id]));
+    }
+  }, [pendingTransfers, user, shownTransferIds, activeTransferPopup]);
 
   // ---- Refetch laptops whenever a filter changes ---------------------------
   const refresh = useCallback(async () => {
@@ -469,6 +507,9 @@ export default function App() {
     const onRepairsChanged = () => reloadRepairs();
     socket.on('repairs:updated', onRepairsChanged);
 
+    const onPendingTransfersChanged = () => reloadPendingTransfers();
+    socket.on('pending_transfers:updated', onPendingTransfersChanged);
+
     const reloadBrands = async () => {
       try {
         setBrands(await getBrands());
@@ -512,6 +553,7 @@ export default function App() {
         getBrands().then(setBrands).catch(() => {});
         reloadPurchases();
         reloadRepairs();
+        reloadPendingTransfers();
         notify('Data refreshed', 'info');
       } catch (e) {
         /* ignore transient errors */
@@ -527,6 +569,7 @@ export default function App() {
       socket.off('laptop:bulk', onBulk);
       socket.off('sale:new', onSale);
       socket.off('repairs:updated', onRepairsChanged);
+      socket.off('pending_transfers:updated', onPendingTransfersChanged);
       socket.off('brands:updated', reloadBrands);
       socket.off('laptop:updated', onUpdate);
       socket.off('laptop:deleted', onDelete);
@@ -562,8 +605,38 @@ export default function App() {
   // ---- Transfer action -----------------------------------------------------
   const handleTransfer = async (laptopId, toStoreId) => {
     try {
-      await transferLaptop(laptopId, toStoreId);
-      notify('Transfer confirmed', 'success');
+      await initiateTransfer(laptopId, toStoreId);
+      notify('Transfer request sent — awaiting acceptance from destination store', 'success');
+      await refresh();
+    } catch (e) {
+      notify(e.message, 'error');
+    }
+  };
+
+  const handleAcceptTransfer = async (transferId) => {
+    try {
+      await acceptTransfer(transferId);
+      notify('Transfer accepted — laptop moved', 'success');
+      await refresh();
+    } catch (e) {
+      notify(e.message, 'error');
+    }
+  };
+
+  const handleRejectTransfer = async (transferId) => {
+    try {
+      await rejectTransfer(transferId);
+      notify('Transfer rejected', 'success');
+      await refresh();
+    } catch (e) {
+      notify(e.message, 'error');
+    }
+  };
+
+  const handleCancelTransfer = async (transferId) => {
+    try {
+      await cancelTransfer(transferId);
+      notify('Transfer cancelled', 'success');
       await refresh();
     } catch (e) {
       notify(e.message, 'error');
@@ -620,14 +693,15 @@ export default function App() {
 
   const handleRepairSave = async (form) => {
     try {
+      const isEdit = !!repairModal?.repair;
       const payload = {
         laptop_id: form.laptop_id ? Number(form.laptop_id) : null,
         serial_number: form.serial_number,
         brand_model: form.brand_model,
         issue: form.issue,
         vendor: form.vendor,
-        cost: form.cost === '' || form.cost == null ? 0 : Number(form.cost),
-        charge: form.charge === '' || form.charge == null ? 0 : Number(form.charge),
+        cost: form.cost === '' || form.cost == null ? (isEdit ? null : 0) : Number(form.cost),
+        charge: form.charge === '' || form.charge == null ? (isEdit ? null : 0) : Number(form.charge),
         store_id: form.store_id === '' || form.store_id == null ? null : Number(form.store_id),
         status: form.status,
         notes: form.notes
@@ -679,6 +753,8 @@ export default function App() {
         storage: form.storage,
         graphics: form.graphics,
         purchased_from: form.purchased_from,
+        source_type: form.source_type || 'others',
+        source_id: form.source_id === '' || form.source_id == null ? null : Number(form.source_id),
         purchase_rate: form.purchase_rate === '' || form.purchase_rate == null ? 0 : Number(form.purchase_rate),
         extra_charges: form.extra_charges === '' || form.extra_charges == null ? 0 : Number(form.extra_charges),
         quantity: Number(form.quantity) || 1,
@@ -728,7 +804,7 @@ export default function App() {
     setSellTarget(laptop);
   };
 
-  const handleSellConfirm = async (price, { customerId, aadharHash, aadharError } = {}) => {
+  const handleSellConfirm = async (price, { customerId, aadharHash, aadharError, paymentMethod, paymentDetail } = {}) => {
     const l = sellTarget;
     setSellTarget(null);
     if (!l) return;
@@ -742,7 +818,7 @@ export default function App() {
       return;
     }
     try {
-      await sellLaptop(l.id, num, customerId, aadharHash);
+      await sellLaptop(l.id, num, customerId, aadharHash, paymentMethod, paymentDetail);
       notify(
         `Sold ${l.brand_model} for \u20b9${num.toLocaleString('en-IN')}${customerId ? ' (customer recorded)' : ''}`,
         'success'
@@ -879,6 +955,9 @@ export default function App() {
                 className={`h-1.5 w-1.5 rounded-full ${connected ? 'bg-stock-ok' : 'bg-stock-risk'}`}
               />
               <span className="hidden sm:inline">{connected ? 'Live · synced' : 'Reconnecting…'}</span>
+              {user?.home_store_id && (
+                <span className="text-ink-faint">· {stores.find((s) => s.id === user.home_store_id)?.store_name || ''}</span>
+              )}
             </span>
 
             <span className="flex items-center gap-1 rounded-full border border-line bg-surface p-1">
@@ -979,8 +1058,9 @@ export default function App() {
             canEdit={canEditInventory}
             canTransfer={canTransfer}
             canSell={canEditInventory}
+            sellStoreId={!isAdmin && user?.role === 'manager' ? (user?.home_store_id ?? null) : null}
             canManageCustomers={canManageCustomers}
-            showSensitive={isAdmin}
+            showSensitive={canViewPII}
             onTransfer={handleTransfer}
             onSell={handleSell}
             onEdit={(laptop) => setInvModal({ laptop })}
@@ -992,6 +1072,7 @@ export default function App() {
             purchases={purchases}
             summary={purchasesSummary}
             canEditInventory={canEditInventory}
+            canViewPII={canViewPII}
             onAddPurchase={() => setPurchaseModal({})}
             onEditPurchase={(purchase) => setPurchaseModal({ purchase })}
             onDeletePurchase={handlePurchaseDelete}
@@ -1005,14 +1086,15 @@ export default function App() {
             onDelete={handleRepairDelete}
           />
         ) : tab === 'sales' ? (
-          <SalesTab stores={stores} isSuperAdmin={isSuperAdmin} canSeeCustomer={isAdmin} onNotify={notify} />
+          <SalesTab stores={stores} isSuperAdmin={isSuperAdmin} isAdmin={isAdmin} canSeeCustomer={canViewPII} userRole={user?.role} homeStoreId={user?.home_store_id ?? null} onNotify={notify} />
         ) : tab === 'customers' ? (
           <div className="space-y-4">
             <p className="text-sm text-ink-dim">Manage your customers. Linked to sales when a laptop is sold to them.</p>
             <CustomersManager onNotify={notify} />
           </div>
 ) : tab === 'stats' ? (
-          <ReportsTab
+          <Suspense fallback={<div className="py-10 text-center text-sm text-ink-faint">Loading reports…</div>}>
+            <ReportsTab
             stores={stores}
             logs={logs}
             laptops={laptops}
@@ -1025,6 +1107,7 @@ export default function App() {
               setTab('inventory');
             }}
           />
+          </Suspense>
         ) : tab === 'vendor-laptops' ? (
           <VendorLaptopsTab
             stores={stores}
@@ -1038,9 +1121,18 @@ export default function App() {
             }}
           />
         ) : tab === 'transfers' ? (
-          <TransferHistoryTab stores={stores} initialLogs={logs} />
+          <TransferHistoryTab
+            stores={stores}
+            initialLogs={logs}
+            pendingTransfers={pendingTransfers}
+            userRole={user?.role}
+            userHomeStoreId={user?.home_store_id}
+            onAcceptTransfer={handleAcceptTransfer}
+            onRejectTransfer={handleRejectTransfer}
+            onCancelTransfer={handleCancelTransfer}
+          />
         ) : (
-          <SalesTab stores={stores} isSuperAdmin={isSuperAdmin} canSeeCustomer={isAdmin} onNotify={notify} />
+          <SalesTab stores={stores} isSuperAdmin={isSuperAdmin} isAdmin={isAdmin} canSeeCustomer={canViewPII} userRole={user?.role} homeStoreId={user?.home_store_id ?? null} onNotify={notify} />
         )}
       </main>
 
@@ -1059,6 +1151,7 @@ export default function App() {
       {purchaseModal && (
         <PurchaseModal
           stores={stores}
+          vendors={vendors}
           editing={purchaseModal.purchase}
           onSave={handlePurchaseSave}
           onClose={() => setPurchaseModal(null)}
@@ -1157,6 +1250,56 @@ export default function App() {
           onSave={handleSellConfirm}
           onClose={() => setSellTarget(null)}
         />
+      )}
+
+      {/* Transfer approval popup */}
+      {activeTransferPopup && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50">
+          <div className="panel mx-4 w-full max-w-sm p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="font-display text-sm font-semibold text-ink">Incoming Transfer Request</h3>
+                <p className="text-[11px] text-ink-faint">Requested by {activeTransferPopup.initiated_by}</p>
+              </div>
+            </div>
+            <div className="rounded-lg border border-line bg-surface-2/60 p-3 space-y-1.5">
+              <p className="text-sm font-medium text-ink">{activeTransferPopup.brand_model}</p>
+              <p className="text-xs text-ink-faint">Serial: <span className="mono-chip">{activeTransferPopup.serial_number}</span></p>
+              <div className="flex items-center gap-2 text-xs">
+                <span className="rounded-md border border-line bg-surface px-1.5 py-0.5 font-medium text-ink-dim">{activeTransferPopup.from_store_name}</span>
+                <svg className="h-3.5 w-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+                <span className="rounded-md border border-accent-line bg-accent-soft px-1.5 py-0.5 font-medium text-accent">{activeTransferPopup.to_store_name}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => { handleAcceptTransfer(activeTransferPopup.id); setActiveTransferPopup(null); }}
+                className="flex-1 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors"
+              >
+                Accept
+              </button>
+              <button
+                onClick={() => { handleRejectTransfer(activeTransferPopup.id); setActiveTransferPopup(null); }}
+                className="flex-1 rounded-lg bg-red-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-600 transition-colors"
+              >
+                Reject
+              </button>
+            </div>
+            <button
+              onClick={() => setActiveTransferPopup(null)}
+              className="w-full text-center text-[11px] text-ink-faint hover:text-ink-dim transition-colors"
+            >
+              Dismiss (decide later)
+            </button>
+          </div>
+        </div>
       )}
 
       {toast && <Toast key={toast.id} msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}

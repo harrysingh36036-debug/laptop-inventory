@@ -32,6 +32,7 @@ export default function InventoryModal({ stores, brands = [], vendors = [], prod
   const [form, setForm] = useState(EMPTY);
   const [error, setError] = useState('');
   const [addingLine, setAddingLine] = useState(false);
+  const [customVendor, setCustomVendor] = useState(false);
 
   useEffect(() => {
     setForm(
@@ -61,10 +62,29 @@ export default function InventoryModal({ stores, brands = [], vendors = [], prod
     );
     setError('');
     setAddingLine(!!(editing && editing.product_line && !productLines.includes(editing.product_line)));
+    setCustomVendor(false);
   }, [editing, productLines]);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const setN = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value === '' ? '' : Number(e.target.value) }));
+
+  const vendorNames = (vendors || []).map((v) => v.name);
+  const isCustomVendor = customVendor || (form.purchased_from && !vendorNames.includes(form.purchased_from));
+  const vendorSelectValue = vendorNames.includes(form.purchased_from)
+    ? form.purchased_from
+    : form.purchased_from || customVendor
+      ? '__custom__'
+      : '';
+
+  const onVendorChange = (e) => {
+    const val = e.target.value;
+    if (val === '__custom__') {
+      setCustomVendor(true);
+    } else {
+      setCustomVendor(false);
+      setForm((f) => ({ ...f, purchased_from: val }));
+    }
+  };
 
   const brandPrefix = brands.find((b) => b.name.toLowerCase() === form.brand.toLowerCase())?.serial_prefix || '';
 

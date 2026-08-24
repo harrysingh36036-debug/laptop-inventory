@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react';
-import { login, getStores } from '../api';
+import { login, getStores, getLoginUsernames } from '../api';
+
+const CACHE_KEY = 'laptop-inventory.usernames';
 
 export default function Login({ onSuccess }) {
   const [form, setForm] = useState({ username: '', password: '', storeId: '' });
   const [stores, setStores] = useState([]);
   const [storeError, setStoreError] = useState('');
+  const [usernames, setUsernames] = useState([]);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [customUser, setCustomUser] = useState(false);
 
   useEffect(() => {
     getStores()
@@ -16,6 +20,29 @@ export default function Login({ onSuccess }) {
         setStores([]);
         setStoreError('Could not load the store list. Check your connection, or contact an admin if this persists.');
       });
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    getLoginUsernames()
+      .then((rows) => {
+        if (cancelled) return;
+        const list = Array.isArray(rows) ? rows : [];
+        setUsernames(list);
+        if (list.length) localStorage.setItem(CACHE_KEY, JSON.stringify(list));
+      })
+      .catch(() => {
+        if (cancelled) return;
+        try {
+          const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || '[]');
+          if (Array.isArray(cached) && cached.length) setUsernames(cached);
+        } catch {
+          /* ignore */
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -56,14 +83,38 @@ export default function Login({ onSuccess }) {
           <form onSubmit={submit} className="mt-6 space-y-4">
             <div>
               <label className="flabel">Username</label>
-              <input
-                value={form.username}
-                onChange={set('username')}
+              <select
+                value={customUser ? '__custom__' : form.username}
+                onChange={(e) => {
+                  if (e.target.value === '__custom__') {
+                    setCustomUser(true);
+                  } else {
+                    setCustomUser(false);
+                    set('username')(e);
+                  }
+                }}
                 autoComplete="username"
-                placeholder="your username"
                 required
                 className="field mt-1.5"
-              />
+              >
+                <option value="">Select username…</option>
+                {usernames.map((u) => (
+                  <option key={u.username} value={u.username}>
+                    {u.display_name ? `${u.display_name} (${u.username})` : u.username}
+                  </option>
+                ))}
+                <option value="__custom__">Type username…</option>
+              </select>
+              {customUser && (
+                <input
+                  value={form.username}
+                  onChange={set('username')}
+                  autoComplete="username"
+                  placeholder="type username"
+                  required
+                  className="field mt-1.5"
+                />
+              )}
             </div>
 
             <div>

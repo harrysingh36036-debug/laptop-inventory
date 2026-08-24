@@ -5,7 +5,7 @@ import StatusChip from './StatusChip';
 
 export default function LaptopTable({
   laptops, stores, onTransfer, onEdit, onDelete, onSell,
-  canEdit = true, canTransfer = true, canSell = false, canManageCustomers = false, rowId, showSensitive = false, onDetail
+  canEdit = true, canTransfer = true, canSell = false, canManageCustomers = false, rowId, showSensitive = false, onDetail, sellStoreId = null
 }) {
   const [detailLaptopId, setDetailLaptopId] = useState(null);
   const [adminDetailId, setAdminDetailId] = useState(null);
@@ -64,14 +64,18 @@ export default function LaptopTable({
             )}
             {laptops.map((l) => {
               const sel = pending[l.id] ?? '';
-              const spec = [l.product_line, l.ram, l.processor_type, l.storage_size, l.storage_type].filter(Boolean).join(' · ');
+const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.storage_size} ${l.storage_type || ''}`.trim() : l.storage_type].filter(Boolean).join(' · ');
               const gfx = l.graphics === 'yes' ? `GPU: ${l.graphics_type || '—'}${l.graphics_model ? ` ${l.graphics_model}` : ''}` : '';
                const isSold = l.status === 'Sold';
+               const canSellRow = canSell && !isSold && (sellStoreId == null || String(l.current_store_id) === String(sellStoreId));
                return (
                  <React.Fragment key={l.id}>
                    <tr className="group transition-colors duration-150 hover:bg-surface-2/60" data-row={rowId ? rowId(l) : undefined}>
                    <td className={td}>
-                     <p className="font-medium text-ink">{l.brand_model}</p>
+                     <p className="font-medium text-ink">{l.brand}{l.product_line ? ` ${l.product_line}` : ''}</p>
+                     {l.brand_model && l.brand_model !== l.product_line && (
+                       <p className="mt-0.5 text-[11px] text-ink-faint">{l.brand_model}</p>
+                     )}
 {l.purchased_from && (
                         <p className="mt-0.5 text-[11px] text-ink-faint">From {l.purchased_from}</p>
                       )}
@@ -147,14 +151,14 @@ export default function LaptopTable({
                            </button>
                          </>
                        )}
-{canSell && !isSold && (
-                          <button
-                            onClick={() => handleSell(l)}
-                            className="btn-accent"
-                          >
-                            {t.sellButton || 'Sell'}
-                          </button>
-                        )}
+{canSellRow && (
+                           <button
+                             onClick={() => handleSell(l)}
+                             className="btn-accent"
+                           >
+                             {t.sellButton || 'Sell'}
+                           </button>
+                         )}
                         {isSold && (
                           <button
                             onClick={() => toggleDetail(l.id)}
@@ -204,6 +208,7 @@ export default function LaptopTable({
                             </span></p>
                            <p><span className="text-ink-faint">Purchaser name:</span> {l.purchaser_name || '—'}</p>
                            <p><span className="text-ink-faint">Purchaser phone:</span> {l.purchaser_phone || '—'}</p>
+                           <p><span className="text-ink-faint">Product line:</span> {l.product_line || '—'}</p>
                            <p><span className="text-ink-faint">Purchase comment:</span> {l.purchase_comment || '—'}</p>
                            <p><span className="text-ink-faint">Charger:</span> {l.charger || '—'}</p>
                            <p><span className="text-ink-faint">Added:</span> {formatTime(l.created_at)}</p>
@@ -287,14 +292,18 @@ export default function LaptopTable({
         )}
         {laptops.map((l) => {
           const sel = pending[l.id] ?? '';
-          const spec = [l.product_line, l.ram, l.processor_type, l.storage_size, l.storage_type].filter(Boolean).join(' · ');
+          const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.storage_size} ${l.storage_type || ''}`.trim() : l.storage_type].filter(Boolean).join(' · ');
           const gfx = l.graphics === 'yes' ? `GPU: ${l.graphics_type || '—'}${l.graphics_model ? ` ${l.graphics_model}` : ''}` : '';
           const isSold = l.status === 'Sold';
+          const canSellRow = canSell && !isSold && (sellStoreId == null || String(l.current_store_id) === String(sellStoreId));
           return (
             <div key={l.id} className="px-4 py-3" data-row={rowId ? rowId(l) : undefined}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="font-medium text-ink">{l.brand_model}</p>
+                  <p className="font-medium text-ink">{l.brand}{l.product_line ? ` ${l.product_line}` : ''}</p>
+                  {l.brand_model && l.brand_model !== l.product_line && (
+                    <p className="mt-0.5 text-[11px] text-ink-faint">{l.brand_model}</p>
+                  )}
                   {l.purchased_from && (
                     <p className="mt-0.5 text-[11px] text-ink-faint">From {l.purchased_from}</p>
                   )}
@@ -371,7 +380,7 @@ export default function LaptopTable({
                       </button>
                     </>
                   )}
-                  {canSell && !isSold && (
+                  {canSellRow && (
                     <button onClick={() => handleSell(l)} className="btn-accent">
                       {t.sellButton || 'Sell'}
                     </button>
@@ -422,6 +431,7 @@ export default function LaptopTable({
                     </span></p>
                     <p><span className="text-ink-faint">Purchaser name:</span> {l.purchaser_name || '—'}</p>
                     <p><span className="text-ink-faint">Purchaser phone:</span> {l.purchaser_phone || '—'}</p>
+                    <p><span className="text-ink-faint">Product line:</span> {l.product_line || '—'}</p>
                     <p><span className="text-ink-faint">Charger:</span> {l.charger || '—'}</p>
                     <p><span className="text-ink-faint">Purchase comment:</span> {l.purchase_comment || '—'}</p>
                     <p><span className="text-ink-faint">Purchased from:</span> {l.purchased_from || '—'}</p>
