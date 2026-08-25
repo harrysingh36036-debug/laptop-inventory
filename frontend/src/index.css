@@ -112,4 +112,13 @@ body {
   .mono-chip {
     @apply inline-flex items-center rounded-md border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-[11px] leading-none text-ink-dim;
   }
+
+  /* Hide scrollbar on horizontal swipe containers */
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
 }

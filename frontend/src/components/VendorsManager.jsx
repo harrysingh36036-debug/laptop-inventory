@@ -431,33 +431,39 @@ export default function VendorsManager({ onNotify }) {
         </table>
       </div>
 
-      {/* Mobile cards */}
-      <div className="md:hidden space-y-2">
-        {vendors.length === 0 && (
+      {/* Mobile cards – horizontal swipe */}
+      <div className="md:hidden">
+        {vendors.length === 0 ? (
           <p className="text-center text-sm text-ink-faint py-6">No vendors yet.</p>
-        )}
-        {vendors.map((v) => (
-          <div key={v.id} className="rounded-xl border border-line bg-surface-2/40 p-4 space-y-2">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0 flex-1">
-                <p className="font-medium text-ink">{v.name}</p>
-                {v.contact && <p className="text-xs text-ink-dim mt-0.5">{v.contact}</p>}
-                {v.address && <p className="text-xs text-ink-faint mt-0.5">{v.address}</p>}
+        ) : (
+          <div className="-mx-4 px-4 overflow-x-auto snap-x snap-mandatory flex gap-3 pb-2 scrollbar-none">
+            {vendors.map((v) => (
+              <div key={v.id} className="min-w-[260px] max-w-[80vw] snap-start shrink-0 rounded-xl border border-line bg-surface-2/40 p-4 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-ink truncate">{v.name}</p>
+                    {v.contact && <p className="text-xs text-ink-dim mt-0.5 truncate">{v.contact}</p>}
+                    {v.address && <p className="text-xs text-ink-faint mt-0.5 truncate">{v.address}</p>}
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={selected.has(v.id)}
+                    onChange={() => toggle(v.id)}
+                    className="h-4 w-4 rounded accent-accent shrink-0 mt-0.5"
+                    aria-label={`Select ${v.name}`}
+                  />
+                </div>
+                <div className="flex items-center gap-2 pt-1 border-t border-line">
+                  <button onClick={() => startEdit(v)} className="btn-ghost text-xs">Edit</button>
+                  <button onClick={() => setDanger({ kind: 'one', v })} className="btn-danger text-xs">Delete</button>
+                </div>
               </div>
-              <input
-                type="checkbox"
-                checked={selected.has(v.id)}
-                onChange={() => toggle(v.id)}
-                className="h-4 w-4 rounded accent-accent shrink-0 mt-0.5"
-                aria-label={`Select ${v.name}`}
-              />
-            </div>
-            <div className="flex items-center gap-2 pt-1 border-t border-line">
-              <button onClick={() => startEdit(v)} className="btn-ghost text-xs">Edit</button>
-              <button onClick={() => setDanger({ kind: 'one', v })} className="btn-danger text-xs">Delete</button>
-            </div>
+            ))}
           </div>
-        ))}
+        )}
+        {vendors.length > 1 && (
+          <p className="text-center text-[10px] text-ink-faint mt-1">Swipe to browse vendors</p>
+        )}
       </div>
 
       {danger && (
