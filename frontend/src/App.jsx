@@ -1213,7 +1213,7 @@ export default function App() {
       )}
 
       {vendorsOpen && canManageVendors && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 sm:p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/60 sm:p-4 backdrop-blur-sm">
           <div className="max-h-[92vh] sm:max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-t-2xl sm:rounded-2xl border border-line bg-surface p-4 sm:p-6 shadow-pop">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="font-display text-base font-semibold tracking-tight text-ink">Manage Vendors</h2>
