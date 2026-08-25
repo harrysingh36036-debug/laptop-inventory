@@ -15,6 +15,7 @@ const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, onNotify, onR
   const [toDate, setToDate] = useState('');
   const [productLine, setProductLine] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const { t } = useLabels();
 
   const productLines = [...new Set(laptops.map((l) => l.product_line).filter(Boolean))].sort();
@@ -80,54 +81,38 @@ const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, onNotify, onR
     }
   };
 
-  const handleVendorChange = (vendorId) => {
-    setSelectedVendor(vendorId);
-    setSearch('');
+  const clearAll = () => {
+    setSelectedVendor(null);
     setMinPrice('');
     setMaxPrice('');
-    refreshLaptops();
+    setFromDate('');
+    setToDate('');
+    setProductLine('');
+    setSearch('');
   };
 
-  const handlePriceChange = () => {
-    refreshLaptops();
-  };
+  const activeFilterCount = [selectedVendor, minPrice, maxPrice, fromDate, toDate, productLine].filter(Boolean).length;
 
   return (
-    <div className="space-y-6">
-      <section className="panel p-5">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <div>
+    <div className="space-y-4 md:space-y-6 pb-20 md:pb-6">
+      <section className="px-4 md:px-0 pt-4 md:pt-0">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="min-w-0">
             <h2 className="font-display text-base font-semibold tracking-tight text-ink">
               {t?.tableVendorLaptops || 'Vendor Laptops'}
             </h2>
             <p className="text-xs text-ink-faint">
-              Laptops purchased from vendors - track by serial number, config, and price
+              {filtered.length} laptops — track by serial, config & price
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             {isAdmin && (
-              <button
-                onClick={() => setShowModal(true)}
-                className="btn-accent text-sm"
-                title="Add a laptop from a vendor"
-              >
-                + Add Laptop
+              <button onClick={() => setShowModal(true)} className="btn-accent text-xs md:text-sm">
+                + Add
               </button>
             )}
-            {isAdmin && (
-              <button
-                onClick={() => {
-                  setSelectedVendor(null);
-                  setMinPrice('');
-                  setMaxPrice('');
-                  setFromDate('');
-                  setToDate('');
-                  setProductLine('');
-                  setSearch('');
-                }}
-                className="btn-ghost text-sm"
-                title="Clear all filters"
-              >
+            {isAdmin && activeFilterCount > 0 && (
+              <button onClick={clearAll} className="btn-ghost text-xs md:text-sm">
                 Clear
               </button>
             )}
@@ -135,225 +120,163 @@ const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, onNotify, onR
         </div>
       </section>
 
-      <div className="mx-auto max-w-md">
+      <div className="px-4 md:px-0">
         <SearchBox
           value={search}
           onChange={setSearch}
-          placeholder="Search by brand, model, serial number, RAM, storage, processor, generation..."
+          placeholder="Search brand, model, serial, config..."
           countLabel={`${filtered.length} laptops`}
         />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div>
-          <h3 className="font-semibold text-sm uppercase tracking-wider text-ink-faint">Filter by Vendor</h3>
-          <select
-            onChange={(e) => handleVendorChange(e.target.value === '' ? null : Number(e.target.value))}
-            className="field w-full mt-1.5"
-          >
-            <option value="">All Vendors</option>
-            {vendors.map((v) => (
-              <option key={v.id} value={v.id}>
-                {v.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <h3 className="font-semibold text-sm uppercase tracking-wider text-ink-faint">Filter by Price Range</h3>
-          <div className="grid grid-cols-2 gap-2">
-            <input
-              type="number"
-              value={minPrice}
-              onChange={(e) => setMinPrice(e.target.value)}
-              placeholder="Min ₹"
-              className="field rounded-lg border border-line bg-surface-2 px-2 py-1.5 text-sm"
-            />
-            <input
-              type="number"
-              value={maxPrice}
-              onChange={(e) => setMaxPrice(e.target.value)}
-              placeholder="Max ₹"
-              className="field rounded-lg border border-line bg-surface-2 px-2 py-1.5 text-sm"
-            />
+      <div className="px-4 md:px-0">
+        <button
+          onClick={() => setFiltersOpen(!filtersOpen)}
+          className="flex items-center gap-2 text-xs font-medium text-ink-dim md:hidden"
+        >
+          <svg className={`h-4 w-4 transition-transform ${filtersOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+          Filters
+          {activeFilterCount > 0 && (
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-white">{activeFilterCount}</span>
+          )}
+        </button>
+        <div className={`${filtersOpen ? 'mt-3 space-y-3' : 'hidden'} md:block md:space-y-0 md:grid md:grid-cols-2 lg:grid-cols-4 md:gap-4`}>
+          <div>
+            <h3 className="font-semibold text-[10px] uppercase tracking-wider text-ink-faint">Vendor</h3>
+            <select
+              value={selectedVendor ?? ''}
+              onChange={(e) => {
+                const val = e.target.value === '' ? null : Number(e.target.value);
+                setSelectedVendor(val);
+                setSearch('');
+                setMinPrice('');
+                setMaxPrice('');
+                refreshLaptops();
+              }}
+              className="field w-full mt-1"
+            >
+              <option value="">All Vendors</option>
+              {vendors.map((v) => (
+                <option key={v.id} value={v.id}>{v.name}</option>
+              ))}
+            </select>
           </div>
-        </div>
-        <div>
-          <h3 className="font-semibold text-sm uppercase tracking-wider text-ink-faint">Configuration Filter</h3>
-          <select
-            onChange={(e) => {
-              const value = e.target.value.toLowerCase();
-              setSearch(value);
-            }}
-            className="field w-full mt-1.5"
-          >
-            <option value="">All Configurations</option>
-            <option value="ram">RAM</option>
-            <option value="storage">Storage</option>
-            <option value="processor">Processor</option>
-            <option value="generation">Generation</option>
-          </select>
-        </div>
-        <div>
-          <h3 className="font-semibold text-sm uppercase tracking-wider text-ink-faint">Product Line</h3>
-          <select
-            value={productLine}
-            onChange={(e) => setProductLine(e.target.value)}
-            className="field w-full mt-1.5"
-          >
-            <option value="">All Product Lines</option>
-            {productLines.map((pl) => (
-              <option key={pl} value={pl}>{pl}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <h3 className="font-semibold text-sm uppercase tracking-wider text-ink-faint">Date From</h3>
-          <input
-            type="date"
-            value={fromDate}
-            onChange={(e) => setFromDate(e.target.value)}
-            className="field w-full mt-1.5"
-          />
-        </div>
-        <div>
-          <h3 className="font-semibold text-sm uppercase tracking-wider text-ink-faint">Date To</h3>
-          <input
-            type="date"
-            value={toDate}
-            onChange={(e) => setToDate(e.target.value)}
-            className="field w-full mt-1.5"
-          />
+          <div>
+            <h3 className="font-semibold text-[10px] uppercase tracking-wider text-ink-faint">Price Range</h3>
+            <div className="grid grid-cols-2 gap-2 mt-1">
+              <input type="number" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} placeholder="Min ₹" className="field text-sm" />
+              <input type="number" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} placeholder="Max ₹" className="field text-sm" />
+            </div>
+          </div>
+          <div>
+            <h3 className="font-semibold text-[10px] uppercase tracking-wider text-ink-faint">Product Line</h3>
+            <select value={productLine} onChange={(e) => setProductLine(e.target.value)} className="field w-full mt-1">
+              <option value="">All</option>
+              {productLines.map((pl) => (
+                <option key={pl} value={pl}>{pl}</option>
+              ))}
+            </select>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <h3 className="font-semibold text-[10px] uppercase tracking-wider text-ink-faint">From</h3>
+              <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="field w-full mt-1" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-[10px] uppercase tracking-wider text-ink-faint">To</h3>
+              <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="field w-full mt-1" />
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="panel p-5">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <SearchBox
-            value={search}
-            onChange={setSearch}
-            placeholder="Search laptops... (brand/model/serial/config)"
-            countLabel={`${filtered.length} laptops`}
-          />
-          {selectedVendor && (
-            <span className="text-xs text-ink-faint">Vendor: {selectedVendor ? vendors.find(v => v.id === selectedVendor)?.name : '—'}</span>
-          )}
-          {minPrice || maxPrice && (
-            <span className="text-xs text-ink-faint">
-              {minPrice ? `Min ₹${minPrice}` : ''} {maxPrice ? `Max ₹${maxPrice}` : ''}
-            </span>
-          )}
-        </div>
-
-        <div className="mt-4 overflow-x-auto">
-          <table className="w-full min-w-[960px] border-collapse text-left text-sm">
-            <thead>
-              <tr className="border-b border-line">
-                <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
-                  {t?.tableBrand || 'Brand'}
-                </th>
-                <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
-                  {t?.tableModel || 'Model'}
-                </th>
-                <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
-                  {t?.tableSerial || 'Serial Number'}
-                </th>
-                <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
-                  {t?.tableConfig || 'Configuration'}
-                </th>
-                <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
-                  {t?.tablePurchaseRate || 'Purchase Rate'}
-                </th>
-                <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
-                  {t?.tablePurchasedFrom || 'Purchased From'}
-                </th>
-                <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
-                  Added in Vendor
-                </th>
-                <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
-                  Added to Inventory
-                </th>
-                <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
-                  {t?.tableStatus || 'Status'}
-                </th>
-                <th className="px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--hairline)]">
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={10} className="px-4 py-12 text-center text-sm text-ink-faint">
-                    {t?.noLaptops || 'No laptops found'}
-                  </td>
+      <div className="px-4 md:px-0 hidden md:block">
+        <div className="panel p-5">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[960px] border-collapse text-left text-sm">
+              <thead>
+                <tr className="border-b border-line">
+                  <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint">{t?.tableBrand || 'Brand'}</th>
+                  <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint">{t?.tableModel || 'Model'}</th>
+                  <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint">{t?.tableSerial || 'Serial'}</th>
+                  <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint">{t?.tableConfig || 'Config'}</th>
+                  <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint">{t?.tablePurchaseRate || 'Rate'}</th>
+                  <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint">{t?.tablePurchasedFrom || 'Vendor'}</th>
+                  <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Status</th>
+                  <th className="px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Actions</th>
                 </tr>
-              )}
-              {filtered.map((l) => {
-                const config = [
-                  l.ram || '',
-                  l.storage_type || '',
-                  l.processor_type || '',
-                  l.generation || ''
-                ].filter(Boolean).join(' · ');
-                return (
-                  <tr key={l.id} className="group transition-colors duration-150 hover:bg-surface-2/60">
-                    <td className="px-4 py-3 align-middle">
-                      <p className="font-medium text-ink">{l.brand || '—'}</p>
-                    </td>
-                    <td className="px-4 py-3 align-middle">
-                      <p>{l.brand_model || '—'}</p>
-                    </td>
-                    <td className="px-4 py-3 align-middle">
-                      <span className="mono-chip">{l.serial_number}</span>
-                    </td>
-                    <td className="px-4 py-3 align-middle">
-                      <p className="text-[10px] text-ink-dim">{config || '—'}</p>
-                    </td>
-                    <td className="px-4 py-3 align-middle font-mono text-xs text-ink-dim">
-                      {l.purchase_rate != null ? inr(l.purchase_rate) : '—'}
-                    </td>
-                    <td className="px-4 py-3 align-middle">
-                      <span className="text-ink-dim">{l.purchased_from || '—'}</span>
-                    </td>
-                    <td className="px-4 py-3 align-middle font-mono text-[11px] text-ink-faint">
-                      {l.created_at ? formatTime(l.created_at) : '—'}
-                    </td>
-                    <td className="px-4 py-3 align-middle font-mono text-[11px] text-ink-faint">
-                      {l.status === 'In Stock' && l.created_at ? formatTime(l.created_at) : '—'}
-                    </td>
-                    <td className="px-4 py-3 align-middle">
-                      <span className={l.status === 'Sold' ? 'text-stock-risk' : 'status-chip'}>{l.status || '—'}</span>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
+              </thead>
+              <tbody className="divide-y divide-[var(--hairline)]">
+                {filtered.length === 0 && (
+                  <tr><td colSpan={8} className="px-4 py-12 text-center text-sm text-ink-faint">{t?.noLaptops || 'No laptops found'}</td></tr>
+                )}
+                {filtered.map((l) => {
+                  const config = [l.ram, l.storage_type, l.processor_type, l.generation].filter(Boolean).join(' · ');
+                  return (
+                    <tr key={l.id} className="group transition-colors duration-150 hover:bg-surface-2/60">
+                      <td className="px-4 py-3 font-medium text-ink">{l.brand || '—'}</td>
+                      <td className="px-4 py-3">{l.brand_model || '—'}</td>
+                      <td className="px-4 py-3"><span className="mono-chip">{l.serial_number}</span></td>
+                      <td className="px-4 py-3 text-[10px] text-ink-dim">{config || '—'}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-ink-dim">{l.purchase_rate != null ? inr(l.purchase_rate) : '—'}</td>
+                      <td className="px-4 py-3 text-ink-dim">{l.purchased_from || '—'}</td>
+                      <td className="px-4 py-3"><span className={l.status === 'Sold' ? 'text-stock-risk' : 'status-chip'}>{l.status || '—'}</span></td>
+                      <td className="px-4 py-3 text-right">
                         {isAdmin && (
-                          <button
-                            onClick={() => handleAddLaptop(l)}
-                            className="btn-ghost text-accent"
-                            title="Add this laptop to inventory from this vendor's track"
-                          >
-                            Add to Inventory
-                          </button>
+                          <button onClick={() => handleAddLaptop(l)} className="btn-ghost text-accent text-xs">Add to Inventory</button>
                         )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-            <tfoot>
-              <tr className="border-t border-line bg-surface-2/40">
-                <td className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-faint" colSpan={4}>
-                  Total Purchase Rate
-                </td>
-                <td className="px-4 py-2.5 font-mono text-xs font-semibold text-ink">
-                  {inr(
-                    filtered.reduce((sum, l) => sum + (Number(l.purchase_rate) || 0), 0)
-                  )}
-                </td>
-                <td className="px-4 py-2.5" colSpan={5}></td>
-              </tr>
-            </tfoot>
-          </table>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr className="border-t border-line bg-surface-2/40">
+                  <td className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-faint" colSpan={3}>Total</td>
+                  <td className="px-4 py-2.5 font-mono text-xs font-semibold text-ink">{inr(filtered.reduce((s, l) => s + (Number(l.purchase_rate) || 0), 0))}</td>
+                  <td colSpan={4}></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div className="px-4 md:hidden space-y-2">
+        {filtered.length === 0 && (
+          <p className="text-center text-sm text-ink-faint py-6">{t?.noLaptops || 'No laptops found'}</p>
+        )}
+        {filtered.map((l) => {
+          const config = [l.ram, l.storage_type, l.processor_type, l.generation].filter(Boolean).join(' · ');
+          return (
+            <div key={l.id} className="rounded-xl border border-line bg-surface-2/40 p-3 space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-ink text-sm truncate">{l.brand_model || l.brand || '—'}</p>
+                  <p className="text-[10px] text-ink-dim mt-0.5 truncate">{l.serial_number || '—'}</p>
+                </div>
+                <span className={`shrink-0 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${l.status === 'Sold' ? 'bg-stock-risk/10 text-stock-risk' : 'bg-accent/10 text-accent'}`}>
+                  {l.status || '—'}
+                </span>
+              </div>
+              {config && <p className="text-[10px] text-ink-faint truncate">{config}</p>}
+              <div className="flex items-center justify-between text-[10px] text-ink-dim pt-1 border-t border-line">
+                <span>{l.purchase_rate != null ? inr(l.purchase_rate) : '—'}</span>
+                <span className="truncate max-w-[120px]">{l.purchased_from || '—'}</span>
+              </div>
+              {isAdmin && (
+                <button onClick={() => handleAddLaptop(l)} className="w-full btn-ghost text-[10px] text-accent mt-1">
+                  + Add to Inventory
+                </button>
+              )}
+            </div>
+          );
+        })}
+        <div className="flex items-center justify-between rounded-lg bg-surface-2/50 px-3 py-2 mt-2">
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Total</span>
+          <span className="font-mono text-xs font-semibold text-ink">{inr(filtered.reduce((s, l) => s + (Number(l.purchase_rate) || 0), 0))}</span>
         </div>
       </div>
 

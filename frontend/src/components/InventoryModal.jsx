@@ -123,9 +123,9 @@ export default function InventoryModal({ stores, brands = [], vendors = [], prod
   const label = 'flabel';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-line bg-surface shadow-pop">
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-surface/95 px-6 py-4 backdrop-blur">
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/60 sm:p-4 backdrop-blur-sm">
+      <div className="max-h-[92vh] sm:max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-t-2xl sm:rounded-2xl border border-line bg-surface shadow-pop">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-surface/95 px-4 sm:px-6 py-3 sm:py-4 backdrop-blur">
           <h2 className="font-display text-base font-semibold tracking-tight text-ink">
             {title || (editing ? t.editLaptopTitle : t.addLaptopTitle)}
           </h2>
