@@ -49,6 +49,7 @@ const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, onNotify, onR
     const min = minPrice === '' ? null : Number(minPrice);
     const max = maxPrice === '' ? null : Number(maxPrice);
     return (laptops || []).filter((l) => {
+      if (l.current_store_id != null) return false;
       if (vendorName && l.purchased_from !== vendorName) return false;
       const rate = Number(l.purchase_rate) || 0;
       if (min != null && rate < min) return false;

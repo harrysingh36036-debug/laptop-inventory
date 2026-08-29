@@ -66,7 +66,7 @@ export default function ReturnToVendorModal({ laptop, onNotify, onClose }) {
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl border border-line bg-surface p-6 shadow-pop">
+      <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-line bg-surface p-6 shadow-pop">
         <div className="flex items-center justify-between">
           <h3 className="font-display text-base font-semibold tracking-tight text-ink">Return to Vendor</h3>
           <button onClick={onClose} className="text-ink-faint hover:text-ink transition-colors" aria-label="Close">

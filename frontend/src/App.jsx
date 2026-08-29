@@ -901,10 +901,12 @@ export default function App() {
   };
 
   // Counts badge for the store filter.
-  const storeCount = (id) =>
-    id === 'all'
-      ? laptops.length
-      : laptops.filter((l) => l.current_store_id === id).length;
+  const storeCount = (id) => {
+    const assigned = laptops.filter((l) => l.current_store_id != null);
+    return id === 'all'
+      ? assigned.length
+      : assigned.filter((l) => l.current_store_id === id).length;
+  };
 
   if (!authReady) {
     return (
@@ -1047,7 +1049,7 @@ export default function App() {
           </aside>
 
           <InventoryView
-            laptops={laptops}
+            laptops={laptops.filter((l) => l.current_store_id != null)}
             stores={stores}
             storeId={storeId}
             setStoreId={setStoreId}
