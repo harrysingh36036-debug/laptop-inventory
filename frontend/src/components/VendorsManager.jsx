@@ -3,6 +3,7 @@ import { getVendors, addVendor, updateVendor, deleteVendor, bulkDeleteVendors } 
 import { createLaptop } from '../api';
 import { getLaptops } from '../api';
 import DangerConfirmModal from './DangerConfirmModal';
+import ReturnToVendorModal from './ReturnToVendorModal';
 
 const EMPTY = { name: '', contact: '', address: '', brand: '', model: '', serial_number: '', purchase_rate: '', storage: '', ram: '', processor: '', generation: '' };
 
@@ -14,6 +15,7 @@ export default function VendorsManager({ onNotify }) {
   const [busy, setBusy] = useState(false);
   const [selected, setSelected] = useState(new Set());
   const [danger, setDanger] = useState(null); // { kind:'one', v } | { kind:'bulk', ids, names }
+  const [returnTarget, setReturnTarget] = useState(null);
   const [addingLaptop, setAddingLaptop] = useState(false);
   const [addLaptopForm, setAddLaptopForm] = useState({ brand: '', model: '', serial_number: '', purchase_rate: '', storage: '', ram: '', processor: '', generation: '' });
   const [search, setSearch] = useState('');
@@ -383,7 +385,8 @@ export default function VendorsManager({ onNotify }) {
               type="button"
               onClick={() => {
                 if (selectedVendor) {
-                  onNotify?.('Return laptop to vendor feature coming soon', 'info');
+                  const laptop = filteredLaptops().find((l) => l.id === selectedVendor);
+                  if (laptop) setReturnTarget(laptop);
                 }
               }}
               disabled={!selectedVendor || busy}
@@ -490,6 +493,14 @@ export default function VendorsManager({ onNotify }) {
           }
           onConfirm={confirmDelete}
           onClose={() => setDanger(null)}
+        />
+      )}
+
+      {returnTarget && (
+        <ReturnToVendorModal
+          laptop={returnTarget}
+          onNotify={onNotify}
+          onClose={() => { setReturnTarget(null); load(); }}
         />
       )}
     </div>

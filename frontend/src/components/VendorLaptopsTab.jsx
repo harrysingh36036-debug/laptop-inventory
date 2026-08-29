@@ -3,6 +3,7 @@ import { getLaptops, createLaptop } from '../api';
 import { useLabels } from '../labels.jsx';
 import SearchBox from './SearchBox';
 import InventoryModal from './InventoryModal';
+import ReturnToVendorModal from './ReturnToVendorModal';
 import { inr, formatTime } from '../utils';
 
 const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, onNotify, onRefresh }) => {
@@ -15,6 +16,7 @@ const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, onNotify, onR
   const [toDate, setToDate] = useState('');
   const [productLine, setProductLine] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [returnTarget, setReturnTarget] = useState(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const { t } = useLabels();
 
@@ -227,7 +229,7 @@ const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, onNotify, onR
                         {isAdmin && (
                           <div className="flex items-center justify-end gap-2">
                             <button onClick={() => handleAddLaptop(l)} className="btn-ghost text-accent text-xs">Add to Inventory</button>
-                            <button onClick={() => onNotify?.('Return laptop to vendor feature coming soon', 'info')} className="btn-ghost text-stock-risk text-xs">Return</button>
+                            <button onClick={() => setReturnTarget(l)} className="btn-ghost text-stock-risk text-xs">Return</button>
                           </div>
                         )}
                       </td>
@@ -274,7 +276,7 @@ const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, onNotify, onR
                   <button onClick={() => handleAddLaptop(l)} className="flex-1 btn-ghost text-[10px] text-accent">
                     + Add to Inventory
                   </button>
-                  <button onClick={() => onNotify?.('Return laptop to vendor feature coming soon', 'info')} className="flex-1 btn-ghost text-[10px] text-stock-risk">
+                  <button onClick={() => setReturnTarget(l)} className="flex-1 btn-ghost text-[10px] text-stock-risk">
                     Return
                   </button>
                 </div>
@@ -299,6 +301,14 @@ const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, onNotify, onR
           vendorSelect
           onSave={handleInvSave}
           onClose={() => setShowModal(false)}
+        />
+      )}
+
+      {isAdmin && returnTarget && (
+        <ReturnToVendorModal
+          laptop={returnTarget}
+          onNotify={onNotify}
+          onClose={() => { setReturnTarget(null); refreshLaptops(); onRefresh?.(); }}
         />
       )}
     </div>
