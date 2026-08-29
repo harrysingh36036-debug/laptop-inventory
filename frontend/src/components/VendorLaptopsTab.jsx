@@ -225,7 +225,10 @@ const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, onNotify, onR
                       <td className="px-4 py-3"><span className={l.status === 'Sold' ? 'text-stock-risk' : 'status-chip'}>{l.status || '—'}</span></td>
                       <td className="px-4 py-3 text-right">
                         {isAdmin && (
-                          <button onClick={() => handleAddLaptop(l)} className="btn-ghost text-accent text-xs">Add to Inventory</button>
+                          <div className="flex items-center justify-end gap-2">
+                            <button onClick={() => handleAddLaptop(l)} className="btn-ghost text-accent text-xs">Add to Inventory</button>
+                            <button onClick={() => onNotify?.('Return laptop to vendor feature coming soon', 'info')} className="btn-ghost text-stock-risk text-xs">Return</button>
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -267,9 +270,14 @@ const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, onNotify, onR
                 <span className="truncate max-w-[120px]">{l.purchased_from || '—'}</span>
               </div>
               {isAdmin && (
-                <button onClick={() => handleAddLaptop(l)} className="w-full btn-ghost text-[10px] text-accent mt-1">
-                  + Add to Inventory
-                </button>
+                <div className="flex items-center gap-2 mt-1">
+                  <button onClick={() => handleAddLaptop(l)} className="flex-1 btn-ghost text-[10px] text-accent">
+                    + Add to Inventory
+                  </button>
+                  <button onClick={() => onNotify?.('Return laptop to vendor feature coming soon', 'info')} className="flex-1 btn-ghost text-[10px] text-stock-risk">
+                    Return
+                  </button>
+                </div>
               )}
             </div>
           );

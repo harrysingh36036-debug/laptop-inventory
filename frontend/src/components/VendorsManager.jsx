@@ -379,6 +379,18 @@ export default function VendorsManager({ onNotify }) {
             <button type="submit" disabled={busy} className="btn-accent disabled:opacity-50">
               {busy ? 'Adding…' : 'Add to Inventory'}
             </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (selectedVendor) {
+                  onNotify?.('Return laptop to vendor feature coming soon', 'info');
+                }
+              }}
+              disabled={!selectedVendor || busy}
+              className="btn-ghost text-stock-risk disabled:opacity-50"
+            >
+              Return
+            </button>
           </div>
         </div>
       )}
