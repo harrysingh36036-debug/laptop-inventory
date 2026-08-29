@@ -1,8 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
-import { getLaptops, createLaptop } from '../api';
+import { getLaptops, updateLaptop } from '../api';
 import { useLabels } from '../labels.jsx';
 import SearchBox from './SearchBox';
-import InventoryModal from './InventoryModal';
 import ReturnToVendorModal from './ReturnToVendorModal';
 import { inr, formatTime } from '../utils';
 
@@ -15,24 +14,13 @@ const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, onNotify, onR
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [productLine, setProductLine] = useState('');
-  const [showModal, setShowModal] = useState(false);
   const [returnTarget, setReturnTarget] = useState(null);
+  const [assignTarget, setAssignTarget] = useState(null);
+  const [assignStore, setAssignStore] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
   const { t } = useLabels();
 
   const productLines = [...new Set(laptops.map((l) => l.product_line).filter(Boolean))].sort();
-
-  const handleInvSave = async (payload) => {
-    try {
-      await createLaptop(payload);
-      setShowModal(false);
-      onNotify?.('Laptop added to inventory from vendor', 'success');
-      await onRefresh();
-      refreshLaptops();
-    } catch (err) {
-      return err.message || 'Failed to add laptop';
-    }
-  };
 
   useEffect(() => {
     refreshLaptops();
@@ -69,15 +57,19 @@ const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, onNotify, onR
     });
   }, [laptops, search, vendorName, minPrice, maxPrice, productLine, fromDate, toDate]);
 
-  const handleAddLaptop = async (laptopData) => {
+  const handleAddLaptop = async (laptop) => {
+    setAssignTarget(laptop);
+    setAssignStore('');
+  };
+
+  const confirmAssign = async () => {
+    if (!assignTarget || !assignStore) return;
     try {
-      const res = await createLaptop(laptopData);
-      onNotify?.('Laptop added to inventory from vendor', 'success');
+      await updateLaptop(assignTarget.id, { current_store_id: Number(assignStore) });
+      onNotify?.('Laptop added to inventory', 'success');
+      setAssignTarget(null);
+      setAssignStore('');
       await onRefresh();
-      setSearch('');
-      setSelectedVendor(null);
-      setMinPrice('');
-      setMaxPrice('');
       refreshLaptops();
     } catch (err) {
       onNotify?.(err.message, 'error');
@@ -109,11 +101,6 @@ const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, onNotify, onR
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            {isAdmin && (
-              <button onClick={() => setShowModal(true)} className="btn-accent text-xs md:text-sm">
-                + Add
-              </button>
-            )}
             {isAdmin && activeFilterCount > 0 && (
               <button onClick={clearAll} className="btn-ghost text-xs md:text-sm">
                 Clear
@@ -291,18 +278,28 @@ const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, onNotify, onR
         </div>
       </div>
 
-      {isAdmin && showModal && (
-        <InventoryModal
-          stores={stores}
-          brands={brands}
-          vendors={vendors}
-          productLines={productLines}
-          editing={null}
-          title="Add Vendor Laptop"
-          vendorSelect
-          onSave={handleInvSave}
-          onClose={() => setShowModal(false)}
-        />
+      {isAdmin && assignTarget && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl border border-line bg-surface p-6 shadow-pop">
+            <h3 className="font-display text-base font-semibold tracking-tight text-ink">Add to Inventory</h3>
+            <p className="mt-2 text-sm text-ink-dim">
+              Assign <strong>{assignTarget.brand_model || assignTarget.brand}</strong> ({assignTarget.serial_number}) to a store.
+            </p>
+            <div className="mt-4">
+              <label className="flabel">Select Store</label>
+              <select value={assignStore} onChange={(e) => setAssignStore(e.target.value)} className="field mt-1.5 w-full">
+                <option value="">— Choose store —</option>
+                {stores.map((s) => (
+                  <option key={s.id} value={s.id}>{s.store_name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex justify-end gap-2 mt-4">
+              <button onClick={() => { setAssignTarget(null); setAssignStore(''); }} className="btn-ghost">Cancel</button>
+              <button onClick={confirmAssign} disabled={!assignStore} className="btn-accent disabled:opacity-50">Confirm</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {isAdmin && returnTarget && (

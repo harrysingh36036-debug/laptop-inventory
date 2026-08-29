@@ -166,8 +166,9 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
     setMaxPrice('');
   };
 
-  const inStockCount = laptops.filter((l) => l?.status === 'In Stock').length;
-  const inTransitCount = laptops.filter((l) => l?.status === 'In Transit').length;
+  const inventoryLaptops = laptops.filter((l) => l?.current_store_id != null);
+  const inStockCount = inventoryLaptops.filter((l) => l?.status === 'In Stock').length;
+  const inTransitCount = inventoryLaptops.filter((l) => l?.status === 'In Transit').length;
 
   const purchaseValue = (purchases || []).reduce(
     (sum, p) => sum + (Number(p?.purchase_rate) || 0) * (Number(p?.quantity) || 1) + (Number(p?.extra_charges) || 0),
@@ -178,7 +179,7 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
   const repairActive = (repairs || []).filter((r) => r?.status !== 'Repaired').length;
 
   const counts = {
-    inventory: { main: laptops.length, sub: `${inStockCount} in stock · ${inTransitCount} in transit` },
+    inventory: { main: inventoryLaptops.length, sub: `${inStockCount} in stock · ${inTransitCount} in transit` },
     purchase: {
       main: purchases.length,
       sub: purchaseValue
@@ -186,7 +187,7 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
         : 'units bought & money invested'
     },
     'vendor-purchases': {
-      main: laptops.filter((l) => l?.purchased_from).length,
+      main: laptops.filter((l) => l?.purchased_from && l?.current_store_id == null).length,
       sub: 'from registered vendors'
     },
     repair: {
