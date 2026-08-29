@@ -1,7 +1,8 @@
 import { useEffect, useState, useMemo } from 'react';
-import { getLaptops, updateLaptop } from '../api';
+import { getLaptops, updateLaptop, createLaptop } from '../api';
 import { useLabels } from '../labels.jsx';
 import SearchBox from './SearchBox';
+import InventoryModal from './InventoryModal';
 import ReturnToVendorModal from './ReturnToVendorModal';
 import { inr, formatTime } from '../utils';
 
@@ -17,10 +18,23 @@ const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, onNotify, onR
   const [returnTarget, setReturnTarget] = useState(null);
   const [assignTarget, setAssignTarget] = useState(null);
   const [assignStore, setAssignStore] = useState('');
+  const [showModal, setShowModal] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const { t } = useLabels();
 
   const productLines = [...new Set(laptops.map((l) => l.product_line).filter(Boolean))].sort();
+
+  const handleInvSave = async (payload) => {
+    try {
+      await createLaptop({ ...payload, current_store_id: null });
+      setShowModal(false);
+      onNotify?.('Laptop added to vendor list', 'success');
+      await onRefresh();
+      refreshLaptops();
+    } catch (err) {
+      return err.message || 'Failed to add laptop';
+    }
+  };
 
   useEffect(() => {
     refreshLaptops();
@@ -101,6 +115,11 @@ const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, onNotify, onR
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            {isAdmin && (
+              <button onClick={() => setShowModal(true)} className="btn-accent text-xs md:text-sm">
+                + Add
+              </button>
+            )}
             {isAdmin && activeFilterCount > 0 && (
               <button onClick={clearAll} className="btn-ghost text-xs md:text-sm">
                 Clear
@@ -277,6 +296,20 @@ const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, onNotify, onR
           <span className="font-mono text-xs font-semibold text-ink">{inr(filtered.reduce((s, l) => s + (Number(l.purchase_rate) || 0), 0))}</span>
         </div>
       </div>
+
+      {isAdmin && showModal && (
+        <InventoryModal
+          stores={stores}
+          brands={brands}
+          vendors={vendors}
+          productLines={productLines}
+          editing={null}
+          title="Add Vendor Laptop"
+          vendorSelect
+          onSave={handleInvSave}
+          onClose={() => setShowModal(false)}
+        />
+      )}
 
       {isAdmin && assignTarget && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
