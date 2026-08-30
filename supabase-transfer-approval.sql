@@ -203,7 +203,10 @@ BEGIN
       'id', pt.id, 'laptop_id', pt.laptop_id,
       'from_store_id', pt.from_store_id, 'to_store_id', pt.to_store_id,
       'from_store_name', fs.store_name, 'to_store_name', ts.store_name,
+      'brand', l.brand, 'product_line', l.product_line,
       'brand_model', l.brand_model, 'serial_number', l.serial_number,
+      'processor_type', l.processor_type, 'ram', l.ram, 'generation', l.generation,
+      'storage_type', l.storage_type, 'storage_size', l.storage_size,
       'initiated_by', pt.initiated_by, 'status', pt.status,
       'created_at', to_char(pt.created_at, 'YYYY-MM-DD HH24:MI:SS'),
       'updated_at', to_char(pt.updated_at, 'YYYY-MM-DD HH24:MI:SS'))

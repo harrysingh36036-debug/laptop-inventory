@@ -1273,8 +1273,17 @@ export default function App() {
               </div>
             </div>
             <div className="rounded-lg border border-line bg-surface-2/60 p-3 space-y-1.5">
-              <p className="text-sm font-medium text-ink">{activeTransferPopup.brand_model}</p>
-              <p className="text-xs text-ink-faint">Serial: <span className="mono-chip">{activeTransferPopup.serial_number}</span></p>
+              <p className="text-sm font-medium text-ink">
+                {[activeTransferPopup.brand, activeTransferPopup.product_line, activeTransferPopup.brand_model].filter(Boolean).join(' ') || activeTransferPopup.brand_model || 'Laptop'}
+              </p>
+              <p className="text-xs text-ink-faint">
+                {[
+                  activeTransferPopup.processor_type,
+                  activeTransferPopup.ram,
+                  activeTransferPopup.generation,
+                  activeTransferPopup.storage_size ? `${activeTransferPopup.storage_size} ${activeTransferPopup.storage_type || ''}`.trim() : activeTransferPopup.storage_type
+                ].filter(Boolean).join(' • ') || '—'}
+              </p>
               <div className="flex items-center gap-2 text-xs">
                 <span className="rounded-md border border-line bg-surface px-1.5 py-0.5 font-medium text-ink-dim">{activeTransferPopup.from_store_name}</span>
                 <svg className="h-3.5 w-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
