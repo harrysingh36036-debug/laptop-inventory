@@ -376,9 +376,10 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
     if (effectiveFilter !== 'all' && String(l.current_store_id) !== effectiveFilter) return false;
     return true;
   }).length;
-  // Exchange / Return are transfer movements; Purchased is new stock created today.
-  const exchangeCount = dailyTotals.transferred_out_on + dailyTotals.transferred_in_on;
-  const returnCount = dailyTotals.transferred_in_on;
+  // Exchange / Return — only show when an actual exchange/return is recorded (not plain transfers).
+  // No dedicated exchange/return table exists yet, so default to 0 (hidden). Wire to real counts when that feature ships.
+  const exchangeCount = 0;
+  const returnCount = 0;
 
   const exchangeLine = exchangeCount > 0 ? `🔄 Exchange:-${String(exchangeCount).padStart(2, '0')}` : '';
   const returnLine = returnCount > 0 ? `↩️ Return:${String(returnCount).padStart(2, '0')}` : '';
