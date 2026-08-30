@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getSales, getSalesSummary, deleteSale } from '../api';
-import { formatTime, inr } from '../utils';
+import { formatTime, inr, getIstToday } from '../utils';
 import { socket } from '../socket';
 import SearchBox from './SearchBox';
 import DangerConfirmModal from './DangerConfirmModal';
@@ -27,7 +27,7 @@ export function downloadSalesCsv(sales, stores) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `sales-report-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.download = `sales-report-${getIstToday()}.csv`;
   a.style.display = 'none';
   document.body.appendChild(a);
   a.click();

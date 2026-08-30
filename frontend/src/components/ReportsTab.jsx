@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { getSales, getSalesSummary, getDailyReport, getDailyStoreSales, getRepairsByStore } from '../api';
-import { inr } from '../utils';
+import { inr, getIstToday, formatIstDate, formatIstDay, formatIstDateTime, formatIstNow } from '../utils';
 import InventoryStats from './InventoryStats';
 import SearchBox from './SearchBox';
 
@@ -50,7 +50,7 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
   const [sales, setSales] = useState([]);
   const [summary, setSummary] = useState(null);
   const [search, setSearch] = useState('');
-  const [reportDate, setReportDate] = useState(() => new Date().toLocaleDateString('en-CA'));
+  const [reportDate, setReportDate] = useState(() => getIstToday());
   const [daily, setDaily] = useState(null); // app_daily_report payload
   const [storeSales, setStoreSales] = useState(null); // app_daily_store_sales payload
   const [dailyLoading, setDailyLoading] = useState(false);
@@ -175,12 +175,12 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
 
   const downloadInventory = () => {
     const { headers, rows } = buildInventory();
-    saveCsv(`inventory-report-${new Date().toISOString().slice(0, 10)}.csv`, [headers, ...rows]);
+    saveCsv(`inventory-report-${getIstToday()}.csv`, [headers, ...rows]);
   };
 
   const downloadInventoryPdf = () => {
     const { headers, rows } = buildInventory();
-    savePdf(`inventory-report-${new Date().toISOString().slice(0, 10)}.pdf`, 'Inventory Report', `${rows.length} laptops · generated ${new Date().toLocaleString()}`, headers, rows);
+    savePdf(`inventory-report-${getIstToday()}.pdf`, 'Inventory Report', `${rows.length} laptops · generated ${formatIstNow()} IST`, headers, rows);
   };
 
   const buildTransfers = () => {
@@ -196,12 +196,12 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
 
   const downloadTransfers = () => {
     const { headers, rows } = buildTransfers();
-    saveCsv(`transfer-history-${new Date().toISOString().slice(0, 10)}.csv`, [headers, ...rows]);
+    saveCsv(`transfer-history-${getIstToday()}.csv`, [headers, ...rows]);
   };
 
   const downloadTransfersPdf = () => {
     const { headers, rows } = buildTransfers();
-    savePdf(`transfer-history-${new Date().toISOString().slice(0, 10)}.pdf`, 'Transfer History', `${rows.length} moves · generated ${new Date().toLocaleString()}`, headers, rows);
+    savePdf(`transfer-history-${getIstToday()}.pdf`, 'Transfer History', `${rows.length} moves · generated ${formatIstNow()} IST`, headers, rows);
   };
 
   const buildSales = () => {
@@ -217,12 +217,12 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
 
   const downloadSales = () => {
     const { headers, rows } = buildSales();
-    saveCsv(`sales-report-${new Date().toISOString().slice(0, 10)}.csv`, [headers, ...rows]);
+    saveCsv(`sales-report-${getIstToday()}.csv`, [headers, ...rows]);
   };
 
   const downloadSalesPdf = () => {
     const { headers, rows } = buildSales();
-    savePdf(`sales-report-${new Date().toISOString().slice(0, 10)}.pdf`, 'Sales Report', `${rows.length} sales · generated ${new Date().toLocaleString()}`, headers, rows);
+    savePdf(`sales-report-${getIstToday()}.pdf`, 'Sales Report', `${rows.length} sales · generated ${formatIstNow()} IST`, headers, rows);
   };
 
   const buildProfit = () => {
@@ -231,19 +231,19 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
       ['Units Sold', String(summary?.count ?? 0)],
       ['Total Sales (₹)', String(summary?.total_sales ?? 0)],
       ['Total Profit (₹)', String(summary?.total_profit ?? 0)],
-      ['Generated At', `${new Date().toISOString().slice(0, 19).replace('T', ' ')} UTC`]
+      ['Generated At', `${formatIstNow()} IST`]
     ];
     return { headers, rows };
   };
 
   const downloadProfit = () => {
     const { headers, rows } = buildProfit();
-    saveCsv(`profit-summary-${new Date().toISOString().slice(0, 10)}.csv`, [headers, ...rows]);
+    saveCsv(`profit-summary-${getIstToday()}.csv`, [headers, ...rows]);
   };
 
   const downloadProfitPdf = () => {
     const { headers, rows } = buildProfit();
-    savePdf(`profit-summary-${new Date().toISOString().slice(0, 10)}.pdf`, 'Profit Summary', `Generated ${new Date().toLocaleString()}`, headers, rows);
+    savePdf(`profit-summary-${getIstToday()}.pdf`, 'Profit Summary', `Generated ${formatIstNow()} IST`, headers, rows);
   };
 
   const buildRepairs = () => {
@@ -267,12 +267,12 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
 
   const downloadRepairs = () => {
     const { headers, rows } = buildRepairs();
-    saveCsv(`repair-report-${new Date().toISOString().slice(0, 10)}.csv`, [headers, ...rows]);
+    saveCsv(`repair-report-${getIstToday()}.csv`, [headers, ...rows]);
   };
 
   const downloadRepairsPdf = () => {
     const { headers, rows } = buildRepairs();
-    savePdf(`repair-report-${new Date().toISOString().slice(0, 10)}.pdf`, 'Repair Report', `Generated ${new Date().toLocaleString()}`, headers, rows);
+    savePdf(`repair-report-${getIstToday()}.pdf`, 'Repair Report', `Generated ${formatIstNow()} IST`, headers, rows);
   };
 
   // Daily report PDF: per-store status + store-wise sales.
@@ -284,7 +284,7 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
     doc.text('Daily Report', 14, 16);
     doc.setFontSize(9);
     doc.setTextColor(110, 116, 128);
-    doc.text(`${d.date} · generated ${new Date().toLocaleString()}`, 14, 22);
+    doc.text(`${d.date} · generated ${formatIstNow()} IST`, 14, 22);
     autoTable(doc, {
       startY: 26,
       head: [['Store', 'In Store', 'Sold', 'Transferred Out', 'Transferred In', 'Out Total']],
@@ -349,16 +349,10 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
     setDailyViewOpen(true);
   };
 
-  // IST helpers — all daily report dates/times must be Asia/Kolkata.
-  const istDate = (() => {
-    const d = new Date(reportDate + 'T00:00:00');
-    return d.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: '2-digit', year: 'numeric' });
-  })();
-  const istDay = (() => {
-    const d = new Date(reportDate + 'T00:00:00');
-    return d.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'long' });
-  })();
-  const istNow = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'medium' });
+  // IST helpers — all daily report dates/times must be Asia/Kolkata (shared utils).
+  const istDate = formatIstDate(reportDate);
+  const istDay = formatIstDay(reportDate);
+  const istNow = formatIstNow();
   const istTimeOnly = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true });
   const viewStoreName = effectiveFilter === 'all'
     ? (isAdmin ? 'All Stores' : (stores.find((s) => s.id === homeStoreId)?.store_name || 'Your Store'))
@@ -451,7 +445,7 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
   .foot { margin-top: 24px; text-align: center; color: #9aa3b2; font-size: 11px; }
 </style></head><body>
   <h1>Daily Report</h1>
-  <p class="meta">${escapeHtml(d.date)} · generated ${new Date().toLocaleString()}</p>
+  <p class="meta">${escapeHtml(d.date)} · generated ${escapeHtml(formatIstNow())} IST</p>
   <h2>Store status — in / out</h2>
   <table>
     <thead><tr><th>Store</th><th>In Store</th><th>Sold</th><th>Transferred Out</th><th>Transferred In</th><th>Out Total</th><th>Models</th></tr></thead>
@@ -490,7 +484,7 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
       action: buildVendorPurchases,
       pdfAction: () => {
         const { headers, rows } = buildVendorPurchases();
-        savePdf(`vendor-purchases-${new Date().toISOString().slice(0, 10)}.pdf`, 'Vendor Purchases', `${rows.length} entries · generated ${new Date().toLocaleString()}`, headers, rows);
+        savePdf(`vendor-purchases-${getIstToday()}.pdf`, 'Vendor Purchases', `${rows.length} entries · generated ${formatIstNow()} IST`, headers, rows);
       },
       disabled: !laptops.length,
       icon: (
