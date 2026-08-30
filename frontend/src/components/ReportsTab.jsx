@@ -392,26 +392,26 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], purch
   const exchangeCount = 0;
   const returnCount = 0;
 
-  const exchangeLine = exchangeCount > 0 ? `🔄 Exchange:-${String(exchangeCount).padStart(2, '0')}` : '';
-  const returnLine = returnCount > 0 ? `↩️ Return:${String(returnCount).padStart(2, '0')}` : '';
-  const tailLines = [exchangeLine, returnLine, `↪️*Purchased*:-${String(purchasedToday).padStart(2, '0')}`].filter(Boolean).join('\n');
-  const dailyShareText = `*Daily  & Stock Report* 📅 Date:- ${istDate}
-📆 Day:- ${istDay}
-🏬 Store Name:- ${viewStoreName}
-🕐 Generated:- ${istNow} (IST)
+  const exchangeLine = exchangeCount > 0 ? `🔄 Exchange: ${String(exchangeCount).padStart(2, '0')}` : '';
+  const returnLine = returnCount > 0 ? `↩️ Return: ${String(returnCount).padStart(2, '0')}` : '';
+  const tailLines = [exchangeLine, returnLine, `↪️ *Purchased*: ${String(purchasedToday).padStart(2, '0')}`].filter(Boolean).join('\n');
+  const dailyShareText = `*Daily & Stock Report* 📅 Date: ${istDate}
+📆 Day: ${istDay}
+🏬 Store Name: ${viewStoreName}
+🕐 Generated: ${istNow} (IST)
 
-♻️ Stock Update 
-   ▪️ Yesterday:-${String(yesterdayTotals.in_store).padStart(2, '0')}
-   ▪️ Today:-${String(dailyTotals.in_store).padStart(2, '0')}
-
-
-📈 Sales Report  
-   ▪️ Today's Sales:-${String(storeSalesTotals.units).padStart(2, '0')}  (₹${Number(storeSalesTotals.amount || 0).toLocaleString('en-IN')})
+♻️ Stock Update
+   ▪️ Yesterday: ${String(yesterdayTotals.in_store).padStart(2, '0')}
+   ▪️ Today: ${String(dailyTotals.in_store).padStart(2, '0')}
 
 
-📦 Inventory Movement 
-📥 Stock in:-${String(dailyTotals.transferred_in_on).padStart(2, '0')}${stockInDetails.length ? '\n' + stockInDetails.join('\n') : ''}
-📤 Stock Out:-${String(dailyTotals.out_total).padStart(2, '0')}${stockOutDetails.length ? '\n' + stockOutDetails.join('\n') : ''}
+📈 Sales Report
+   ▪️ Today's Sales: ${String(storeSalesTotals.units).padStart(2, '0')}  (₹${Number(storeSalesTotals.amount || 0).toLocaleString('en-IN')})
+
+
+📦 Inventory Movement
+📥 Stock In: ${String(dailyTotals.transferred_in_on).padStart(2, '0')}${stockInDetails.length ? '\n' + stockInDetails.join('\n') : ''}
+📤 Stock Out: ${String(dailyTotals.out_total).padStart(2, '0')}${stockOutDetails.length ? '\n' + stockOutDetails.join('\n') : ''}
 
 
 ${tailLines}
