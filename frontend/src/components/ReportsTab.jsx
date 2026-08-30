@@ -303,6 +303,33 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
     doc.save(`daily-report-${d.date}.pdf`);
   };
 
+  const downloadDailyCsv = () => {
+    if (!daily && !storeSales) return;
+    const d = daily || { date: reportDate, stores: [], totals: {} };
+    const headersStatus = ['Store', 'In Store', 'Sold', 'Transferred Out', 'Transferred In', 'Out Total', 'Models'];
+    const rowsStatus = dailyStores.map((st) => [
+      st.store_name,
+      String(st.in_store ?? 0),
+      String(st.sold_on ?? 0),
+      String(st.transferred_out_on ?? 0),
+      String(st.transferred_in_on ?? 0),
+      String(st.out_total ?? 0),
+      (st.models || []).map((m) => `${m.model} x${m.count}`).join('; ')
+    ]);
+    rowsStatus.push(['Totals', String(dailyTotals.in_store), String(dailyTotals.sold_on), String(dailyTotals.transferred_out_on), String(dailyTotals.transferred_in_on), String(dailyTotals.out_total), '']);
+    const out = [];
+    out.push(headersStatus, ...rowsStatus, []);
+    const headersSales = ['Store', 'Units', 'Amount (INR)', 'Profit (INR)'];
+    out.push(headersSales);
+    out.push(...storeSalesRows.map((st) => [st.store_name, String(st.units ?? 0), String(st.amount ?? 0), String(st.profit ?? 0)]));
+    out.push(['Totals', String(storeSalesTotals.units), String(storeSalesTotals.amount), String(storeSalesTotals.profit)]);
+    saveCsv(`daily-report-${d.date}.csv`, out);
+  };
+
+  const scrollToDaily = () => {
+    document.getElementById('daily-report')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   // Printable daily report (per-store status + store-wise sales).
   const printDailyReport = () => {
     if (!daily && !storeSales) return;
@@ -447,6 +474,20 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
           <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653a2.548 2.548 0 11-3.586-3.586l6.837-5.63m5.108-.233c.55-.164 1.163-.188 1.743-.14a4.5 4.5 0 004.486-6.336l-3.276 3.277a3.004 3.004 0 01-2.25-2.25l3.276-3.276a4.5 4.5 0 00-6.336 4.486c.091 1.076-.071 2.264-.904 2.95l-.102.085" />
         </svg>
       )
+    },
+    {
+      title: 'Daily Report',
+      desc: `Per-store in/out + sales for ${reportDate} · ${daily ? `${dailyStores.length} stores` : 'select date above'}`,
+      stat: daily || storeSales ? `${dailyTotals.in_store} in store · ${storeSalesTotals.units} sold · ₹${Number(storeSalesTotals.amount || 0).toLocaleString('en-IN')}` : '',
+      action: downloadDailyCsv,
+      pdfAction: downloadDailyPdf,
+      onView: scrollToDaily,
+      disabled: !daily && !storeSales,
+      icon: (
+        <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.6">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      )
     }
   ];
 
@@ -494,8 +535,45 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
               {r.icon}
             </div>
             <h3 className="font-display text-sm font-semibold tracking-tight text-ink">{r.title}</h3>
-            <p className="mt-1 flex-1 text-xs text-ink-faint">{r.desc}</p>
-            {r.stat && <p className="mt-2 font-mono text-lg font-medium tracking-tight text-accent">{r.stat}</p>}
+            <p className="mt-1 text-xs text-ink-faint">{r.desc}</p>
+            {r.title === 'Daily Report' && (
+              <div className="mt-3 space-y-2.5 rounded-xl border border-line bg-surface-2/40 p-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">Date</label>
+                  <input
+                    type="date"
+                    value={reportDate}
+                    onChange={(e) => setReportDate(e.target.value)}
+                    className="field py-1.5 text-sm"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">Store</label>
+                  {isAdmin ? (
+                    <select
+                      value={effectiveFilter}
+                      onChange={(e) => setStoreFilter(e.target.value)}
+                      className="field py-1.5 text-sm"
+                    >
+                      <option value="all">All stores</option>
+                      {visibleStores.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.store_name}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="field flex items-center gap-1.5 bg-surface-2 py-1.5 text-sm text-ink">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      <span className="truncate">{stores.find((s) => s.id === homeStoreId)?.store_name || 'Your store'}</span>
+                      <span className="ml-auto text-[10px] font-medium uppercase tracking-wide text-ink-faint">locked</span>
+                    </div>
+                  )}
+                </div>
+                {!isAdmin && <p className="text-[10px] leading-tight text-ink-faint">Managers see only their home store. Admins see all stores.</p>}
+              </div>
+            )}
+            {r.stat && <p className={`font-mono text-sm font-medium tracking-tight text-accent ${r.title === 'Daily Report' ? 'mt-3' : 'mt-2 text-lg'}`}>{r.stat}</p>}
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <button
                 onClick={r.action}
@@ -511,6 +589,14 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
               >
                 PDF
               </button>
+              {r.onView && (
+                <button
+                  onClick={r.onView}
+                  className="btn-ghost"
+                >
+                  View
+                </button>
+              )}
             </div>
           </div>
         ))}
