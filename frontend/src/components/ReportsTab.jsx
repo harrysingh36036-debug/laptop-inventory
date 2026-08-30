@@ -55,6 +55,8 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
   const [storeSales, setStoreSales] = useState(null); // app_daily_store_sales payload
   const [dailyLoading, setDailyLoading] = useState(false);
   const [dailyError, setDailyError] = useState('');
+  const [yesterdayDaily, setYesterdayDaily] = useState(null);
+  const [dailyViewOpen, setDailyViewOpen] = useState(false);
   const [repairByStore, setRepairByStore] = useState(null); // app_repairs_by_store payload
   const storeName = (id) => stores.find((s) => s.id === id)?.store_name;
 
@@ -93,6 +95,13 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
     { count: 0, total_cost: 0, total_charge: 0, profit: 0 }
   );
 
+  // Yesterday totals for the ♻️ Stock Update card (same store filter, IST date already).
+  const yesterdayStores = applyStore(yesterdayDaily?.stores || []);
+  const yesterdayTotals = yesterdayStores.reduce(
+    (a, s) => ({ in_store: a.in_store + (s.in_store || 0) }),
+    { in_store: 0 }
+  );
+
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -114,12 +123,22 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
     let alive = true;
     setDailyLoading(true);
     setDailyError('');
+    const yDate = (() => {
+      const d = new Date(reportDate + 'T00:00:00');
+      d.setDate(d.getDate() - 1);
+      return d.toISOString().slice(0, 10);
+    })();
     (async () => {
       try {
-        const [r, ss] = await Promise.all([getDailyReport(reportDate), getDailyStoreSales(reportDate)]);
+        const [r, ss, y] = await Promise.all([
+          getDailyReport(reportDate),
+          getDailyStoreSales(reportDate),
+          getDailyReport(yDate).catch(() => null)
+        ]);
         if (!alive) return;
         setDaily(r || null);
         setStoreSales(ss || null);
+        setYesterdayDaily(y || null);
       } catch (e) {
         if (!alive) return;
         setDailyError(e.message);
@@ -327,7 +346,63 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
   };
 
   const scrollToDaily = () => {
-    document.getElementById('daily-report')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setDailyViewOpen(true);
+  };
+
+  // IST helpers — all daily report dates/times must be Asia/Kolkata.
+  const istDate = (() => {
+    const d = new Date(reportDate + 'T00:00:00');
+    return d.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: '2-digit', year: 'numeric' });
+  })();
+  const istDay = (() => {
+    const d = new Date(reportDate + 'T00:00:00');
+    return d.toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'long' });
+  })();
+  const istNow = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'medium' });
+  const istTimeOnly = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true });
+  const viewStoreName = effectiveFilter === 'all'
+    ? (isAdmin ? 'All Stores' : (stores.find((s) => s.id === homeStoreId)?.store_name || 'Your Store'))
+    : (stores.find((s) => String(s.id) === effectiveFilter)?.store_name || `#${effectiveFilter}`);
+  const purchasedToday = (laptops || []).filter((l) => {
+    const d = (l.created_at || '').slice(0, 10);
+    if (d !== reportDate) return false;
+    if (effectiveFilter !== 'all' && String(l.current_store_id) !== effectiveFilter) return false;
+    return true;
+  }).length;
+  // Exchange / Return are transfer movements; Purchased is new stock created today.
+  const exchangeCount = dailyTotals.transferred_out_on + dailyTotals.transferred_in_on;
+  const returnCount = dailyTotals.transferred_in_on;
+
+  const dailyShareText = `*Daily & Stock Report* 📅 Date:- ${istDate}
+📆 Day:- ${istDay}
+🏬 Store Name:- ${viewStoreName}
+🕐 Generated:- ${istNow} (IST)
+
+♻️ *Stock Update*
+   ▪️ Yesterday:- ${String(yesterdayTotals.in_store).padStart(2, '0')}
+   ▪️ Today:- ${String(dailyTotals.in_store).padStart(2, '0')}
+
+📈 *Sales Report*
+   ▪️ Today's Sales:- ${String(storeSalesTotals.units).padStart(2, '0')}  (₹${Number(storeSalesTotals.amount || 0).toLocaleString('en-IN')})
+
+📦 *Inventory Movement*
+📥 Stock in:- ${String(dailyTotals.transferred_in_on).padStart(2, '0')}
+📤 Stock Out:- ${String(dailyTotals.out_total).padStart(2, '0')}
+
+🔄 Exchange:- ${String(exchangeCount).padStart(2, '0')}
+↩️ Return:- ${String(returnCount).padStart(2, '0')}
+↪️ *Purchased*:- ${String(purchasedToday).padStart(2, '0')}
+
+— Laptop Inventory · ${istTimeOnly} IST`;
+
+  const copyDailyShare = async () => {
+    try { await navigator.clipboard.writeText(dailyShareText); } catch { /* fallback: selection */ }
+  };
+  const shareDaily = async () => {
+    if (navigator.share) {
+      try { await navigator.share({ title: 'Daily & Stock Report', text: dailyShareText }); return; } catch { /* cancel */ }
+    }
+    copyDailyShare();
   };
 
   // Printable daily report (per-store status + store-wise sales).
@@ -826,6 +901,59 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
         </section>
       )}
 
+      {/* Daily & Stock Report — IST modal for View */}
+      {dailyViewOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <button aria-label="Close" onClick={() => setDailyViewOpen(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="relative w-full max-w-md max-h-[90vh] overflow-auto rounded-2xl border border-line bg-surface p-5 shadow-pop">
+            <div className="flex items-start justify-between gap-3">
+              <h3 className="font-display text-sm font-semibold tracking-tight text-ink">Daily &amp; Stock Report</h3>
+              <button onClick={() => setDailyViewOpen(false)} className="rounded-full border border-line bg-surface-2 p-1.5 text-ink-faint hover:text-ink" aria-label="Close">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <p className="mt-1 text-[11px] text-ink-faint">Generated {istNow} (IST) · {istTimeOnly} IST</p>
+
+            {/* Formatted text block — exactly the requested template */}
+            <pre className="mt-4 whitespace-pre-wrap rounded-xl border border-line bg-page p-4 font-mono text-[13px] leading-5 text-ink">
+{`*Daily  & Stock Report* 📅 Date:- ${istDate}
+📆 Day:- ${istDay}
+🏬 Store Name:- ${viewStoreName}
+
+
+♻️ Stock Update 
+   ▪️ Yesterday:-${String(yesterdayTotals.in_store).padStart(2, '0')}
+   ▪️ Today:-${String(dailyTotals.in_store).padStart(2, '0')}
+
+
+📈 Sales Report  
+   ▪️ Today's Sales:-${String(storeSalesTotals.units).padStart(2, '0')}  (₹${Number(storeSalesTotals.amount || 0).toLocaleString('en-IN')})
+
+
+📦 Inventory Movement 
+📥 Stock in:-${String(dailyTotals.transferred_in_on).padStart(2, '0')}
+📤 Stock Out:-${String(dailyTotals.out_total).padStart(2, '0')}
+
+
+🔄 Exchange:-${String(exchangeCount).padStart(2, '0')}
+↩️ Return:${String(returnCount).padStart(2, '0')}
+↪️*Purchased*:-${String(purchasedToday).padStart(2, '0')}`}
+            </pre>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button onClick={copyDailyShare} className="btn-accent">Copy</button>
+              <button onClick={shareDaily} className="btn-ghost">Share</button>
+              <button onClick={() => {
+                const blob = new Blob([dailyShareText], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a'); a.href = url; a.download = `daily-stock-report-${reportDate}.txt`; a.click(); URL.revokeObjectURL(url);
+              }} className="btn-ghost">Download .txt</button>
+              <button onClick={() => setDailyViewOpen(false)} className="btn-ghost">Close</button>
+            </div>
+            <p className="mt-3 text-[10px] text-ink-faint">Date / Day are IST (Asia/Kolkata). Yesterday vs Today uses in_store count for the same store filter. Stock in = Transferred In, Stock Out = Sold + Transferred Out. Exchange = In + Out movements, Return = In.</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
