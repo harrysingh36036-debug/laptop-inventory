@@ -246,6 +246,7 @@ export default function App() {
   const [status, setStatus] = useState('');
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState('dashboard');
+  const [reportsViewOpen, setReportsViewOpen] = useState(false);
 
   // Toast / sync notifications
   const [toast, setToast] = useState(null);
@@ -1102,6 +1103,7 @@ export default function App() {
             laptops={laptops}
             isAdmin={isAdmin}
             homeStoreId={user?.home_store_id ?? null}
+            onDailyViewChange={setReportsViewOpen}
             onOpenStore={(storeId, q = '') => {
               setStoreId(storeId == null || storeId === '' ? '' : String(storeId));
               setStatus('');
@@ -1307,7 +1309,7 @@ export default function App() {
       {toast && <Toast key={toast.id} msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
 
       {!vendorsOpen && (
-        <BottomNav tab={tab} onNavigate={setTab} hidden={!!(invModal || purchaseModal || repairModal || sellTarget || delTarget || repairDelTarget || purchaseDelTarget || settingsOpen || brandsOpen)} />
+        <BottomNav tab={tab} onNavigate={setTab} hidden={!!(invModal || purchaseModal || repairModal || sellTarget || delTarget || repairDelTarget || purchaseDelTarget || settingsOpen || brandsOpen || reportsViewOpen)} />
       )}
       </div>
     </LabelsProvider>

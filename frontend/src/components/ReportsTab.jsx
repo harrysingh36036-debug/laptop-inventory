@@ -46,7 +46,7 @@ function savePdf(filename, title, subtitle, headers, rows) {
   doc.save(filename);
 }
 
-export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdmin = false, homeStoreId = null, onOpenStore }) {
+export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdmin = false, homeStoreId = null, onOpenStore, onDailyViewChange }) {
   const [sales, setSales] = useState([]);
   const [summary, setSummary] = useState(null);
   const [search, setSearch] = useState('');
@@ -58,6 +58,7 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
   const [yesterdayDaily, setYesterdayDaily] = useState(null);
   const [dailyViewOpen, setDailyViewOpen] = useState(false);
   const [repairByStore, setRepairByStore] = useState(null); // app_repairs_by_store payload
+  useEffect(() => { onDailyViewChange?.(dailyViewOpen); }, [dailyViewOpen, onDailyViewChange]);
   const storeName = (id) => stores.find((s) => s.id === id)?.store_name;
 
   // Store filter: admins pick any store; managers are locked to their home store.
@@ -354,6 +355,18 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
   const istDay = formatIstDay(reportDate);
   const istNow = formatIstNow();
   const istTimeOnly = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', hour12: true });
+  // Inventory movement per-store breakdown (in = received at store, out = sent from store)
+  const logsForDate = (logs || []).filter((l) => String(l.changed_at || '').slice(0, 10) === reportDate);
+  const stockInDetails = dailyStores.filter((s) => (s.transferred_in_on || 0) > 0).map((s) => {
+    const sources = logsForDate.filter((l) => String(l.to_store_id) === String(s.store_id) || l.to_store_name === s.store_name).map((l) => l.from_store_name || (l.from_store_id ? `#${l.from_store_id}` : '')).filter(Boolean);
+    const uniq = [...new Set(sources)].slice(0, 3).join(', ');
+    return `   ▪️ ${s.store_name}: ${String(s.transferred_in_on).padStart(2, '0')}${uniq ? ` (from ${uniq})` : ''}`;
+  });
+  const stockOutDetails = dailyStores.filter((s) => (s.out_total || 0) > 0 || (s.transferred_out_on || 0) > 0).map((s) => {
+    const dests = logsForDate.filter((l) => String(l.from_store_id) === String(s.store_id) || l.from_store_name === s.store_name).map((l) => l.to_store_name || (l.to_store_id ? `#${l.to_store_id}` : '')).filter(Boolean);
+    const uniq = [...new Set(dests)].slice(0, 3).join(', ');
+    return `   ▪️ ${s.store_name}: ${String(s.out_total || s.transferred_out_on || 0).padStart(2, '0')}${uniq ? ` → ${uniq}` : ''}`;
+  });
   const viewStoreName = effectiveFilter === 'all'
     ? (isAdmin ? 'All Stores' : (stores.find((s) => s.id === homeStoreId)?.store_name || 'Your Store'))
     : (stores.find((s) => String(s.id) === effectiveFilter)?.store_name || `#${effectiveFilter}`);
@@ -367,25 +380,28 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
   const exchangeCount = dailyTotals.transferred_out_on + dailyTotals.transferred_in_on;
   const returnCount = dailyTotals.transferred_in_on;
 
-  const dailyShareText = `*Daily & Stock Report* 📅 Date:- ${istDate}
+  const dailyShareText = `*Daily  & Stock Report* 📅 Date:- ${istDate}
 📆 Day:- ${istDay}
 🏬 Store Name:- ${viewStoreName}
 🕐 Generated:- ${istNow} (IST)
 
-♻️ *Stock Update*
-   ▪️ Yesterday:- ${String(yesterdayTotals.in_store).padStart(2, '0')}
-   ▪️ Today:- ${String(dailyTotals.in_store).padStart(2, '0')}
+♻️ Stock Update 
+   ▪️ Yesterday:-${String(yesterdayTotals.in_store).padStart(2, '0')}
+   ▪️ Today:-${String(dailyTotals.in_store).padStart(2, '0')}
 
-📈 *Sales Report*
-   ▪️ Today's Sales:- ${String(storeSalesTotals.units).padStart(2, '0')}  (₹${Number(storeSalesTotals.amount || 0).toLocaleString('en-IN')})
 
-📦 *Inventory Movement*
-📥 Stock in:- ${String(dailyTotals.transferred_in_on).padStart(2, '0')}
-📤 Stock Out:- ${String(dailyTotals.out_total).padStart(2, '0')}
+📈 Sales Report  
+   ▪️ Today's Sales:-${String(storeSalesTotals.units).padStart(2, '0')}  (₹${Number(storeSalesTotals.amount || 0).toLocaleString('en-IN')})
 
-🔄 Exchange:- ${String(exchangeCount).padStart(2, '0')}
-↩️ Return:- ${String(returnCount).padStart(2, '0')}
-↪️ *Purchased*:- ${String(purchasedToday).padStart(2, '0')}
+
+📦 Inventory Movement 
+📥 Stock in:-${String(dailyTotals.transferred_in_on).padStart(2, '0')}${stockInDetails.length ? '\n' + stockInDetails.join('\n') : ''}
+📤 Stock Out:-${String(dailyTotals.out_total).padStart(2, '0')}${stockOutDetails.length ? '\n' + stockOutDetails.join('\n') : ''}
+
+
+🔄 Exchange:-${String(exchangeCount).padStart(2, '0')}
+↩️ Return:${String(returnCount).padStart(2, '0')}
+↪️*Purchased*:-${String(purchasedToday).padStart(2, '0')}
 
 — Laptop Inventory · ${istTimeOnly} IST`;
 
@@ -895,9 +911,9 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
         </section>
       )}
 
-      {/* Daily & Stock Report — IST modal for View */}
+      {/* Daily & Stock Report — IST modal for View (above BottomNav/side buttons on phone) */}
       {dailyViewOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
           <button aria-label="Close" onClick={() => setDailyViewOpen(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
           <div className="relative w-full max-w-md max-h-[90vh] overflow-auto rounded-2xl border border-line bg-surface p-5 shadow-pop">
             <div className="flex items-start justify-between gap-3">
@@ -908,7 +924,7 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
             </div>
             <p className="mt-1 text-[11px] text-ink-faint">Generated {istNow} (IST) · {istTimeOnly} IST</p>
 
-            {/* Formatted text block — exactly the requested template */}
+            {/* Formatted text block — exactly the requested template + per-store Inventory Movement */}
             <pre className="mt-4 whitespace-pre-wrap rounded-xl border border-line bg-page p-4 font-mono text-[13px] leading-5 text-ink">
 {`*Daily  & Stock Report* 📅 Date:- ${istDate}
 📆 Day:- ${istDay}
@@ -925,8 +941,8 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
 
 
 📦 Inventory Movement 
-📥 Stock in:-${String(dailyTotals.transferred_in_on).padStart(2, '0')}
-📤 Stock Out:-${String(dailyTotals.out_total).padStart(2, '0')}
+📥 Stock in:-${String(dailyTotals.transferred_in_on).padStart(2, '0')}${stockInDetails.length ? '\n' + stockInDetails.join('\n') : ''}
+📤 Stock Out:-${String(dailyTotals.out_total).padStart(2, '0')}${stockOutDetails.length ? '\n' + stockOutDetails.join('\n') : ''}
 
 
 🔄 Exchange:-${String(exchangeCount).padStart(2, '0')}
