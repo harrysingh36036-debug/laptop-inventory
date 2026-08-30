@@ -380,6 +380,9 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
   const exchangeCount = dailyTotals.transferred_out_on + dailyTotals.transferred_in_on;
   const returnCount = dailyTotals.transferred_in_on;
 
+  const exchangeLine = exchangeCount > 0 ? `🔄 Exchange:-${String(exchangeCount).padStart(2, '0')}` : '';
+  const returnLine = returnCount > 0 ? `↩️ Return:${String(returnCount).padStart(2, '0')}` : '';
+  const tailLines = [exchangeLine, returnLine, `↪️*Purchased*:-${String(purchasedToday).padStart(2, '0')}`].filter(Boolean).join('\n');
   const dailyShareText = `*Daily  & Stock Report* 📅 Date:- ${istDate}
 📆 Day:- ${istDay}
 🏬 Store Name:- ${viewStoreName}
@@ -399,9 +402,7 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
 📤 Stock Out:-${String(dailyTotals.out_total).padStart(2, '0')}${stockOutDetails.length ? '\n' + stockOutDetails.join('\n') : ''}
 
 
-🔄 Exchange:-${String(exchangeCount).padStart(2, '0')}
-↩️ Return:${String(returnCount).padStart(2, '0')}
-↪️*Purchased*:-${String(purchasedToday).padStart(2, '0')}
+${tailLines}
 
 — Laptop Inventory · ${istTimeOnly} IST`;
 
@@ -924,30 +925,9 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
             </div>
             <p className="mt-1 text-[11px] text-ink-faint">Generated {istNow} (IST) · {istTimeOnly} IST</p>
 
-            {/* Formatted text block — exactly the requested template + per-store Inventory Movement */}
+            {/* Formatted text block — exactly the requested template + per-store Inventory Movement (Exchange/Return hidden when 0) */}
             <pre className="mt-4 whitespace-pre-wrap rounded-xl border border-line bg-page p-4 font-mono text-[13px] leading-5 text-ink">
-{`*Daily  & Stock Report* 📅 Date:- ${istDate}
-📆 Day:- ${istDay}
-🏬 Store Name:- ${viewStoreName}
-
-
-♻️ Stock Update 
-   ▪️ Yesterday:-${String(yesterdayTotals.in_store).padStart(2, '0')}
-   ▪️ Today:-${String(dailyTotals.in_store).padStart(2, '0')}
-
-
-📈 Sales Report  
-   ▪️ Today's Sales:-${String(storeSalesTotals.units).padStart(2, '0')}  (₹${Number(storeSalesTotals.amount || 0).toLocaleString('en-IN')})
-
-
-📦 Inventory Movement 
-📥 Stock in:-${String(dailyTotals.transferred_in_on).padStart(2, '0')}${stockInDetails.length ? '\n' + stockInDetails.join('\n') : ''}
-📤 Stock Out:-${String(dailyTotals.out_total).padStart(2, '0')}${stockOutDetails.length ? '\n' + stockOutDetails.join('\n') : ''}
-
-
-🔄 Exchange:-${String(exchangeCount).padStart(2, '0')}
-↩️ Return:${String(returnCount).padStart(2, '0')}
-↪️*Purchased*:-${String(purchasedToday).padStart(2, '0')}`}
+{dailyShareText}
             </pre>
 
             <div className="mt-4 flex flex-wrap gap-2">
