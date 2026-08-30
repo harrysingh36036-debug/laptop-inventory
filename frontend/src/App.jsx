@@ -1101,6 +1101,7 @@ export default function App() {
             stores={stores}
             logs={logs}
             laptops={laptops}
+            purchases={purchases}
             isAdmin={isAdmin}
             homeStoreId={user?.home_store_id ?? null}
             onDailyViewChange={setReportsViewOpen}

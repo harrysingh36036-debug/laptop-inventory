@@ -46,7 +46,7 @@ function savePdf(filename, title, subtitle, headers, rows) {
   doc.save(filename);
 }
 
-export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdmin = false, homeStoreId = null, onOpenStore, onDailyViewChange }) {
+export default function ReportsTab({ stores = [], logs = [], laptops = [], purchases = [], isAdmin = false, homeStoreId = null, onOpenStore, onDailyViewChange }) {
   const [sales, setSales] = useState([]);
   const [summary, setSummary] = useState(null);
   const [search, setSearch] = useState('');
@@ -370,12 +370,23 @@ export default function ReportsTab({ stores = [], logs = [], laptops = [], isAdm
   const viewStoreName = effectiveFilter === 'all'
     ? (isAdmin ? 'All Stores' : (stores.find((s) => s.id === homeStoreId)?.store_name || 'Your Store'))
     : (stores.find((s) => String(s.id) === effectiveFilter)?.store_name || `#${effectiveFilter}`);
-  const purchasedToday = (laptops || []).filter((l) => {
-    const d = (l.created_at || '').slice(0, 10);
-    if (d !== reportDate) return false;
-    if (effectiveFilter !== 'all' && String(l.current_store_id) !== effectiveFilter) return false;
-    return true;
-  }).length;
+  // Purchased today must count the purchases ledger (purchased_at), not laptops.created_at.
+  // Sum quantity, store-filtered (manager locked), IST date already in reportDate.
+  const purchasedToday = (() => {
+    const list = (purchases && purchases.length) ? purchases : [];
+    if (list.length) {
+      return list
+        .filter((p) => {
+          const d = String(p.purchased_at || p.created_at || '').slice(0, 10);
+          if (d !== reportDate) return false;
+          if (effectiveFilter !== 'all' && String(p.current_store_id ?? p.store_id ?? '') !== effectiveFilter) return false;
+          return true;
+        })
+        .reduce((sum, p) => sum + (Number(p.quantity) || 1), 0);
+    }
+    // Fallback when purchases not passed (e.g. direct mount): 0 instead of laptop count to avoid false 01.
+    return 0;
+  })();
   // Exchange / Return — only show when an actual exchange/return is recorded (not plain transfers).
   // No dedicated exchange/return table exists yet, so default to 0 (hidden). Wire to real counts when that feature ships.
   const exchangeCount = 0;
