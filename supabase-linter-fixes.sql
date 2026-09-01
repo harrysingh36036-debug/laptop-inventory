@@ -55,8 +55,10 @@ DECLARE
 BEGIN
   IF v_role NOT IN ('superadmin','admin') THEN RAISE EXCEPTION 'Only an admin or the super admin can create accounts'; END IF;
   IF p_role = 'superadmin' AND v_role <> 'superadmin' THEN RAISE EXCEPTION 'Only the super admin can create super admin accounts'; END IF;
-  -- Managers have no limit; other roles capped at 10 total accounts
-  IF COALESCE(p_role,'staff') <> 'manager' AND (SELECT count(*) FROM public.profiles) >= 10 THEN RAISE EXCEPTION 'Account limit reached: maximum 10 accounts (managers unlimited)'; END IF;
+  -- Role caps: 5 admin, 10 manager, 10 staff — upgrade required beyond
+  IF COALESCE(p_role,'staff') = 'admin' AND (SELECT count(*) FROM public.profiles WHERE role='admin') >= 5 THEN RAISE EXCEPTION 'Admin limit reached: maximum 5 admins — upgrade required'; END IF;
+  IF COALESCE(p_role,'staff') = 'manager' AND (SELECT count(*) FROM public.profiles WHERE role='manager') >= 10 THEN RAISE EXCEPTION 'Manager limit reached: maximum 10 managers — upgrade required'; END IF;
+  IF COALESCE(p_role,'staff') = 'staff' AND (SELECT count(*) FROM public.profiles WHERE role='staff') >= 10 THEN RAISE EXCEPTION 'Staff limit reached: maximum 10 staff — upgrade required'; END IF;
   IF v_name !~ '^[a-z0-9._-]{3,32}$' THEN RAISE EXCEPTION 'Username must be 3-32 chars: letters, numbers, . _ -'; END IF;
   IF COALESCE(p_password,'') = '' OR length(p_password) < 6 THEN RAISE EXCEPTION 'Password must be at least 6 characters'; END IF;
   IF EXISTS (SELECT 1 FROM public.profiles WHERE username = v_name) THEN RAISE EXCEPTION 'Username already taken'; END IF;
