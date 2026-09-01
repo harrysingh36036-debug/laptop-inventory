@@ -37,6 +37,7 @@ import {
   deleteStore
 } from './api';
 import { socket, setSocketAuth, setLocalRole, setLocalPII } from './socket';
+import { joinPresence, leavePresence } from './presence';
 import { LabelsProvider } from './labels.jsx';
 import Login from './components/Login';
 import StoreFilter from './components/StoreFilter';
@@ -332,7 +333,17 @@ export default function App() {
     setLocalRole(nextUser.role);
     if (nextUser.role !== current?.role || nextUser.id !== current?.id) socket.connect();
     setUser(nextUser);
+    joinPresence(nextUser);
   }, [user]);
+
+  // Keep live presence in sync — who is currently active/logged in
+  useEffect(() => {
+    if (user) joinPresence(user);
+    else leavePresence();
+    return () => {
+      // channel cleanup handled inside presence.js; also leave when user id changes
+    };
+  }, [user?.id]);
 
   // ---- Auth bootstrap: restore session from a saved token -----------------
   useEffect(() => {
@@ -347,6 +358,7 @@ export default function App() {
         setLocalRole(res.user.role);
         socket.connect();
         setUser(res.user);
+        joinPresence(res.user);
       })
       .catch(() => setToken(null))
       .finally(() => setAuthReady(true));
@@ -587,6 +599,7 @@ export default function App() {
   }, [user?.id, user?.role, notify]);
 
   const handleLogout = () => {
+    leavePresence();
     socket.disconnect();
     setSocketAuth(null);
     setToken(null);

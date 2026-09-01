@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { DEFAULT_LABELS } from '../labels.jsx';
 import { getPermissions, savePermissions, getUsers, updateUser, createUser, deleteUser } from '../api';
 import DangerConfirmModal from './DangerConfirmModal';
+import ActiveAccountsTab from './ActiveAccountsTab';
 
 // Description rows for the customizable button/label texts.
 const LABEL_FIELDS = [
@@ -175,6 +176,7 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
     setTab(k);
     if (k === 'permissions' && !permsLoaded) loadPerms();
     if (k === 'users' && !usersLoaded) loadUsers();
+    // Accounts tab fetches its own users live; no preload needed
   };
 
   // ---- Users tab (admin only) ---------------------------------------------
@@ -291,7 +293,8 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
   const TABS = [['stores', 'Stores']].concat(
     isAdmin ? [['labels', 'Buttons & Labels']] : [],
     (isAdmin || isSuperAdmin) ? [['permissions', 'Roles & Permissions']] : [],
-    isAdmin ? [['users', 'Users']] : []
+    isAdmin ? [['users', 'Users']] : [],
+    [['accounts', 'Accounts']]
   );
 
   return (
@@ -584,6 +587,10 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
               </div>
             )}
           </div>
+        )}
+
+        {tab === 'accounts' && (
+          <ActiveAccountsTab stores={stores} isSuperAdmin={isSuperAdmin} />
         )}
       </div>
 
