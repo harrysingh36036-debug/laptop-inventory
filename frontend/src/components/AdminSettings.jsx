@@ -507,60 +507,70 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
                   const d = drafts[u.id] || {};
                   return (
                     <div key={u.id} className="rounded-xl border border-line bg-surface-2/40 p-4">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <div className="min-w-0 flex-1">
+                      <div className="flex flex-col gap-3">
+                        <div className="min-w-0">
                           <p className="truncate text-sm font-semibold text-ink">{u.display_name || u.username}</p>
                           <p className="truncate text-xs text-ink-faint">
                             @{u.username}
                             {u.home_store_name ? ` · ${u.home_store_name}` : ''}
                           </p>
                         </div>
-                        <select
-                          value={d.role ?? u.role}
-                          onChange={setDraft(u.id, 'role')}
-                          className="field w-auto"
-                          disabled={u.role === 'superadmin' && !isSuperAdmin}
-                        >
-                          <option value="staff">staff</option>
-                          <option value="manager">manager</option>
-                          <option value="admin">admin</option>
-                          {isSuperAdmin && <option value="superadmin">superadmin</option>}
-                        </select>
-                        <select
-                          value={d.store_id ?? u.home_store_id ?? 0}
-                          onChange={setDraft(u.id, 'store_id')}
-                          className="field w-auto max-w-[220px]"
-                        >
-                          <option value={0}>— No store —</option>
-                          {stores.map((s) => (
-                            <option key={s.id} value={s.id}>
-                              {s.store_name}
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          onClick={() => saveUser(u)}
-                          disabled={usersBusy}
-                          className="btn-accent disabled:opacity-50"
-                        >
-                          Save
-                        </button>
-                        {(isAdmin || isSuperAdmin) && (
-                          <button
-                            onClick={() => { setResetPwdUser(resetPwdUser?.id === u.id ? null : u); setNewPassword(''); }}
-                            disabled={usersBusy}
-                            className="btn-ghost disabled:opacity-50"
-                          >
-                            {resetPwdUser?.id === u.id ? 'Cancel' : 'Reset Password'}
-                          </button>
-                        )}
-                        <button
-                          onClick={() => removeOneUser(u)}
-                          disabled={usersBusy || u.id === currentUserId}
-                          className="btn-danger disabled:opacity-40"
-                        >
-                          Delete
-                        </button>
+                        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
+                          <div className="flex flex-1 flex-col gap-1 min-w-[130px] sm:max-w-[160px]">
+                            <span className="flabel">Role</span>
+                            <select
+                              value={d.role ?? u.role}
+                              onChange={setDraft(u.id, 'role')}
+                              className="field"
+                              disabled={u.role === 'superadmin' && !isSuperAdmin}
+                            >
+                              <option value="staff">staff</option>
+                              <option value="manager">manager</option>
+                              <option value="admin">admin</option>
+                              {isSuperAdmin && <option value="superadmin">superadmin</option>}
+                            </select>
+                          </div>
+                          <div className="flex flex-1 flex-col gap-1 min-w-[160px] sm:max-w-[220px]">
+                            <span className="flabel">Home store</span>
+                            <select
+                              value={d.store_id ?? u.home_store_id ?? 0}
+                              onChange={setDraft(u.id, 'store_id')}
+                              className="field"
+                            >
+                              <option value={0}>— No store —</option>
+                              {stores.map((s) => (
+                                <option key={s.id} value={s.id}>
+                                  {s.store_name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2 sm:ml-0 sm:pt-5">
+                            <button
+                              onClick={() => saveUser(u)}
+                              disabled={usersBusy}
+                              className="btn-accent disabled:opacity-50"
+                            >
+                              Save
+                            </button>
+                            {(isAdmin || isSuperAdmin) && (
+                              <button
+                                onClick={() => { setResetPwdUser(resetPwdUser?.id === u.id ? null : u); setNewPassword(''); }}
+                                disabled={usersBusy}
+                                className="btn-ghost disabled:opacity-50"
+                              >
+                                {resetPwdUser?.id === u.id ? 'Cancel' : 'Reset Password'}
+                              </button>
+                            )}
+                            <button
+                              onClick={() => removeOneUser(u)}
+                              disabled={usersBusy || u.id === currentUserId}
+                              className="btn-danger disabled:opacity-40"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
                       </div>
                       {resetPwdUser?.id === u.id && (
                         <div className="mt-3 flex items-center gap-2">
