@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { formatTime, inr } from '../utils';
+import { formatTime, formatIstDate, inr } from '../utils';
 import { useLabels } from '../labels.jsx';
 import StatusChip from './StatusChip';
 
@@ -50,6 +50,7 @@ export default function LaptopTable({
               <th className={th}>{t.tableStore}</th>
               <th className={th}>{t.tableStatus}</th>
               <th className={th}>Purchase</th>
+              <th className={th}>Purchase Date</th>
               <th className={th}>{t.tableChangeLocation}</th>
               <th className={`${th} text-right`}>{t.tableActions}</th>
             </tr>
@@ -57,7 +58,7 @@ export default function LaptopTable({
           <tbody className="divide-y divide-[var(--hairline)]">
             {laptops.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-12 text-center text-sm text-ink-faint">
+                <td colSpan={9} className="px-4 py-12 text-center text-sm text-ink-faint">
                   {t.noLaptops}
                 </td>
               </tr>
@@ -100,11 +101,12 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                    <td className={td}>
                      <StatusChip status={l.status} />
                    </td>
-                   <td className={`${td} font-mono text-xs text-ink-dim`}>
-                     {l.purchase_rate != null
-                       ? `${inr(l.purchase_rate)}${l.extra_charges ? `+${inr(l.extra_charges)}` : ''}`
-                       : '—'}
-                   </td>
+                    <td className={`${td} font-mono text-xs text-ink-dim`}>
+                      {l.purchase_rate != null
+                        ? `${inr(l.purchase_rate)}${l.extra_charges ? `+${inr(l.extra_charges)}` : ''}`
+                        : '—'}
+                    </td>
+                    <td className={`${td} font-mono text-[11px] text-ink-faint`}>{l.created_at ? formatIstDate(String(l.created_at).slice(0, 10)) : '—'}</td>
                    {canTransfer && !isSold ? (
                      <td className={td}>
                        <div className="flex flex-wrap items-center gap-2">
@@ -185,9 +187,9 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                       </div>
                    </td>
                  </tr>
-                 {adminDetailId === l.id && (
-                   <tr className="bg-surface-2/50">
-                     <td colSpan={8} className="px-4 py-2 text-sm text-ink-dim">
+                  {adminDetailId === l.id && (
+                    <tr className="bg-surface-2/50">
+                      <td colSpan={9} className="px-4 py-2 text-sm text-ink-dim">
                        <div className="p-3 rounded-lg border border-accent-line bg-accent-soft">
                          <p className="font-semibold text-ink mb-2">Purchase / Inventory Details</p>
                          <div className="grid gap-x-6 gap-y-1 text-[11px] sm:grid-cols-2 lg:grid-cols-3">
@@ -225,9 +227,9 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                      </td>
                    </tr>
                  )}
-                 {detailLaptopId === l.id && (
-                   <tr className="bg-surface-2/50">
-                     <td colSpan={8} className="px-4 py-2 text-sm text-ink-dim">
+                  {detailLaptopId === l.id && (
+                    <tr className="bg-surface-2/50">
+                      <td colSpan={9} className="px-4 py-2 text-sm text-ink-dim">
                        <div className="p-3 rounded-lg border border-accent-line bg-accent-soft">
                          <p className="font-semibold text-ink mb-2">Customer Details</p>
                          <p className="text-[10px] text-ink-faint mb-1">
@@ -253,9 +255,9 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                      </td>
                    </tr>
                  )}
-                 {isSold && (
-                   <tr className="bg-surface-2/30">
-                     <td colSpan={8} className="px-4 py-1.5 text-xs text-ink-dim">
+                  {isSold && (
+                    <tr className="bg-surface-2/30">
+                      <td colSpan={9} className="px-4 py-1.5 text-xs text-ink-dim">
                        <span className="inline-flex items-center gap-1.5">
                          <span className="mono-chip text-[10px]">{l.serial_number}</span>
                          <span>Sold for </span>
@@ -326,6 +328,7 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                     {l.extra_charges ? `+${inr(l.extra_charges)}` : ''}
                   </span>
                 )}
+                <span className="font-mono text-[11px] text-ink-faint">{l.created_at ? formatIstDate(String(l.created_at).slice(0, 10)) : ''}</span>
               </div>
               {isSold && (
                 <div className="mt-2 rounded-lg bg-surface-2/60 px-2.5 py-1.5 text-[11px] text-ink-dim">

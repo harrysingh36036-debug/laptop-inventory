@@ -4,7 +4,7 @@ import { useLabels } from '../labels.jsx';
 import SearchBox from './SearchBox';
 import InventoryModal from './InventoryModal';
 import ReturnToVendorModal from './ReturnToVendorModal';
-import { inr, formatTime } from '../utils';
+import { inr, formatTime, formatIstDate } from '../utils';
 
 const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, onNotify, onRefresh }) => {
   const [laptops, setLaptops] = useState([]);
@@ -213,13 +213,14 @@ const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, onNotify, onR
                   <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint">{t?.tableConfig || 'Config'}</th>
                   <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint">{t?.tablePurchaseRate || 'Rate'}</th>
                   <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint">{t?.tablePurchasedFrom || 'Vendor'}</th>
+                  <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Purchase Date</th>
                   <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Status</th>
                   <th className="px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--hairline)]">
                 {filtered.length === 0 && (
-                  <tr><td colSpan={8} className="px-4 py-12 text-center text-sm text-ink-faint">{t?.noLaptops || 'No laptops found'}</td></tr>
+                  <tr><td colSpan={9} className="px-4 py-12 text-center text-sm text-ink-faint">{t?.noLaptops || 'No laptops found'}</td></tr>
                 )}
                 {filtered.map((l) => {
                   const config = [l.ram, l.storage_type, l.processor_type, l.generation].filter(Boolean).join(' · ');
@@ -231,6 +232,7 @@ const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, onNotify, onR
                       <td className="px-4 py-3 text-[10px] text-ink-dim">{config || '—'}</td>
                       <td className="px-4 py-3 font-mono text-xs text-ink-dim">{l.purchase_rate != null ? inr(l.purchase_rate) : '—'}</td>
                       <td className="px-4 py-3 text-ink-dim">{l.purchased_from || '—'}</td>
+                      <td className="px-4 py-3 font-mono text-[11px] text-ink-faint">{l.created_at ? formatIstDate(String(l.created_at).slice(0, 10)) : '—'}</td>
                       <td className="px-4 py-3"><span className={l.status === 'Sold' ? 'text-stock-risk' : 'status-chip'}>{l.status || '—'}</span></td>
                       <td className="px-4 py-3 text-right">
                         {isAdmin && (
@@ -248,7 +250,7 @@ const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, onNotify, onR
                 <tr className="border-t border-line bg-surface-2/40">
                   <td className="px-4 py-2.5 text-[10px] font-semibold uppercase tracking-wider text-ink-faint" colSpan={3}>Total</td>
                   <td className="px-4 py-2.5 font-mono text-xs font-semibold text-ink">{inr(filtered.reduce((s, l) => s + (Number(l.purchase_rate) || 0), 0))}</td>
-                  <td colSpan={4}></td>
+                  <td colSpan={5}></td>
                 </tr>
               </tfoot>
             </table>
@@ -277,6 +279,7 @@ const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, onNotify, onR
               <div className="flex items-center justify-between text-[10px] text-ink-dim pt-1 border-t border-line">
                 <span>{l.purchase_rate != null ? inr(l.purchase_rate) : '—'}</span>
                 <span className="truncate max-w-[120px]">{l.purchased_from || '—'}</span>
+                <span className="font-mono">{l.created_at ? formatIstDate(String(l.created_at).slice(0, 10)) : '—'}</span>
               </div>
               {isAdmin && (
                 <div className="flex items-center gap-2 mt-1">
