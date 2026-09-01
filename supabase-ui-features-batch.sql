@@ -50,7 +50,7 @@ END $$;
 -- Create user (admin can create manager / admin / staff; only super admin can create super admin)
 CREATE OR REPLACE FUNCTION public.app_create_user(p_username text, p_password text, p_display_name text, p_role text, p_store_id bigint DEFAULT NULL, p_allowed_store_ids bigint[] DEFAULT NULL)
 RETURNS jsonb
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = public
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, extensions, auth
 AS $$
 DECLARE
   v_role text := public.app_role();
@@ -72,7 +72,7 @@ BEGIN
   v_email := v_name || '@laptop.inventory';
   INSERT INTO auth.users (id, instance_id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, is_sso_user, is_anonymous, confirmation_token, recovery_token, email_change, confirmation_sent_at, recovery_sent_at, email_change_sent_at, created_at, updated_at)
   VALUES (v_uid, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', v_email,
-          public.crypt(p_password, public.gen_salt('bf', 10)), now(), '{"provider":"email","providers":["email"]}'::jsonb,
+          extensions.crypt(p_password, extensions.gen_salt('bf', 10)), now(), '{"provider":"email","providers":["email"]}'::jsonb,
           '{}'::jsonb, false, false, '', '', '', now(), now(), now(), now(), now());
   INSERT INTO auth.identities (id, user_id, provider_id, identity_data, provider, last_sign_in_at, created_at, updated_at)
   VALUES (gen_random_uuid(), v_uid, v_email, jsonb_build_object('sub', v_uid::text, 'email', v_email), 'email', now(), now(), now());
