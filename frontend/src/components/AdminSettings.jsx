@@ -298,8 +298,8 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-line bg-surface p-6 shadow-pop">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-4 backdrop-blur-sm">
+      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden rounded-2xl border border-line bg-surface p-4 sm:p-6 shadow-pop">
         <div className="flex items-center justify-between">
           <h2 className="font-display text-base font-semibold tracking-tight text-ink">
             {isAdmin ? 'Admin Settings' : 'Store Management'}
@@ -317,13 +317,13 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
           </p>
         )}
 
-        {/* Tabs */}
-        <div className="mt-4 flex gap-1 rounded-xl border border-line bg-surface-2 p-1">
+        {/* Tabs - scrollable on phone so labels don't spill outside rounded box */}
+        <div className="mt-4 flex gap-1 overflow-x-auto rounded-xl border border-line bg-surface-2 p-1 no-scrollbar">
           {TABS.map(([k, n]) => (
             <button
               key={k}
               onClick={() => selectTab(k)}
-              className={`flex-1 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors duration-150 ${
+              className={`shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition-colors duration-150 sm:flex-1 sm:whitespace-normal sm:text-sm ${
                 tab === k ? 'bg-surface-3 text-ink' : 'text-ink-dim hover:text-ink'
               }`}
             >
@@ -475,9 +475,9 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
                     {isSuperAdmin && <option value="superadmin">superadmin</option>}
                   </select>
                 </div>
-                <div className="sm:col-span-2">
+                <div className="sm:col-span-2 min-w-0">
                   <label className="flabel">Home store</label>
-                  <select value={newUser.store_id} onChange={setNew('store_id')} className="field mt-1.5 max-w-[280px]">
+                  <select value={newUser.store_id} onChange={setNew('store_id')} className="field mt-1.5 w-full max-w-full sm:max-w-[280px]">
                     <option value={0}>— No store —</option>
                     {stores.map((s) => (
                       <option key={s.id} value={s.id}>
@@ -506,8 +506,8 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
                 {users.map((u) => {
                   const d = drafts[u.id] || {};
                   return (
-                    <div key={u.id} className="rounded-xl border border-line bg-surface-2/40 p-4">
-                      <div className="flex flex-col gap-3">
+                    <div key={u.id} className="rounded-xl border border-line bg-surface-2/40 p-4 overflow-hidden">
+                      <div className="flex flex-col gap-3 min-w-0">
                         <div className="min-w-0">
                           <p className="truncate text-sm font-semibold text-ink">{u.display_name || u.username}</p>
                           <p className="truncate text-xs text-ink-faint">
@@ -515,13 +515,13 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
                             {u.home_store_name ? ` · ${u.home_store_name}` : ''}
                           </p>
                         </div>
-                        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
-                          <div className="flex flex-1 flex-col gap-1 min-w-[130px] sm:max-w-[160px]">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end min-w-0">
+                          <div className="flex w-full min-w-0 flex-col gap-1 sm:w-auto sm:min-w-[130px] sm:max-w-[160px] sm:flex-1">
                             <span className="flabel">Role</span>
                             <select
                               value={d.role ?? u.role}
                               onChange={setDraft(u.id, 'role')}
-                              className="field"
+                              className="field w-full min-w-0"
                               disabled={u.role === 'superadmin' && !isSuperAdmin}
                             >
                               <option value="staff">staff</option>
@@ -530,12 +530,12 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
                               {isSuperAdmin && <option value="superadmin">superadmin</option>}
                             </select>
                           </div>
-                          <div className="flex flex-1 flex-col gap-1 min-w-[160px] sm:max-w-[220px]">
+                          <div className="flex w-full min-w-0 flex-col gap-1 sm:w-auto sm:min-w-[160px] sm:max-w-[220px] sm:flex-1">
                             <span className="flabel">Home store</span>
                             <select
                               value={d.store_id ?? u.home_store_id ?? 0}
                               onChange={setDraft(u.id, 'store_id')}
-                              className="field"
+                              className="field w-full min-w-0"
                             >
                               <option value={0}>— No store —</option>
                               {stores.map((s) => (
@@ -545,7 +545,7 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
                               ))}
                             </select>
                           </div>
-                          <div className="flex flex-wrap items-center gap-2 sm:ml-0 sm:pt-5">
+                          <div className="flex w-full flex-wrap items-center gap-2 sm:ml-0 sm:w-auto sm:pt-5">
                             <button
                               onClick={() => saveUser(u)}
                               disabled={usersBusy}

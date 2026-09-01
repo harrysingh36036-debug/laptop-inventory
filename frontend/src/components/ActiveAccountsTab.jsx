@@ -108,20 +108,20 @@ export default function ActiveAccountsTab({ stores = [], isSuperAdmin = false })
   }
 
   return (
-    <div className="mt-4 space-y-4">
+    <div className="mt-4 space-y-4 min-w-0 overflow-hidden">
       {err && (
         <p className="rounded-lg border border-stock-risk/25 bg-stock-risk/10 px-3 py-2 text-sm text-stock-risk">{err}</p>
       )}
 
       {/* Summary */}
-      <div className="grid grid-cols-3 gap-2">
-        <div className="rounded-xl border border-line bg-surface-2/40 px-3 py-3 text-center">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-faint">Total accounts</p>
-          <p className="mt-1 font-display text-xl font-bold text-ink">{total}</p>
+      <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+        <div className="min-w-0 overflow-hidden rounded-xl border border-line bg-surface-2/40 px-2 py-2.5 text-center sm:px-3 sm:py-3">
+          <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-ink-faint sm:text-[11px]">Total accounts</p>
+          <p className="mt-1 font-display text-lg font-bold text-ink sm:text-xl">{total}</p>
         </div>
-        <div className="rounded-xl border border-stock-ok/20 bg-stock-ok/10 px-3 py-3 text-center">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-stock-ok">Active now</p>
-          <p className="mt-1 flex items-center justify-center gap-1.5 font-display text-xl font-bold text-stock-ok">
+        <div className="min-w-0 overflow-hidden rounded-xl border border-stock-ok/20 bg-stock-ok/10 px-2 py-2.5 text-center sm:px-3 sm:py-3">
+          <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-stock-ok sm:text-[11px]">Active now</p>
+          <p className="mt-1 flex items-center justify-center gap-1.5 font-display text-lg font-bold text-stock-ok sm:text-xl">
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-stock-ok opacity-30" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-stock-ok" />
@@ -129,24 +129,24 @@ export default function ActiveAccountsTab({ stores = [], isSuperAdmin = false })
             {onlineCount}
           </p>
         </div>
-        <div className="rounded-xl border border-line bg-surface-2/40 px-3 py-3 text-center">
-          <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-faint">Offline</p>
-          <p className="mt-1 font-display text-xl font-bold text-ink-dim">{offlineCount}</p>
+        <div className="min-w-0 overflow-hidden rounded-xl border border-line bg-surface-2/40 px-2 py-2.5 text-center sm:px-3 sm:py-3">
+          <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-ink-faint sm:text-[11px]">Offline</p>
+          <p className="mt-1 font-display text-lg font-bold text-ink-dim sm:text-xl">{offlineCount}</p>
         </div>
       </div>
 
       {/* Live indicator */}
-      <div className="flex items-center justify-between gap-2 rounded-lg border border-line bg-surface-2/30 px-3 py-2">
-        <span className="inline-flex items-center gap-2 text-xs font-medium text-ink-dim">
-          <span className={`h-2 w-2 rounded-full ${onlineCount > 0 ? 'bg-stock-ok shadow-[0_0_0_4px_rgba(34,197,94,0.18)]' : 'bg-ink-faint'}`} />
-          Live presence · updates instantly via Realtime
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line bg-surface-2/30 px-3 py-2">
+        <span className="inline-flex min-w-0 items-center gap-2 text-xs font-medium text-ink-dim">
+          <span className={`h-2 w-2 shrink-0 rounded-full ${onlineCount > 0 ? 'bg-stock-ok shadow-[0_0_0_4px_rgba(34,197,94,0.18)]' : 'bg-ink-faint'}`} />
+          <span className="min-w-0 break-words">Live presence · updates instantly via Realtime</span>
         </span>
-        <span className="text-[11px] text-ink-faint">{onlineCount} online · {offlineCount} offline</span>
+        <span className="shrink-0 text-[11px] text-ink-faint">{onlineCount} online · {offlineCount} offline</span>
       </div>
 
       {/* Controls */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-[180px]">
+      <div className="flex flex-wrap items-center gap-2 min-w-0">
+        <div className="relative flex-1 min-w-0 sm:min-w-[180px]">
           <svg className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-faint" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 110-16 8 8 0 010 16z" />
           </svg>
