@@ -41,7 +41,7 @@ BEGIN
       RAISE EXCEPTION 'You can only sell laptops assigned to your own store';
     END IF;
   END IF;
-  IF p_sale_price IS NULL OR p_sale_price < 0 THEN RAISE EXCEPTION 'sale_price is required'; END IF;
+  IF p_sale_price IS NULL THEN RAISE EXCEPTION 'sale_price is required'; END IF;
   IF p_customer_id IS NOT NULL THEN
     SELECT * INTO v_customer FROM public.customers WHERE id = p_customer_id;
     IF v_customer.id IS NULL THEN RAISE EXCEPTION 'Customer not found'; END IF;

@@ -129,14 +129,14 @@ export default function RepairModal({ editing = null, laptops = [], stores = [],
             </div>
             <div>
               <label className={label} htmlFor="repair-cost">Item Cost (₹)</label>
-              <input id="repair-cost" value={form.cost} onChange={set('cost')} type="number" min="0" step="any" className={input} placeholder="0" />
+              <input id="repair-cost" value={form.cost} onChange={set('cost')} type="number" step="any" className={input} placeholder="Any amount" />
             </div>
           </div>
 
           <div>
             <label className={label} htmlFor="repair-charge">Charged to Customer (₹)</label>
-            <input id="repair-charge" value={form.charge} onChange={set('charge')} type="number" min="0" step="any" className={input} placeholder="0" />
-            {Number(form.cost) > 0 && Number(form.charge) >= 0 && (
+            <input id="repair-charge" value={form.charge} onChange={set('charge')} type="number" step="any" className={input} placeholder="Any amount" />
+            {Number.isFinite(Number(form.cost)) && Number.isFinite(Number(form.charge)) && form.cost !== '' && form.charge !== '' && (
               <p className="mt-1 text-xs text-ink-faint">
                 Profit: {inr((Number(form.charge) || 0) - (Number(form.cost) || 0))}
               </p>

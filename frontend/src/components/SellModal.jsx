@@ -34,8 +34,8 @@ export default function SellModal({ open, laptop, customers, onSave, onAddCustom
   const handleSubmit = async (e) => {
     e.preventDefault();
     const num = Number(price);
-    if (!Number.isFinite(num) || num < 0 || !Number.isInteger(num)) {
-      setPriceError('Amount must be a whole number (no decimals).');
+    if (!Number.isFinite(num)) {
+      setPriceError('Amount is required.');
       return;
     }
     setPriceError('');
@@ -81,12 +81,12 @@ export default function SellModal({ open, laptop, customers, onSave, onAddCustom
             <input
               value={price}
               onChange={(e) => {
-                const v = e.target.value.replace(/[^0-9]/g, '');
+                const v = e.target.value.replace(/[^0-9.\-]/g, '');
                 setPrice(v);
                 setPriceError('');
               }}
-              type="text" inputMode="numeric" pattern="[0-9]*"
-              placeholder={cost ? String(cost) : ''}
+              type="text" inputMode="decimal"
+              placeholder={cost ? String(cost) : 'Any amount (e.g. -500, 0, 12500.50)'}
               className="field w-full"
               autoFocus
             />

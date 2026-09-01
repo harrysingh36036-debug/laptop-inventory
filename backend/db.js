@@ -532,7 +532,7 @@ function sellLaptop(laptopId, salePrice, soldBy) {
   if (!laptop) return { error: 'Laptop not found' };
   if (laptop.status === 'Sold') return { error: 'Laptop is already sold' };
   const price = Number(salePrice);
-  if (!Number.isFinite(price) || price < 0) return { error: 'sale_price is required' };
+  if (!Number.isFinite(price)) return { error: 'sale_price is required' };
   const cost = (laptop.purchase_rate || 0) + (laptop.extra_charges || 0);
   const profit = price - cost;
 

@@ -315,17 +315,17 @@ export default function InventoryModal({ stores, brands = [], vendors = [], prod
             </div>
           </div>
 
-          {/* Pricing */}
+          {/* Pricing - no restrictions on amount */}
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className={label}>Purchase Rate (₹)</label>
-              <input value={form.purchase_rate} onChange={set('purchase_rate')} type="number" min="0"
-                placeholder="0" className={input()} />
+              <input value={form.purchase_rate} onChange={set('purchase_rate')} type="number" step="any"
+                placeholder="Any amount" className={input()} />
             </div>
             <div>
               <label className={label}>Extra Charges (₹)</label>
-              <input value={form.extra_charges} onChange={set('extra_charges')} type="number" min="0"
-                placeholder="0" className={input()} />
+              <input value={form.extra_charges} onChange={set('extra_charges')} type="number" step="any"
+                placeholder="Any amount" className={input()} />
             </div>
           </div>
 

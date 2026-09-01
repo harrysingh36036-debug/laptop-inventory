@@ -73,7 +73,6 @@ DECLARE v_row public.repairs%ROWTYPE;
 BEGIN
   IF NOT public.app_perm('editInventory') THEN RAISE EXCEPTION 'Insufficient permissions'; END IF;
   IF COALESCE(btrim(p_issue),'') = '' THEN RAISE EXCEPTION 'issue is required'; END IF;
-  IF p_charge IS NOT NULL AND p_charge < 0 THEN RAISE EXCEPTION 'charge cannot be negative'; END IF;
   INSERT INTO public.repairs (laptop_id, serial_number, brand_model, issue, vendor, cost, charge, store_id, notes, created_by)
   VALUES (p_laptop_id,
           NULLIF(btrim(p_serial_number), ''),

@@ -104,9 +104,9 @@ aadhar_no: editing.purchaser_aadhar || editing.aadhar_no || '',
       setError('Enter at least a brand or model for what was purchased.');
       return;
     }
-    const rate = Number(form.purchase_rate || 0);
-    if (rate <= 0) {
-      setError('Enter the purchase rate — this is a spending ledger.');
+    const rate = Number(form.purchase_rate);
+    if (form.purchase_rate !== '' && Number.isNaN(rate)) {
+      setError('Purchase rate must be a valid number (any amount allowed).');
       return;
     }
     if (!editing && !form.aadhar_no.trim()) {
@@ -253,11 +253,11 @@ aadhar_no: editing.purchaser_aadhar || editing.aadhar_no || '',
             </div>
             <div>
               <label className="flabel">Purchase Rate (₹)</label>
-              <input type="number" min="0" value={form.purchase_rate} onChange={setN('purchase_rate')} placeholder="0" className="field mt-1.5" />
+              <input type="number" step="any" value={form.purchase_rate} onChange={setN('purchase_rate')} placeholder="Any amount" className="field mt-1.5" />
             </div>
             <div>
               <label className="flabel">Extra Charges (₹)</label>
-              <input type="number" min="0" value={form.extra_charges} onChange={setN('extra_charges')} placeholder="0" className="field mt-1.5" />
+              <input type="number" step="any" value={form.extra_charges} onChange={setN('extra_charges')} placeholder="Any amount" className="field mt-1.5" />
             </div>
             <div>
               <label className="flabel">Quantity</label>

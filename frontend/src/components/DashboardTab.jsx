@@ -257,15 +257,15 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
                 <option value="Sold">Sold</option>
               </select>
               <input
-                type="number" min="0" value={minPrice}
+                type="number" step="any" value={minPrice}
                 onChange={(e) => setMinPrice(e.target.value)}
-                placeholder="Min ₹"
+                placeholder="Min ₹ (any)"
                 className="field w-auto min-w-[110px] flex-1 sm:flex-none"
               />
               <input
-                type="number" min="0" value={maxPrice}
+                type="number" step="any" value={maxPrice}
                 onChange={(e) => setMaxPrice(e.target.value)}
-                placeholder="Max ₹"
+                placeholder="Max ₹ (any)"
                 className="field w-auto min-w-[110px] flex-1 sm:flex-none"
               />
               {filtersActive && (

@@ -483,7 +483,7 @@ BEGIN
   SELECT * INTO v_cur FROM public.laptops WHERE id = p_laptop_id;
   IF v_cur.id IS NULL THEN RAISE EXCEPTION 'Laptop not found'; END IF;
   IF v_cur.status = 'Sold' THEN RAISE EXCEPTION 'Laptop is already sold'; END IF;
-  IF p_sale_price IS NULL OR p_sale_price < 0 THEN RAISE EXCEPTION 'sale_price is required'; END IF;
+  IF p_sale_price IS NULL THEN RAISE EXCEPTION 'sale_price is required'; END IF;
   v_cost := COALESCE(v_cur.purchase_rate,0) + COALESCE(v_cur.extra_charges,0);
   v_profit := p_sale_price - v_cost;
   INSERT INTO public.sales (laptop_id, serial_number, brand_model, store_id, sale_price, cost_price, profit, sold_by)
