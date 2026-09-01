@@ -1,12 +1,13 @@
 import { useEffect, useState, useMemo } from 'react';
-import { getLaptops, updateLaptop, createLaptop } from '../api';
+import { getLaptops, updateLaptop, createLaptop, deleteLaptop } from '../api';
 import { useLabels } from '../labels.jsx';
 import SearchBox from './SearchBox';
 import InventoryModal from './InventoryModal';
 import ReturnToVendorModal from './ReturnToVendorModal';
+import DangerConfirmModal from './DangerConfirmModal';
 import { inr, formatTime, formatIstDate } from '../utils';
 
-const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, onNotify, onRefresh }) => {
+const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, isSuperAdmin = false, onNotify, onRefresh }) => {
   const [laptops, setLaptops] = useState([]);
   const [search, setSearch] = useState('');
   const [selectedVendor, setSelectedVendor] = useState(null);
@@ -20,6 +21,7 @@ const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, onNotify, onR
   const [assignStore, setAssignStore] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
   const { t } = useLabels();
 
   const productLines = [...new Set(laptops.map((l) => l.product_line).filter(Boolean))].sort();
@@ -98,6 +100,21 @@ const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, onNotify, onR
     setToDate('');
     setProductLine('');
     setSearch('');
+  };
+
+  const handleDeleteVendorLaptop = async (pwd, remarks) => {
+    const l = deleteTarget;
+    if (!l) return '';
+    try {
+      await deleteLaptop(l.id, pwd, remarks);
+      onNotify?.('Vendor laptop deleted', 'success');
+      setDeleteTarget(null);
+      await onRefresh();
+      refreshLaptops();
+      return '';
+    } catch (e) {
+      return e.message;
+    }
   };
 
   const activeFilterCount = [selectedVendor, minPrice, maxPrice, fromDate, toDate, productLine].filter(Boolean).length;
@@ -239,6 +256,14 @@ const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, onNotify, onR
                           <div className="flex items-center justify-end gap-2">
                             <button onClick={() => handleAddLaptop(l)} className="btn-ghost text-accent text-xs">Add to Inventory</button>
                             <button onClick={() => setReturnTarget(l)} className="btn-ghost text-stock-risk text-xs">Return</button>
+                            {isSuperAdmin && (
+                              <button onClick={() => setDeleteTarget(l)} className="btn-ghost text-stock-risk text-xs" title="Super admin delete">Delete</button>
+                            )}
+                          </div>
+                        )}
+                        {isSuperAdmin && !isAdmin && (
+                          <div className="flex items-center justify-end gap-2">
+                            <button onClick={() => setDeleteTarget(l)} className="btn-ghost text-stock-risk text-xs" title="Super admin delete">Delete</button>
                           </div>
                         )}
                       </td>
@@ -288,6 +313,18 @@ const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, onNotify, onR
                   </button>
                   <button onClick={() => setReturnTarget(l)} className="flex-1 btn-ghost text-[10px] text-stock-risk">
                     Return
+                  </button>
+                  {isSuperAdmin && (
+                    <button onClick={() => setDeleteTarget(l)} className="flex-1 btn-ghost text-[10px] text-stock-risk">
+                      Delete
+                    </button>
+                  )}
+                </div>
+              )}
+              {isSuperAdmin && !isAdmin && (
+                <div className="flex items-center gap-2 mt-1">
+                  <button onClick={() => setDeleteTarget(l)} className="flex-1 btn-ghost text-[10px] text-stock-risk">
+                    Delete
                   </button>
                 </div>
               )}
@@ -343,6 +380,15 @@ const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, onNotify, onR
           laptop={returnTarget}
           onNotify={onNotify}
           onClose={() => { setReturnTarget(null); refreshLaptops(); onRefresh?.(); }}
+        />
+      )}
+
+      {deleteTarget && isSuperAdmin && (
+        <DangerConfirmModal
+          title="Delete this vendor laptop?"
+          warning={`"${deleteTarget.brand_model || deleteTarget.brand || '#' + deleteTarget.id}" (${deleteTarget.serial_number}) will be permanently removed from the vendor pool. This cannot be undone.`}
+          onConfirm={handleDeleteVendorLaptop}
+          onClose={() => setDeleteTarget(null)}
         />
       )}
     </div>

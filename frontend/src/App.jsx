@@ -1134,6 +1134,7 @@ export default function App() {
             vendors={vendors}
             brands={brands}
             isAdmin={isAdmin}
+            isSuperAdmin={isSuperAdmin}
             onNotify={notify}
             onRefresh={async () => {
               const data = await getLaptops({ storeId, status, search });
