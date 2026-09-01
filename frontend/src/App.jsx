@@ -676,7 +676,9 @@ export default function App() {
         purchase_rate: form.purchase_rate === '' || form.purchase_rate == null ? null : Number(form.purchase_rate),
         extra_charges: form.extra_charges === '' || form.extra_charges == null ? null : Number(form.extra_charges),
         current_store_id: form.current_store_id ? Number(form.current_store_id) : null,
-        status: form.status || 'In Stock'
+        status: form.status || 'In Stock',
+        purchase_date: form.purchase_date || form.created_at || null,
+        created_at: form.purchase_date || form.created_at || null
       };
       if (invModal?.laptop) {
         await updateLaptop(invModal.laptop.id, payload);

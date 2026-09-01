@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { getVendors, addVendor, updateVendor, deleteVendor, bulkDeleteVendors } from '../api';
 import { createLaptop } from '../api';
 import { getLaptops } from '../api';
+import { getIstToday } from '../utils';
 import DangerConfirmModal from './DangerConfirmModal';
 import ReturnToVendorModal from './ReturnToVendorModal';
 
@@ -17,7 +18,7 @@ export default function VendorsManager({ onNotify }) {
   const [danger, setDanger] = useState(null); // { kind:'one', v } | { kind:'bulk', ids, names }
   const [returnTarget, setReturnTarget] = useState(null);
   const [addingLaptop, setAddingLaptop] = useState(false);
-  const [addLaptopForm, setAddLaptopForm] = useState({ brand: '', model: '', serial_number: '', purchase_rate: '', storage: '', ram: '', processor: '', generation: '' });
+  const [addLaptopForm, setAddLaptopForm] = useState({ brand: '', model: '', serial_number: '', purchase_rate: '', storage: '', ram: '', processor: '', generation: '', purchase_date: getIstToday() });
   const [search, setSearch] = useState('');
   const [selectedVendor, setSelectedVendor] = useState(null);
   const [minPrice, setMinPrice] = useState('');
@@ -134,7 +135,7 @@ export default function VendorsManager({ onNotify }) {
   };
 
   const selectLaptopForVendor = (laptop) => {
-    setAddLaptopForm({
+    setAddLaptopForm((prev) => ({
       brand: laptop.brand,
       model: laptop.brand_model,
       serial_number: laptop.serial_number,
@@ -142,8 +143,9 @@ export default function VendorsManager({ onNotify }) {
       storage: laptop.storage || '',
       ram: laptop.ram || '',
       processor: laptop.processor_type || '',
-      generation: laptop.generation || ''
-    });
+      generation: laptop.generation || '',
+      purchase_date: prev.purchase_date || getIstToday()
+    }));
     setSelectedVendor(laptop.id);
     setMinPrice('');
     setMaxPrice('');
@@ -156,6 +158,10 @@ export default function VendorsManager({ onNotify }) {
   };
 
   const addLaptopFromVendor = async () => {
+    if (!addLaptopForm.purchase_date) {
+      onNotify?.('Purchase date is required', 'error');
+      return;
+    }
     setAddingLaptop(true);
     const laptopData = {
       brand: addLaptopForm.brand,
@@ -164,14 +170,16 @@ export default function VendorsManager({ onNotify }) {
       purchase_rate: addLaptopForm.purchase_rate != null ? Number(addLaptopForm.purchase_rate) : null,
       purchased_from: vendors.find((v) => v.id === editingId)?.name || '',
       status: 'In Stock',
-      current_store_id: null
+      current_store_id: null,
+      created_at: addLaptopForm.purchase_date,
+      purchase_date: addLaptopForm.purchase_date
     };
     try {
       const res = await createLaptop(laptopData);
       onNotify?.('Laptop added to inventory from vendor', 'success');
       await load();
       setAddingLaptop(false);
-      setAddLaptopForm({ brand: '', model: '', serial_number: '', purchase_rate: '', storage: '', ram: '', processor: '', generation: '' });
+      setAddLaptopForm({ brand: '', model: '', serial_number: '', purchase_rate: '', storage: '', ram: '', processor: '', generation: '', purchase_date: getIstToday() });
       setSelectedVendor(null);
       setMinPrice('');
       setMaxPrice('');
@@ -333,6 +341,10 @@ export default function VendorsManager({ onNotify }) {
                 <label className="flabel">Generation</label>
                 <input value={addLaptopForm.generation} onChange={(e) => setAddLaptopForm({ ...addLaptopForm, generation: e.target.value })} placeholder="e.g. 11th Gen" className="field mt-1.5" />
               </div>
+              <div>
+                <label className="flabel">Purchase Date *</label>
+                <input type="date" value={addLaptopForm.purchase_date} onChange={(e) => setAddLaptopForm({ ...addLaptopForm, purchase_date: e.target.value })} required className="field mt-1.5" />
+              </div>
             </div>
             <div>
               <label className="flabel">Search Laptops</label>
@@ -377,7 +389,7 @@ export default function VendorsManager({ onNotify }) {
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-3 border-t border-line shrink-0">
-            <button type="button" onClick={() => setAddLaptopForm({ brand: '', model: '', serial_number: '', purchase_rate: '', storage: '', ram: '', processor: '', generation: '' })} className="btn-ghost">Cancel</button>
+            <button type="button" onClick={() => setAddLaptopForm({ brand: '', model: '', serial_number: '', purchase_rate: '', storage: '', ram: '', processor: '', generation: '', purchase_date: getIstToday() })} className="btn-ghost">Cancel</button>
             <button type="submit" disabled={busy} className="btn-accent disabled:opacity-50">
               {busy ? 'Adding…' : 'Add to Inventory'}
             </button>

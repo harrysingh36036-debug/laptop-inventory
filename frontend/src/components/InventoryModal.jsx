@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useLabels } from '../labels.jsx';
+import { getIstToday } from '../utils';
 
 const STATUSES = ['In Stock', 'In Transit'];
 const SIZES = ['256 GB', '512 GB', '1 TB', '2 TB', '4 TB', '8 TB'];
@@ -24,7 +25,8 @@ const EMPTY = {
   quantity: 1,
   current_store_id: '',
   status: 'In Stock',
-  purchase_comment: ''
+  purchase_comment: '',
+  purchase_date: getIstToday()
 };
 
 export default function InventoryModal({ stores, brands = [], vendors = [], productLines = [], editing, onSave, onClose, title, vendorSelect = false }) {
@@ -56,9 +58,10 @@ export default function InventoryModal({ stores, brands = [], vendors = [], prod
             quantity: 1,
             current_store_id: editing.current_store_id ?? '',
             status: editing.status || 'In Stock',
-            purchase_comment: editing.purchase_comment || ''
+            purchase_comment: editing.purchase_comment || '',
+            purchase_date: editing.created_at ? String(editing.created_at).slice(0, 10) : getIstToday()
           }
-        : EMPTY
+        : { ...EMPTY, purchase_date: getIstToday() }
     );
     setError('');
     setAddingLine(!!(editing && editing.product_line && !productLines.includes(editing.product_line)));
@@ -98,6 +101,10 @@ export default function InventoryModal({ stores, brands = [], vendors = [], prod
       setError('RAM is required.');
       return;
     }
+    if (!form.purchase_date) {
+      setError('Purchase date is required.');
+      return;
+    }
     if (form.graphics === 'yes' && !form.graphics_type.trim()) {
       setError('Choose integrated or dedicated graphics when "Yes".');
       return;
@@ -107,7 +114,7 @@ export default function InventoryModal({ stores, brands = [], vendors = [], prod
       return;
     }
     // Bulk mode always auto-generates serials; single mode too (brand prefix).
-    const payload = { ...form };
+    const payload = { ...form, created_at: form.purchase_date, purchase_date: form.purchase_date };
     if (payload.quantity > 1) {
       delete payload.serial_number;
       payload.serial_prefix = brandPrefix || undefined;
@@ -327,6 +334,13 @@ export default function InventoryModal({ stores, brands = [], vendors = [], prod
               <input value={form.extra_charges} onChange={set('extra_charges')} type="number" step="any"
                 placeholder="Any amount" className={input()} />
             </div>
+          </div>
+
+          {/* Purchase date — required manual entry */}
+          <div>
+            <label className={label}>Purchase Date *</label>
+            <input type="date" value={form.purchase_date} onChange={set('purchase_date')} required className={input()} />
+            <p className="mt-1 text-xs text-ink-faint">Manually select the purchase / entry date (IST).</p>
           </div>
 
           {/* Location, status, quantity */}
