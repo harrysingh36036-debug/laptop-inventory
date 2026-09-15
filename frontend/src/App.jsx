@@ -300,6 +300,15 @@ export default function App() {
     action();
   };
 
+  const handleFocusLaptop = (laptop) => {
+    if (laptop.current_store_id != null) {
+      setTab('inventory');
+    } else if (laptop.purchased_from) {
+      setTab('vendor-laptops');
+      setSearch(laptop.brand_model || laptop.serial_number || '');
+    }
+  };
+
   const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
   const isSuperAdmin = user?.role === 'superadmin';
 
@@ -1054,14 +1063,15 @@ export default function App() {
 
 <main className="mx-auto max-w-[1440px] pl-16 pr-4 py-8 sm:pl-4 space-y-6">
         {tab === 'dashboard' ? (
-          <DashboardTab
-            laptops={laptops}
-            logs={logs}
-            customers={customers}
-            purchases={purchases}
-            repairs={repairs}
-            onNavigate={setTab}
-          />
+<DashboardTab
+              laptops={laptops}
+              logs={logs}
+              customers={customers}
+              purchases={purchases}
+              repairs={repairs}
+              onNavigate={setTab}
+              onFocusLaptop={handleFocusLaptop}
+            />
         ) : tab === 'inventory' ? (
         <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
           <aside className="lg:sticky lg:top-6 self-start">

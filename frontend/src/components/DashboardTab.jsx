@@ -228,9 +228,9 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
         {/* Master search */}
         <div className="mb-4 rounded-xl border border-line bg-surface p-3 shadow-soft sm:mb-6 sm:rounded-2xl sm:p-4">
           <div className="grid gap-3">
-            <div className="relative">
+            <div className="flex items-center gap-2 rounded-lg border border-line bg-white px-3 py-2 focus-within:border-accent-line focus-within:ring-2 focus-within:ring-accent-soft">
               <svg
-                className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint"
+                className="h-4 w-4 shrink-0 text-ink-faint"
                 fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
@@ -239,7 +239,7 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder={t.dashSearchPh || 'Master search — brand, model, serial, processor, RAM, configuration…'}
-                className="field pl-9"
+                className="w-full bg-transparent text-sm text-ink outline-none placeholder:text-ink-faint"
               />
             </div>
             <div className="flex flex-wrap items-center gap-2">

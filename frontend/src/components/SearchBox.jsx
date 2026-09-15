@@ -1,9 +1,9 @@
 export default function SearchBox({ value, onChange, placeholder = 'Search…', className = '', countLabel }) {
   return (
     <div className={className}>
-      <div className="relative">
+      <div className="flex items-center gap-2 rounded-lg border border-line bg-white px-3 py-2 focus-within:border-accent-line focus-within:ring-2 focus-within:ring-accent-soft">
         <svg
-          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-faint"
+          className="h-4 w-4 shrink-0 text-ink-faint"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -15,7 +15,7 @@ export default function SearchBox({ value, onChange, placeholder = 'Search…', 
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="field pl-9"
+          className="w-full bg-transparent text-sm text-ink outline-none placeholder:text-ink-faint"
         />
       </div>
       {countLabel != null && (
