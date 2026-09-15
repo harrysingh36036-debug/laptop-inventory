@@ -296,18 +296,20 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
                   <button
                     key={l.id}
                     onClick={() => onFocusLaptop?.(l)}
-                    className="group flex items-center justify-between gap-3 rounded-xl border border-line bg-surface-2/60 px-3 py-2.5 text-left transition-colors duration-150 hover:border-accent-line hover:bg-accent-soft/20"
+                    className="group flex items-start justify-between gap-3 rounded-xl border border-line bg-surface-2/60 px-3 py-2.5 text-left transition-colors duration-150 hover:border-accent-line hover:bg-accent-soft/20"
                   >
-                    <span className="min-w-0">
-                      <span className="block truncate text-sm font-medium text-ink">{l.brand_model}</span>
-                      <span className="block truncate font-mono text-[11px] text-ink-faint">
-                        {l.serial_number} · {l.current_store_name || (t.unassigned || 'Unassigned')}
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium text-ink">
+                        {l.brand} {l.product_line || ''} {l.brand_model || ''}
+                      </span>
+                      <span className="mt-0.5 block text-xs text-ink-dim">
+                        {l.purchase_rate != null ? inr(l.purchase_rate) : '—'}
                       </span>
                     </span>
-                    <span className="flex shrink-0 items-center gap-2">
+                    <span className="flex shrink-0 flex-col items-end gap-1">
                       <StatusChip status={l.status} />
-                      <span className="font-mono text-[11px] text-ink-dim">
-                        {l.purchase_rate != null ? inr(l.purchase_rate) : '—'}
+                      <span className="text-[11px] text-ink-faint">
+                        {l.current_store_name || (t.unassigned || 'Unassigned')}
                       </span>
                     </span>
                   </button>

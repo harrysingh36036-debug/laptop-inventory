@@ -83,7 +83,7 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                     </td>
                    <td className={`${td} text-xs text-ink-dim`}>
                      <p>{spec || '—'}</p>
-                     {gfx && <p className="mt-0.5 text-[11px] text-ink-faint">{gfx}</p>}
+{gfx && <p className="mt-0.5 text-[11px] text-ink-faint truncate max-w-[180px]">{gfx}</p>}
                      {l.purchase_comment && (
                        <p className="mt-0.5 max-w-[260px] truncate text-[11px] text-ink-faint" title={l.purchase_comment}>
                          {l.purchase_comment}
@@ -304,10 +304,10 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                 <div className="min-w-0">
                   <p className="font-medium text-ink">{l.brand}{l.product_line ? ` ${l.product_line}` : ''}</p>
                   {l.brand_model && l.brand_model !== l.product_line && (
-                    <p className="mt-0.5 text-[11px] text-ink-faint">{l.brand_model}</p>
+                    <p className="mt-0.5 text-[11px] text-ink-faint truncate max-w-[200px]">{l.brand_model}</p>
                   )}
                   {l.purchased_from && (
-                    <p className="mt-0.5 text-[11px] text-ink-faint">From {l.purchased_from}</p>
+                    <p className="mt-0.5 text-[11px] text-ink-faint truncate max-w-[150px]">From {l.purchased_from}</p>
                   )}
                 </div>
                 <StatusChip status={l.status} />
@@ -315,7 +315,7 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
               {spec && <p className="mt-1.5 text-xs text-ink-dim">{spec}</p>}
               {gfx && <p className="mt-0.5 text-[11px] text-ink-faint">{gfx}</p>}
               {l.purchase_comment && (
-                <p className="mt-0.5 text-[11px] text-ink-faint">{l.purchase_comment}</p>
+                <p className="mt-0.5 text-[11px] text-ink-faint truncate max-w-[260px]">{l.purchase_comment}</p>
               )}
               <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
                 <span className="mono-chip">{l.serial_number}</span>
