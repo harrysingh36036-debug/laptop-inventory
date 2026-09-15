@@ -58,7 +58,7 @@ import VendorLaptopsTab from './components/VendorLaptopsTab';
 import RepairsTab from './components/RepairsTab';
 import RepairModal from './components/RepairModal';
 import PurchaseModal from './components/PurchaseModal';
-import BottomNav from './components/BottomNav';
+
 
 const ReportsTab = lazy(() => import('./components/ReportsTab'));
 
