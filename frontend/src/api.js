@@ -649,3 +649,13 @@ async function searchSheetsLaptops(query, limit = 50) {
     clearTimeout(timer);
   }
 }
+
+// ---- Delete logs (audit trail) -------------------------------------------
+export const getDeleteLogs = async () => {
+  const { data, error } = await supabase
+    .from('delete_logs')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data || [];
+};

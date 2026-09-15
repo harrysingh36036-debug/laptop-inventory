@@ -43,7 +43,7 @@ const NAV_ITEMS = [
   )},
 ];
 
-export default function QuickBall({ currentTab, onNavigate, canManage = false }) {
+export default function QuickBall({ currentTab, onNavigate, canManage = false, isAdmin = false, onOpenData }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -79,6 +79,21 @@ export default function QuickBall({ currentTab, onNavigate, canManage = false })
               {it.label}
             </button>
           ))}
+          {isAdmin && (
+            <button
+              onClick={() => { setOpen(false); onOpenData?.(); }}
+              className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+                currentTab === 'data-audit' ? 'bg-accent-soft text-accent' : 'text-ink-dim hover:bg-surface-2'
+              }`}
+            >
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-600">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" className="h-4 w-4 text-white">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </span>
+              Data Log
+            </button>
+          )}
         </div>
       )}
       <button

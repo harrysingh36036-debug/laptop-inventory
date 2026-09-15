@@ -56,6 +56,7 @@ import DashboardTab from './components/DashboardTab';
 import PurchasesTab from './components/PurchasesTab';
 import VendorLaptopsTab from './components/VendorLaptopsTab';
 import RepairsTab from './components/RepairsTab';
+import DataAuditTab from './components/DataAuditTab';
 import RepairModal from './components/RepairModal';
 import PurchaseModal from './components/PurchaseModal';
 import QuickBall from './components/QuickBall';
@@ -1177,6 +1178,8 @@ export default function App() {
             onRejectTransfer={handleRejectTransfer}
             onCancelTransfer={handleCancelTransfer}
           />
+        ) : tab === 'data-audit' ? (
+          <DataAuditTab isAdmin={isAdmin} isSuperAdmin={isSuperAdmin} />
         ) : (
           <SalesTab stores={stores} isSuperAdmin={isSuperAdmin} isAdmin={isAdmin} canSeeCustomer={canViewPII} userRole={user?.role} homeStoreId={user?.home_store_id ?? null} onNotify={notify} />
         )}
@@ -1364,6 +1367,8 @@ export default function App() {
         currentTab={tab}
         onNavigate={setTab}
         canManage={isAdmin || isSuperAdmin}
+        isAdmin={isAdmin}
+        onOpenData={() => setTab('data-audit')}
       />
       </div>
     </LabelsProvider>
