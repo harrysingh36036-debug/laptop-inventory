@@ -1070,8 +1070,6 @@ export default function App() {
               storeId={storeId}
               setStoreId={setStoreId}
               countFor={storeCount}
-              status={status}
-              setStatus={setStatus}
             />
           </aside>
 

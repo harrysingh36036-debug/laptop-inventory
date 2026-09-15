@@ -312,8 +312,8 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                 </div>
                 <StatusChip status={l.status} />
               </div>
-              {spec && <p className="mt-1.5 text-xs text-ink-dim">{spec}</p>}
-              {gfx && <p className="mt-0.5 text-[11px] text-ink-faint">{gfx}</p>}
+              {spec && <p className="mt-1.5 text-xs text-ink-dim truncate max-w-[200px]">{spec}</p>}
+              {gfx && <p className="mt-0.5 text-[11px] text-ink-faint truncate max-w-[180px]">{gfx}</p>}
               {l.purchase_comment && (
                 <p className="mt-0.5 text-[11px] text-ink-faint truncate max-w-[260px]">{l.purchase_comment}</p>
               )}

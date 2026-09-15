@@ -213,20 +213,20 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
   return (
     <div className="relative">
       <div className="px-1 py-2 sm:px-2">
-<div className="mb-7 text-left">
-          <p className="text-[12px] font-semibold uppercase tracking-[0.24em] text-accent">
+<div className="mb-4 text-left sm:mb-7">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-accent sm:text-[12px]">
             Live Operations
           </p>
-          <h2 className="mt-2 font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
+          <h2 className="mt-1.5 font-display text-xl font-semibold tracking-tight text-ink sm:mt-2 sm:text-3xl">
             {t.dashTitle || 'Dashboard'}
           </h2>
-          <p className="mt-1 text-sm text-ink-faint">
+          <p className="mt-0.5 text-xs text-ink-faint sm:mt-1 sm:text-sm">
             {t.dashSub || 'Pick a module — everything updates in real time.'}
           </p>
         </div>
 
         {/* Master search */}
-        <div className="mb-6 rounded-2xl border border-line bg-surface p-4 shadow-soft">
+        <div className="mb-4 rounded-xl border border-line bg-surface p-3 shadow-soft sm:mb-6 sm:rounded-2xl sm:p-4">
           <div className="grid gap-3">
             <div className="relative">
               <svg
@@ -324,31 +324,31 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-5">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4 lg:gap-5">
           {CARDS.map((c) => (
             <button
               key={c.key}
               onClick={() => onNavigate(c.target)}
-              className={`group relative overflow-hidden rounded-2xl border border-line bg-surface p-4 text-left outline-none focus-visible:ring-2 focus-visible:ring-accent-line sm:p-6 ${
+              className={`group relative overflow-hidden rounded-xl border border-line bg-surface p-3 text-left outline-none focus-visible:ring-2 focus-visible:ring-accent-line sm:rounded-2xl sm:p-6 ${
                 c.full ? 'col-span-2 lg:col-span-4' : ''
               }`}
             >
               <div className="pointer-events-none relative">
                 <div className="flex items-start justify-between">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-accent-line bg-accent-soft sm:h-12 sm:w-12">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-accent-line bg-accent-soft sm:h-12 sm:w-12 sm:rounded-xl">
                     {c.icon}
                   </div>
                 </div>
 
-                <p className="mt-4 font-display text-3xl font-semibold tracking-tight text-accent sm:mt-5 sm:text-4xl">
+                <p className="mt-2.5 font-display text-2xl font-semibold tracking-tight text-accent sm:mt-5 sm:text-4xl">
                   {counts[c.key].main.toLocaleString('en-IN')}
                 </p>
-                <h3 className="mt-1 text-sm font-semibold text-ink sm:text-base">{t[c.titleKey] || c.title}</h3>
+                <h3 className="mt-0.5 text-xs font-semibold text-ink sm:mt-1 sm:text-base">{t[c.titleKey] || c.title}</h3>
                 <p className="mt-0.5 hidden text-sm text-ink-faint sm:block">{counts[c.key].sub}</p>
 
-<div className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-ink sm:mt-5">
+<div className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-ink-dim sm:mt-5 sm:text-sm">
                   Open
-                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <svg className="h-3 w-3 sm:h-3.5 sm:w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>
                 </div>

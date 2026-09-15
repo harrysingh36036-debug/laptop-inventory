@@ -199,11 +199,11 @@ export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false
       </div>
 
       {/* Summary cards */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
         {cards.map((c) => (
-          <div key={c.label} className="panel p-5">
-            <p className="text-xs uppercase tracking-wide text-ink-faint">{c.label}</p>
-            <p className={`mt-2 font-mono text-2xl font-medium tracking-tight ${c.accent ? 'text-accent' : 'text-ink'}`}>
+          <div key={c.label} className="rounded-xl border border-line bg-surface p-3 sm:p-5">
+            <p className="text-[10px] uppercase tracking-wide text-ink-faint sm:text-xs">{c.label}</p>
+            <p className={`mt-1.5 font-mono text-xl sm:text-2xl font-medium tracking-tight sm:mt-2 ${c.accent ? 'text-accent' : 'text-ink'}`}>
               {c.value}
             </p>
           </div>

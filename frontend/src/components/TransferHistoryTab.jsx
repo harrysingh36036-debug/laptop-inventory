@@ -287,47 +287,47 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [], pend
   const renderCards = () => {
     if (filterMode === 'single' && singleStoreId) {
       return (
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div key="total" className="panel p-5">
-            <p className="text-xs uppercase tracking-wide text-ink-faint">Total Transfers</p>
-            <p className="mt-2 font-mono text-2xl font-medium tracking-tight text-ink">{stats.totalTransfers}</p>
-            <p className="mt-1 text-[11px] text-ink-faint">All transfers involving {stats.storeLabel}</p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+          <div key="total" className="rounded-xl border border-line bg-surface p-3 sm:p-5">
+            <p className="text-[10px] uppercase tracking-wide text-ink-faint sm:text-xs">Total Transfers</p>
+            <p className="mt-1.5 font-mono text-xl sm:text-2xl font-medium tracking-tight text-ink sm:mt-2">{stats.totalTransfers}</p>
+            <p className="mt-0.5 text-[10px] text-ink-faint sm:mt-1 sm:text-[11px]">All transfers involving {stats.storeLabel}</p>
           </div>
-          <div key="in" className="panel p-5">
-            <p className="text-xs uppercase tracking-wide text-ink-faint">Incoming</p>
-            <p className="mt-2 font-mono text-2xl font-medium tracking-tight text-stock-ok">{stats.incoming}</p>
-            <p className="mt-1 text-[11px] text-ink-faint">Laptops received at {stats.storeLabel}</p>
+          <div key="in" className="rounded-xl border border-line bg-surface p-3 sm:p-5">
+            <p className="text-[10px] uppercase tracking-wide text-ink-faint sm:text-xs">Incoming</p>
+            <p className="mt-1.5 font-mono text-xl sm:text-2xl font-medium tracking-tight text-stock-ok sm:mt-2">{stats.incoming}</p>
+            <p className="mt-0.5 text-[10px] text-ink-faint sm:mt-1 sm:text-[11px]">Laptops received at {stats.storeLabel}</p>
           </div>
-          <div key="out" className="panel p-5">
-            <p className="text-xs uppercase tracking-wide text-ink-faint">Outgoing</p>
-            <p className="mt-2 font-mono text-2xl font-medium tracking-tight text-stock-risk">{stats.outgoing}</p>
-            <p className="mt-1 text-[11px] text-ink-faint">Laptops sent from {stats.storeLabel}</p>
+          <div key="out" className="col-span-2 sm:col-span-1 rounded-xl border border-line bg-surface p-3 sm:p-5">
+            <p className="text-[10px] uppercase tracking-wide text-ink-faint sm:text-xs">Outgoing</p>
+            <p className="mt-1.5 font-mono text-xl sm:text-2xl font-medium tracking-tight text-stock-risk sm:mt-2">{stats.outgoing}</p>
+            <p className="mt-0.5 text-[10px] text-ink-faint sm:mt-1 sm:text-[11px]">Laptops sent from {stats.storeLabel}</p>
           </div>
         </div>
       );
     }
 
     return (
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div key="total" className="panel p-5">
-          <p className="text-xs uppercase tracking-wide text-ink-faint">Total Transfers</p>
-          <p className="mt-2 font-mono text-2xl font-medium tracking-tight text-ink">{stats.totalTransfers}</p>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-4">
+        <div key="total" className="rounded-xl border border-line bg-surface p-3 sm:p-5">
+          <p className="text-[10px] uppercase tracking-wide text-ink-faint sm:text-xs">Total Transfers</p>
+          <p className="mt-1.5 font-mono text-xl sm:text-2xl font-medium tracking-tight text-ink sm:mt-2">{stats.totalTransfers}</p>
           {filterMode === 'inter' && interFromStoreId && interToStoreId && (
-            <p className="mt-1 text-[11px] text-ink-faint">
+            <p className="mt-0.5 text-[10px] text-ink-faint sm:mt-1 sm:text-[11px]">
               Between {storeName(Number(interFromStoreId))} and {storeName(Number(interToStoreId))}
             </p>
           )}
         </div>
-        <div key="unique" className="panel p-5">
-          <p className="text-xs uppercase tracking-wide text-ink-faint">Unique Laptops</p>
-          <p className="mt-2 font-mono text-2xl font-medium tracking-tight text-ink">{stats.uniqueLaptops}</p>
+        <div key="unique" className="rounded-xl border border-line bg-surface p-3 sm:p-5">
+          <p className="text-[10px] uppercase tracking-wide text-ink-faint sm:text-xs">Unique Laptops</p>
+          <p className="mt-1.5 font-mono text-xl sm:text-2xl font-medium tracking-tight text-ink sm:mt-2">{stats.uniqueLaptops}</p>
         </div>
       </div>
     );
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Pending Transfers — requires action */}
       {pendingTransfers.length > 0 && (
         <div className="panel overflow-hidden border border-amber-300/40">

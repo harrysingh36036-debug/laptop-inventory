@@ -96,6 +96,8 @@ export default function InventoryView({
   const from = brandRows.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
   const pageRows = brandRows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
+  const statuses = ['In Stock', 'In Transit', 'Sold'];
+
   const tile = (active, onClick, children, extra = '') => (
     <button
       onClick={onClick}
@@ -109,6 +111,41 @@ export default function InventoryView({
 
   return (
     <section className="space-y-4 min-w-0">
+      {/* Status filter — top side of page, above search / buttons / inventory.
+          Full-width bar so it never sits on the left or between button and list
+          on mobile or laptop. */}
+      <div className="panel px-3 py-2.5">
+        <div className="no-scrollbar flex items-center gap-2 overflow-x-auto">
+          <span className="shrink-0 px-1 text-xs font-semibold uppercase tracking-wide text-ink-faint">
+            {t.statusLabel || 'Status'}:
+          </span>
+          <button
+            onClick={() => setStatus('')}
+            className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+              status === ''
+                ? 'border-accent-line bg-accent-soft text-accent'
+                : 'border-line bg-surface text-ink-dim hover:text-ink'
+            }`}
+          >
+            {t.anyStatus || 'All'}
+          </button>
+          {statuses.map((s) => (
+            <button
+              key={s}
+              onClick={() => setStatus(status === s ? '' : s)}
+              aria-pressed={status === s}
+              className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                status === s
+                  ? 'border-accent-line bg-accent-soft text-accent'
+                  : 'border-line bg-surface text-ink-dim hover:text-ink'
+              }`}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Toolbar search={search} setSearch={setSearch} resultCount={laptops.length} />
         <div className="flex flex-wrap items-center gap-2">
@@ -121,16 +158,6 @@ export default function InventoryView({
             <option value="">All RAM</option>
             {ramValues.map((r) => (
               <option key={r} value={r}>{r}</option>
-            ))}
-          </select>
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            className="rounded-lg border border-line bg-surface px-3 py-2 text-xs font-medium text-ink-dim focus:border-accent-line focus:outline-none"
-          >
-            <option value="">All statuses</option>
-            {['In Stock', 'In Transit', 'Sold'].map((s) => (
-              <option key={s} value={s}>{s}</option>
             ))}
           </select>
           {canEdit && (

@@ -43,7 +43,7 @@ export default function PurchasesTab({
   const td = 'px-4 py-3 align-middle';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <SearchBox
           value={search}
@@ -59,13 +59,13 @@ export default function PurchasesTab({
         )}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
         {cards.map((c) => (
-          <div key={c.label} className="panel p-5">
-            <p className="text-xs uppercase tracking-wide text-ink-faint">{c.label}</p>
+          <div key={c.label} className="rounded-xl border border-line bg-surface p-3 sm:p-5">
+            <p className="text-[10px] uppercase tracking-wide text-ink-faint sm:text-xs">{c.label}</p>
             <p
-              className={`mt-2 font-mono font-medium tracking-tight ${
-                c.small ? 'text-lg text-ink' : 'text-2xl'
+              className={`mt-1.5 font-mono font-medium tracking-tight sm:mt-2 ${
+                c.small ? 'text-sm sm:text-lg text-ink' : 'text-xl sm:text-2xl'
               } ${c.accent ? 'text-accent' : 'text-ink'}`}
             >
               {c.value}

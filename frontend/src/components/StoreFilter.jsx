@@ -1,8 +1,7 @@
 import { useLabels } from '../labels.jsx';
 
-export default function StoreFilter({ stores, storeId, setStoreId, countFor, status, setStatus }) {
+export default function StoreFilter({ stores, storeId, setStoreId, countFor }) {
   const t = useLabels();
-  const statuses = ['In Stock', 'In Transit', 'Sold'];
 
   const row =
     'w-full flex items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors duration-150';
@@ -46,25 +45,6 @@ export default function StoreFilter({ stores, storeId, setStoreId, countFor, sta
             </button>
           );
         })}
-      </div>
-
-      {/* Status filter */}
-      <div className="mt-5 border-t border-line pt-4">
-        <h3 className="px-1 text-xs font-semibold uppercase tracking-wide text-ink-dim">
-          {t.statusLabel}
-        </h3>
-        <select
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-          className="field mt-2"
-        >
-          <option value="">{t.anyStatus}</option>
-          {statuses.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
       </div>
     </div>
   );
