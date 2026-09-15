@@ -963,7 +963,7 @@ export default function App() {
 
   return (
     <LabelsProvider labels={labels}>
-      <div className="min-h-screen bg-page text-ink">
+      <div className="min-h-screen bg-page text-ink overflow-y-auto">
         {/* Header */}
         <header className="sticky top-0 z-40 border-b border-line bg-page/80 backdrop-blur-md">
           <div className="mx-auto max-w-[1440px] px-4 h-14 flex items-center justify-between gap-4">
