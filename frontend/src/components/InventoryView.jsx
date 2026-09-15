@@ -67,11 +67,14 @@ export default function InventoryView({
     if (target.current_store_id != null && String(target.current_store_id) !== String(storeId)) {
       setStoreId(target.current_store_id);
     }
-    setBrand(target.brand || '');
-    setSearch('');
+    setPage(1);
     requestAnimationFrame(() => {
-      const el = rowsRef.current?.querySelector(`[data-row="${target.id}"]`);
-      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => {
+        const el = rowsRef.current?.querySelector(`[data-row="${target.id}"]`);
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el?.classList.add('ring-2', 'ring-accent', 'ring-offset-2');
+        setTimeout(() => el?.classList.remove('ring-2', 'ring-accent', 'ring-offset-2'), 2000);
+      }, 100);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusSerial]);

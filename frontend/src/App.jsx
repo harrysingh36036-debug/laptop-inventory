@@ -302,10 +302,13 @@ export default function App() {
 
   const handleFocusLaptop = (laptop) => {
     if (laptop.current_store_id != null) {
+      setStoreId(String(laptop.current_store_id));
+      setStatus('');
+      setSearch(laptop.serial_number || laptop.brand_model || '');
       setTab('inventory');
     } else if (laptop.purchased_from) {
+      setSearch(laptop.serial_number || laptop.brand_model || '');
       setTab('vendor-laptops');
-      setSearch(laptop.brand_model || laptop.serial_number || '');
     }
   };
 
