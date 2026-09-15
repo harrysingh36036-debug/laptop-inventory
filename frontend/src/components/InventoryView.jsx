@@ -28,6 +28,8 @@ export default function InventoryView({
   onDelete,
   onSell
 }) {
+  const [sortBy, setSortBy] = useState('created_at');
+  const [sortOrder, setSortOrder] = useState('desc');
   const t = useLabels();
   const [brand, setBrand] = useState(''); // '' = brand tiles, value = models view
   const [ramF, setRamF] = useState(''); // RAM dropdown filter
@@ -92,7 +94,20 @@ export default function InventoryView({
     return [...map.values()].sort((a, b) => b.total - a.total || a.brand.localeCompare(b.brand));
   }, [filtered]);
 
-  const brandRows = useMemo(() => filtered.filter((l) => (l.brand || 'Unbranded') === brand), [filtered, brand]);
+  const brandRows = useMemo(() => {
+    const rows = filtered.filter((l) => (l.brand || 'Unbranded') === brand);
+    const sortFns = {
+      created_at: (a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0),
+      brand: (a, b) => (a.brand || '').localeCompare(b.brand || ''),
+      model: (a, b) => (a.brand_model || '').localeCompare(b.brand_model || ''),
+      price: (a, b) => (Number(a.purchase_rate) || 0) - (Number(b.purchase_rate) || 0),
+      serial: (a, b) => (a.serial_number || '').localeCompare(b.serial_number || ''),
+      status: (a, b) => (a.status || '').localeCompare(b.status || ''),
+    };
+    const fn = sortFns[sortBy] || sortFns.created_at;
+    rows.sort((a, b) => sortOrder === 'asc' ? fn(a, b) : fn(b, a));
+    return rows;
+  }, [filtered, brand, sortBy, sortOrder]);
 
   const totalPages = Math.max(1, Math.ceil(brandRows.length / pageSize));
   const currentPage = Math.min(page, totalPages);
@@ -150,7 +165,7 @@ export default function InventoryView({
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Toolbar search={search} setSearch={setSearch} resultCount={laptops.length} />
+        <Toolbar search={search} setSearch={setSearch} resultCount={laptops.length} sortBy={sortBy} setSortBy={setSortBy} sortOrder={sortOrder} setSortOrder={setSortOrder} />
         <div className="flex flex-wrap items-center gap-2">
           <select
             value={ramF}

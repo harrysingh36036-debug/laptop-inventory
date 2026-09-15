@@ -1,6 +1,6 @@
 import { useLabels } from '../labels.jsx';
 
-export default function Toolbar({ search, setSearch, resultCount }) {
+export default function Toolbar({ search, setSearch, resultCount, sortBy, setSortBy, sortOrder, setSortOrder }) {
   const t = useLabels();
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -25,9 +25,33 @@ export default function Toolbar({ search, setSearch, resultCount }) {
           className="w-full bg-transparent text-sm text-ink outline-none placeholder:text-ink-faint"
         />
       </div>
-      <p className="text-sm text-ink-faint">
-        <span className="font-mono text-ink-dim">{resultCount}</span> laptop{resultCount === 1 ? '' : 's'} shown
-      </p>
+      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
+          <label className="text-xs text-ink-faint">Sort:</label>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="rounded-lg border border-line bg-white px-2.5 py-1.5 text-xs font-medium text-ink focus:border-accent focus:outline-none"
+          >
+            <option value="created_at">Date</option>
+            <option value="brand">Brand</option>
+            <option value="model">Model</option>
+            <option value="price">Price</option>
+            <option value="serial">Serial</option>
+            <option value="status">Status</option>
+          </select>
+          <button
+            onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+            className="btn-ghost !px-2 !py-1.5 text-xs"
+            title={`Sort ${sortOrder === 'asc' ? 'ascending' : 'descending'}`}
+          >
+            {sortOrder === 'asc' ? '↑' : '↓'}
+          </button>
+        </div>
+        <span className="text-xs text-ink-faint">
+          <span className="font-mono text-ink-dim">{resultCount}</span> laptop{resultCount === 1 ? '' : 's'}
+        </span>
+      </div>
     </div>
   );
 }
