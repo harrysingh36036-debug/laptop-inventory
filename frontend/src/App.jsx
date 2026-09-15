@@ -1197,6 +1197,7 @@ export default function App() {
         <PurchaseModal
           stores={stores}
           vendors={vendors}
+          brands={brands}
           editing={purchaseModal.purchase}
           onSave={handlePurchaseSave}
           onClose={() => setPurchaseModal(null)}
@@ -1358,16 +1359,6 @@ export default function App() {
 
       {toast && <Toast key={toast.id} msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
 
-      {!vendorsOpen && (
-        <BottomNav
-          tab={tab}
-          onNavigate={setTab}
-          items={buildNavItems(t)}
-          hidden={!!(invModal || purchaseModal || repairModal || sellTarget || delTarget || repairDelTarget || purchaseDelTarget || settingsOpen || brandsOpen || reportsViewOpen)}
-          onAddInventory={() => setInvModal({})}
-          onAddVendorLaptop={() => setTab('vendor-laptops')}
-        />
-      )}
       </div>
     </LabelsProvider>
   );

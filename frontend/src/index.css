@@ -130,28 +130,10 @@ body {
 }
 
 /* ------------------------------------------------------------------ *
- *  Mobile bottom nav
+ *  Mobile bottom nav — hidden on all screen sizes
  * ------------------------------------------------------------------ */
 .mobile-bottom-nav {
-  display: none;
-}
-@media (max-width: 640px) {
-  .mobile-bottom-nav {
-    display: block;
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 50;
-    background: rgba(255, 255, 255, 0.92);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-top: 1px solid var(--hairline);
-    padding-bottom: env(safe-area-inset-bottom, 0);
-  }
-  .main-content {
-    padding-bottom: 80px !important;
-  }
+  display: none !important;
 }
 .mobile-bottom-nav .nav-items {
   display: flex;

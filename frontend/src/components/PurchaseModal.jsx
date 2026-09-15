@@ -35,9 +35,10 @@ const EMPTY = {
   purchaser_phone: ''
 };
 
-export default function PurchaseModal({ stores, vendors = [], editing, onSave, onClose }) {
+export default function PurchaseModal({ stores, vendors = [], brands = [], editing, onSave, onClose }) {
   const [form, setForm] = useState(EMPTY);
   const [error, setError] = useState('');
+  const [customBrand, setCustomBrand] = useState(false);
 
   useEffect(() => {
     setForm(
@@ -68,7 +69,15 @@ aadhar_no: editing.purchaser_aadhar || editing.aadhar_no || '',
         : EMPTY
     );
     setError('');
-  }, [editing]);
+    // If editing a purchase whose brand isn't in the master list, start in custom input mode.
+    const eb = editing?.brand || '';
+    if (eb && (brands || []).length > 0) {
+      const known = (brands || []).some((b) => b.name.toLowerCase() === eb.toLowerCase());
+      setCustomBrand(!known);
+    } else if (!editing) {
+      setCustomBrand(false);
+    }
+  }, [editing, brands]);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const setN = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value === '' ? '' : Number(e.target.value) }));
@@ -223,7 +232,48 @@ aadhar_no: editing.purchaser_aadhar || editing.aadhar_no || '',
             </div>
             <div>
               <label className="flabel">Brand</label>
-              <input value={form.brand} onChange={set('brand')} placeholder="e.g. HP, Lenovo, Dell" className="field mt-1.5" />
+              {customBrand || (brands || []).length === 0 ? (
+                <div className="flex items-start gap-2">
+                  <input
+                    value={form.brand}
+                    onChange={set('brand')}
+                    placeholder="e.g. HP, Lenovo, Dell"
+                    autoFocus={customBrand}
+                    className="field mt-1.5 flex-1"
+                  />
+                  {(brands || []).length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCustomBrand(false);
+                        setForm((f) => ({ ...f, brand: '' }));
+                      }}
+                      className="mt-1.5 shrink-0 text-xs font-medium text-ink-dim hover:text-ink"
+                    >
+                      List
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <select
+                  value={form.brand}
+                  onChange={(e) => {
+                    if (e.target.value === '__custom__') {
+                      setCustomBrand(true);
+                      setForm((f) => ({ ...f, brand: '' }));
+                    } else {
+                      setForm((f) => ({ ...f, brand: e.target.value }));
+                    }
+                  }}
+                  className="field mt-1.5"
+                >
+                  <option value="">Select brand…</option>
+                  {(brands || []).map((b) => (
+                    <option key={b.id} value={b.name}>{b.name}</option>
+                  ))}
+                  <option value="__custom__">+ Other (type manually)…</option>
+                </select>
+              )}
             </div>
             <div>
               <label className="flabel">Model</label>
