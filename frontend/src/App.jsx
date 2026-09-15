@@ -966,7 +966,7 @@ export default function App() {
               </span>
               <div className="min-w-0">
                 <h1 className="truncate font-display text-sm font-semibold tracking-tight">{labels.appTitle || 'Laptop Inventory Tracker'}</h1>
-                <p className="hidden sm:block text-[11px] text-ink-faint">
+                <p className="hidden sm:block text-[12px] text-ink-faint">
                   {labels.appSubtitle || 'Real-time location tracking across 7 retail stores'}
                 </p>
               </div>
@@ -1052,7 +1052,7 @@ export default function App() {
 
       <div className="hidden sm:block"><QuickNav tab={tab} onNavigate={setTab} items={buildNavItems(t)} /></div>
 
-<main className="mx-auto max-w-[1440px] pl-16 pr-4 py-6 sm:pl-4 space-y-6">
+<main className="mx-auto max-w-[1440px] pl-16 pr-4 py-8 sm:pl-4 space-y-6">
         {tab === 'dashboard' ? (
           <DashboardTab
             laptops={laptops}

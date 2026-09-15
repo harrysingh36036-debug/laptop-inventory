@@ -94,7 +94,6 @@ const CARDS = [
     title: 'Customers',
     subtitle: 'Who bought which laptop',
     target: 'customers',
-    full: true,
     icon: (
       <svg className="h-7 w-7 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.6">
         <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6-5a3 3 0 11-3-3 3 3 0 013 3zm-8 1a3 3 0 11-3-3 3 3 0 013 3z" />
@@ -214,9 +213,9 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
   return (
     <div className="relative">
       <div className="px-1 py-2 sm:px-2">
-        <div className="mb-7 text-center">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-accent">
-            {t.dashKicker || 'Live Operations'}
+<div className="mb-7 text-left">
+          <p className="text-[12px] font-semibold uppercase tracking-[0.24em] text-accent">
+            Live Operations
           </p>
           <h2 className="mt-2 font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
             {t.dashTitle || 'Dashboard'}
@@ -343,10 +342,10 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
                   {counts[c.key].main.toLocaleString('en-IN')}
                 </p>
                 <h3 className="mt-1 text-sm font-semibold text-ink sm:text-base">{t[c.titleKey] || c.title}</h3>
-                <p className="mt-0.5 hidden text-xs text-ink-faint sm:block">{counts[c.key].sub}</p>
+                <p className="mt-0.5 hidden text-sm text-ink-faint sm:block">{counts[c.key].sub}</p>
 
-                <div className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-accent sm:mt-5">
-                  {t.dashOpen || 'Open'}
+<div className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-ink sm:mt-5">
+                  Open
                   <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>
