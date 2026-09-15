@@ -1061,7 +1061,7 @@ export default function App() {
 
       <div className="hidden sm:block"><QuickNav tab={tab} onNavigate={setTab} items={buildNavItems(t)} /></div>
 
-<main className="mx-auto max-w-[1440px] pl-16 pr-4 py-8 sm:pl-4 space-y-6">
+<main className="mx-auto max-w-[1440px] px-4 py-8 sm:pl-16 sm:pr-4 space-y-6">
         {tab === 'dashboard' ? (
 <DashboardTab
               laptops={laptops}
