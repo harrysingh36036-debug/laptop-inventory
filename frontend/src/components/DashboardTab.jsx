@@ -6,6 +6,7 @@ import { inr } from '../utils';
 const CARDS = [
   {
     key: 'inventory',
+    titleKey: 'cardInventoryT',
     title: 'Inventory',
     subtitle: 'Laptops in stock & on the way',
     target: 'inventory',
@@ -17,6 +18,7 @@ const CARDS = [
   },
   {
     key: 'purchase',
+    titleKey: 'cardPurchaseT',
     title: 'Purchase',
     subtitle: 'Units bought & money invested',
     target: 'purchases',
@@ -28,6 +30,7 @@ const CARDS = [
   },
   {
     key: 'vendor-purchases',
+    titleKey: 'cardVendorT',
     title: 'Vendor Purchase',
     subtitle: 'Laptops bought from vendors',
     target: 'vendor-laptops',
@@ -39,6 +42,7 @@ const CARDS = [
   },
   {
     key: 'repair',
+    titleKey: 'cardRepairT',
     title: 'Repair',
     subtitle: 'Units at the workshop',
     target: 'repairs',
@@ -50,6 +54,7 @@ const CARDS = [
   },
   {
     key: 'transfers',
+    titleKey: 'cardTransferT',
     title: 'Transfer History',
     subtitle: 'Every movement between stores',
     target: 'transfers',
@@ -61,6 +66,7 @@ const CARDS = [
   },
   {
     key: 'sold',
+    titleKey: 'cardSoldT',
     title: 'Sold',
     subtitle: 'Units sold & profit earned',
     target: 'sales',
@@ -72,6 +78,7 @@ const CARDS = [
   },
   {
     key: 'report',
+    titleKey: 'cardReportT',
     title: 'Report',
     subtitle: 'Brands, sales & stock analytics',
     target: 'stats',
@@ -83,6 +90,7 @@ const CARDS = [
   },
   {
     key: 'customers',
+    titleKey: 'cardCustomerT',
     title: 'Customers',
     subtitle: 'Who bought which laptop',
     target: 'customers',
@@ -95,7 +103,10 @@ const CARDS = [
   }
 ];
 
+import { useLabels } from '../labels.jsx';
+
 export default function DashboardTab({ laptops = [], logs = [], customers = [], purchases = [], repairs = [], onNavigate, onFocusLaptop }) {
+  const t = useLabels();
   const [soldCount, setSoldCount] = useState(0);
   const all = laptops;
 
@@ -179,25 +190,25 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
   const repairActive = (repairs || []).filter((r) => r?.status !== 'Repaired').length;
 
   const counts = {
-    inventory: { main: inventoryLaptops.length, sub: `${inStockCount} in stock · ${inTransitCount} in transit` },
+    inventory: { main: inventoryLaptops.length, sub: `${inStockCount} ${t.fragInStock || 'in stock'} · ${inTransitCount} ${t.fragInTransit || 'in transit'}` },
     purchase: {
       main: purchases.length,
       sub: purchaseValue
-        ? `₹${purchaseValue.toLocaleString('en-IN')} invested`
-        : 'units bought & money invested'
+        ? `₹${purchaseValue.toLocaleString('en-IN')} ${t.fragInvested || 'invested'}`
+        : (t.cardPurchaseS || 'Units bought & money invested')
     },
     'vendor-purchases': {
       main: laptops.filter((l) => l?.purchased_from && l?.current_store_id == null).length,
-      sub: 'from registered vendors'
+      sub: t.fragFromVendors || 'from registered vendors'
     },
     repair: {
       main: repairActive,
-      sub: `${repairPending} pending · ${repairInProgress} in progress`
+      sub: `${repairPending} ${t.fragPending || 'pending ·'} ${repairInProgress} ${t.fragInProg || 'in progress'}`
     },
-    transfers: { main: logs.length, sub: 'store-to-store movements' },
-    sold: { main: soldCount, sub: 'units sold' },
-    report: { main: inStockCount, sub: 'ready to sell right now' },
-    customers: { main: customers.length, sub: 'customers · view full purchase history' }
+    transfers: { main: logs.length, sub: t.fragStoreMoves || 'store-to-store movements' },
+    sold: { main: soldCount, sub: t.fragUnitsSold || 'units sold' },
+    report: { main: inStockCount, sub: t.fragReadySell || 'ready to sell right now' },
+    customers: { main: customers.length, sub: `${customers.length} ${t.fragCustomers || 'customers · view full purchase history'}` }
   };
 
   return (
@@ -205,13 +216,13 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
       <div className="px-1 py-2 sm:px-2">
         <div className="mb-7 text-center">
           <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-accent">
-            Live Operations
+            {t.dashKicker || 'Live Operations'}
           </p>
           <h2 className="mt-2 font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
-            Dashboard
+            {t.dashTitle || 'Dashboard'}
           </h2>
           <p className="mt-1 text-sm text-ink-faint">
-            Pick a module — everything updates in real time.
+            {t.dashSub || 'Pick a module — everything updates in real time.'}
           </p>
         </div>
 
@@ -228,49 +239,49 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Master search — brand, model, serial, processor, RAM, configuration…"
+                placeholder={t.dashSearchPh || 'Master search — brand, model, serial, processor, RAM, configuration…'}
                 className="field pl-9"
               />
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <select value={brandF} onChange={(e) => setBrandF(e.target.value)} className="field w-auto min-w-[130px] flex-1 sm:flex-none">
-                <option value="">All brands</option>
+                <option value="">{t.dashAllBrands || 'All brands'}</option>
                 {brands.map((b) => (
                   <option key={b} value={b}>{b}</option>
                 ))}
               </select>
               <select value={ramF} onChange={(e) => setRamF(e.target.value)} className="field w-auto min-w-[110px] flex-1 sm:flex-none">
-                <option value="">All RAM</option>
+                <option value="">{t.dashAllRam || 'All RAM'}</option>
                 {rams.map((b) => (
                   <option key={b} value={b}>{b}</option>
                 ))}
               </select>
               <select value={storageF} onChange={(e) => setStorageF(e.target.value)} className="field w-auto min-w-[110px] flex-1 sm:flex-none">
-                <option value="">Any storage</option>
+                <option value="">{t.dashAnyStorage || 'Any storage'}</option>
                 <option value="SSD">SSD</option>
                 <option value="HDD">HDD</option>
               </select>
               <select value={statusF} onChange={(e) => setStatusF(e.target.value)} className="field w-auto min-w-[120px] flex-1 sm:flex-none">
-                <option value="">Any status</option>
-                <option value="In Stock">In Stock</option>
-                <option value="In Transit">In Transit</option>
-                <option value="Sold">Sold</option>
+                <option value="">{t.dashAnyStatus || 'Any status'}</option>
+                <option value="In Stock">{t.stInStock || 'In Stock'}</option>
+                <option value="In Transit">{t.stInTransit || 'In Transit'}</option>
+                <option value="Sold">{t.stSold || 'Sold'}</option>
               </select>
               <input
                 type="number" step="any" value={minPrice}
                 onChange={(e) => setMinPrice(e.target.value)}
-                placeholder="Min ₹ (any)"
+                placeholder={t.dashMinPh || 'Min ₹ (any)'}
                 className="field w-auto min-w-[110px] flex-1 sm:flex-none"
               />
               <input
                 type="number" step="any" value={maxPrice}
                 onChange={(e) => setMaxPrice(e.target.value)}
-                placeholder="Max ₹ (any)"
+                placeholder={t.dashMaxPh || 'Max ₹ (any)'}
                 className="field w-auto min-w-[110px] flex-1 sm:flex-none"
               />
               {filtersActive && (
                 <button onClick={clearFilters} className="btn-ghost">
-                  Clear
+                  {t.clearButton || 'Clear'}
                 </button>
               )}
             </div>
@@ -279,7 +290,7 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
           {filtersActive && (
             <div className="mt-3 border-t border-line pt-3">
               <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">
-                {results.length} match{results.length === 1 ? '' : 'es'} — click a result to open it in Inventory
+                {results.length} match{results.length === 1 ? '' : (t.dashPlural || 'es')} {t.dashOpenHint || '— click a result to open it in Inventory'}
               </p>
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {results.slice(0, 24).map((l) => (
@@ -291,7 +302,7 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
                     <span className="min-w-0">
                       <span className="block truncate text-sm font-medium text-ink">{l.brand_model}</span>
                       <span className="block truncate font-mono text-[11px] text-ink-faint">
-                        {l.serial_number} · {l.current_store_name || 'Unassigned'}
+                        {l.serial_number} · {l.current_store_name || (t.unassigned || 'Unassigned')}
                       </span>
                     </span>
                     <span className="flex shrink-0 items-center gap-2">
@@ -304,7 +315,7 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
                 ))}
                 {results.length > 24 && (
                   <p className="col-span-full text-xs text-ink-faint">
-                    +{results.length - 24} more — narrow your search
+                    +{results.length - 24} {t.dashMoreTail || 'more — narrow your search'}
                   </p>
                 )}
               </div>
@@ -331,11 +342,11 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
                 <p className="mt-4 font-display text-3xl font-semibold tracking-tight text-accent sm:mt-5 sm:text-4xl">
                   {counts[c.key].main.toLocaleString('en-IN')}
                 </p>
-                <h3 className="mt-1 text-sm font-semibold text-ink sm:text-base">{c.title}</h3>
+                <h3 className="mt-1 text-sm font-semibold text-ink sm:text-base">{t[c.titleKey] || c.title}</h3>
                 <p className="mt-0.5 hidden text-xs text-ink-faint sm:block">{counts[c.key].sub}</p>
 
                 <div className="mt-4 inline-flex items-center gap-1.5 text-xs font-semibold text-accent sm:mt-5">
-                  Open
+                  {t.dashOpen || 'Open'}
                   <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>

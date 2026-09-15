@@ -38,7 +38,7 @@ import {
 } from './api';
 import { socket, setSocketAuth, setLocalRole, setLocalPII } from './socket';
 import { joinPresence, leavePresence } from './presence';
-import { LabelsProvider } from './labels.jsx';
+import { LabelsProvider, DEFAULT_LABELS } from './labels.jsx';
 import Login from './components/Login';
 import StoreFilter from './components/StoreFilter';
 import InventoryView from './components/InventoryView';
@@ -110,10 +110,10 @@ function MenuRow({ label, icon, onClick, danger = false }) {
   );
 }
 
-export const NAV_ITEMS = [
+export const buildNavItems = (t = {}) => [
   {
     key: 'dashboard',
-    label: 'Dashboard',
+    label: t.navDashboard || 'Dashboard',
     icon: (
       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
         <path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h5a1 1 0 011 1v5a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm9 0a1 1 0 011-1h5a1 1 0 011 1v5a1 1 0 01-1 1h-5a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h5a1 1 0 011 1v5a1 1 0 01-1 1H5a1 1 0 01-1-1v-5zm9 0a1 1 0 011-1h5a1 1 0 011 1v5a1 1 0 01-1 1h-5a1 1 0 01-1-1v-5z" />
@@ -122,7 +122,7 @@ export const NAV_ITEMS = [
   },
   {
     key: 'inventory',
-    label: 'Inventory',
+    label: t.navInventory || 'Inventory',
     icon: (
       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
         <rect x="4" y="5" width="16" height="11" rx="1.5" />
@@ -131,8 +131,17 @@ export const NAV_ITEMS = [
     )
   },
   {
+    key: 'transfers',
+    label: t.navTransfers || 'Transfers',
+    icon: (
+      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4" />
+      </svg>
+    )
+  },
+  {
     key: 'purchases',
-    label: 'Purchases',
+    label: t.navPurchases || 'Purchases',
     icon: (
       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
         <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h2l2.4 12.2a1 1 0 001 .8h9.2a1 1 0 001-.8L21 8H6" />
@@ -143,7 +152,7 @@ export const NAV_ITEMS = [
   },
   {
     key: 'repairs',
-    label: 'Repairs',
+    label: t.navRepairs || 'Repairs',
     icon: (
       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
         <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.83-5.83M3.75 5.25a4.5 4.5 0 016.36 0l4.5 4.5a4.5 4.5 0 010 6.36M3.75 5.25l4.5 4.5" />
@@ -152,7 +161,7 @@ export const NAV_ITEMS = [
   },
   {
     key: 'sales',
-    label: 'Sold',
+    label: t.navSold || 'Sold',
     icon: (
       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
         <path strokeLinecap="round" strokeLinejoin="round" d="M8 5h7M8 5v14M8 12h6a3 3 0 000-6H8m0 6h6a3 3 0 010 6H8" />
@@ -161,7 +170,7 @@ export const NAV_ITEMS = [
   },
   {
     key: 'customers',
-    label: 'Customers',
+    label: t.navCustomers || 'Customers',
     icon: (
       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 12a4 4 0 100-8 4 4 0 000 8zM4 20a8 8 0 0116 0" />
@@ -170,7 +179,7 @@ export const NAV_ITEMS = [
   },
   {
     key: 'stats',
-    label: 'Reports',
+    label: t.navReports || 'Reports',
     icon: (
       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
         <path strokeLinecap="round" strokeLinejoin="round" d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
@@ -179,7 +188,7 @@ export const NAV_ITEMS = [
   },
   {
     key: 'vendor-laptops',
-    label: 'Vendor Laptops',
+    label: t.navVendorLaptops || 'Vendor Laptops',
     icon: (
       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V5a2 2 0 012-2h2a2 2 0 012 2v14m6-8v8m0-8v8m6-4h-8l-4-4m4 4V4" />
@@ -188,7 +197,7 @@ export const NAV_ITEMS = [
   }
 ];
 
-function QuickNav({ tab, onNavigate }) {
+function QuickNav({ tab, onNavigate, items = [] }) {
   const railRef = useRef(null);
   useEffect(() => {
     const el = railRef.current?.querySelector(`[data-nav="${tab}"]`);
@@ -198,7 +207,7 @@ function QuickNav({ tab, onNavigate }) {
     <nav className="sticky top-14 z-30 border-b border-line bg-page/85 backdrop-blur-md">
       <div className="mx-auto max-w-[1440px] px-3">
         <div ref={railRef} className="no-scrollbar flex justify-center gap-1 overflow-x-auto py-2">
-          {NAV_ITEMS.map((it) => {
+          {items.map((it) => {
             const active = tab === it.key;
             return (
               <button
@@ -917,12 +926,14 @@ export default function App() {
   };
 
   // Counts badge for the store filter.
-  const storeCount = (id) => {
-    const assigned = laptops.filter((l) => l.current_store_id != null);
+  const storeCount = (id) => {    const assigned = laptops.filter((l) => l.current_store_id != null);
     return id === 'all'
       ? assigned.length
       : assigned.filter((l) => l.current_store_id === id).length;
   };
+
+  // Merged UI labels (defaults + super-admin custom text from settings).
+  const t = { ...DEFAULT_LABELS, ...(labels || {}) };
 
   if (!authReady) {
     return (
@@ -972,7 +983,7 @@ export default function App() {
               <span
                 className={`h-1.5 w-1.5 rounded-full ${connected ? 'bg-stock-ok' : 'bg-stock-risk'}`}
               />
-              <span className="hidden sm:inline">{connected ? 'Live · synced' : 'Reconnecting…'}</span>
+              <span className="hidden sm:inline">{connected ? (t.liveSynced || 'Live · synced') : (t.reconnecting || 'Reconnecting…')}</span>
               {user?.home_store_id && (
                 <span className="text-ink-faint">· {stores.find((s) => s.id === user.home_store_id)?.store_name || ''}</span>
               )}
@@ -992,7 +1003,7 @@ export default function App() {
             <div className="relative shrink-0" ref={menuRef}>
               <button
                 onClick={() => setMenuOpen((o) => !o)}
-                aria-label="Menu"
+                aria-label={t.menuTitle || 'Menu'}
                 aria-expanded={menuOpen}
                 className={`flex h-9 w-9 items-center justify-center rounded-full border transition-colors duration-150 ${
                   menuOpen
@@ -1014,24 +1025,24 @@ export default function App() {
                   </p>
                   <div className="mb-1 border-b border-line" />
                   <MenuRow
-                    label="Dashboard"
+                    label={t.menuDashboard || 'Dashboard'}
                     icon="dashboard"
                     onClick={() => pick(() => setTab('dashboard'))}
                   />
                   {isAdmin && (
-                    <MenuRow label="Settings" icon="settings" onClick={() => pick(() => setSettingsOpen(true))} />
+                    <MenuRow label={t.menuSettings || 'Settings'} icon="settings" onClick={() => pick(() => setSettingsOpen(true))} />
                   )}
                   {isAdmin && (
-                    <MenuRow label="Brands" icon="brands" onClick={() => pick(() => setBrandsOpen(true))} />
+                    <MenuRow label={t.menuBrands || 'Brands'} icon="brands" onClick={() => pick(() => setBrandsOpen(true))} />
                   )}
                   {canManageVendors && (
-                    <MenuRow label="Vendors" icon="vendors" onClick={() => pick(() => setVendorsOpen(true))} />
+                    <MenuRow label={t.menuVendors || 'Vendors'} icon="vendors" onClick={() => pick(() => setVendorsOpen(true))} />
                   )}
                   {!isAdmin && canRenameStores && (
-                    <MenuRow label="Stores" icon="stores" onClick={() => pick(() => setSettingsOpen(true))} />
+                    <MenuRow label={t.menuStores || 'Stores'} icon="stores" onClick={() => pick(() => setSettingsOpen(true))} />
                   )}
                   <div className="my-1 border-t border-line" />
-                  <MenuRow label="Sign out" icon="logout" danger onClick={handleLogout} />
+                  <MenuRow label={t.menuSignOut || 'Sign out'} icon="logout" danger onClick={handleLogout} />
                 </div>
               )}
             </div>
@@ -1039,7 +1050,7 @@ export default function App() {
         </div>
       </header>
 
-      <div className="hidden sm:block"><QuickNav tab={tab} onNavigate={setTab} /></div>
+      <div className="hidden sm:block"><QuickNav tab={tab} onNavigate={setTab} items={buildNavItems(t)} /></div>
 
 <main className="mx-auto max-w-[1440px] pl-16 pr-4 py-6 sm:pl-4 space-y-6">
         {tab === 'dashboard' ? (
@@ -1107,7 +1118,7 @@ export default function App() {
           <SalesTab stores={stores} isSuperAdmin={isSuperAdmin} isAdmin={isAdmin} canSeeCustomer={canViewPII} userRole={user?.role} homeStoreId={user?.home_store_id ?? null} onNotify={notify} />
         ) : tab === 'customers' ? (
           <div className="space-y-4">
-            <p className="text-sm text-ink-dim">Manage your customers. Linked to sales when a laptop is sold to them.</p>
+            <p className="text-sm text-ink-dim">{t.custIntro || 'Manage your customers. Linked to sales when a laptop is sold to them.'}</p>
             <CustomersManager onNotify={notify} />
           </div>
 ) : tab === 'stats' ? (
@@ -1221,7 +1232,7 @@ export default function App() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
           <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-line bg-surface p-6 shadow-pop">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-display text-base font-semibold tracking-tight text-ink">Manage Brands</h2>
+              <h2 className="font-display text-base font-semibold tracking-tight text-ink">{t.brTitle || 'Manage Brands'}</h2>
               <button onClick={() => setBrandsOpen(false)} className="text-ink-faint hover:text-ink transition-colors" aria-label="Close">
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -1237,7 +1248,7 @@ export default function App() {
         <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/60 sm:p-4 backdrop-blur-sm">
           <div className="max-h-[92vh] sm:max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-t-2xl sm:rounded-2xl border border-line bg-surface p-4 sm:p-6 shadow-pop">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-display text-base font-semibold tracking-tight text-ink">Manage Vendors</h2>
+              <h2 className="font-display text-base font-semibold tracking-tight text-ink">{t.vendManageT || 'Manage Vendors'}</h2>
               <button onClick={() => setVendorsOpen(false)} className="text-ink-faint hover:text-ink transition-colors" aria-label="Close">
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
@@ -1284,8 +1295,8 @@ export default function App() {
                 </svg>
               </div>
               <div>
-                <h3 className="font-display text-sm font-semibold text-ink">Incoming Transfer Request</h3>
-                <p className="text-[11px] text-ink-faint">Requested by {activeTransferPopup.initiated_by}</p>
+                <h3 className="font-display text-sm font-semibold text-ink">{t.trPopT || 'Incoming Transfer Request'}</h3>
+                <p className="text-[11px] text-ink-faint">{t.trPopBy || 'Requested by'} {activeTransferPopup.initiated_by}</p>
               </div>
             </div>
             <div className="rounded-lg border border-line bg-surface-2/60 p-3 space-y-1.5">
@@ -1313,20 +1324,20 @@ export default function App() {
                 onClick={() => { handleAcceptTransfer(activeTransferPopup.id); setActiveTransferPopup(null); }}
                 className="flex-1 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors"
               >
-                Accept
+                {t.trAccept || 'Accept'}
               </button>
               <button
                 onClick={() => { handleRejectTransfer(activeTransferPopup.id); setActiveTransferPopup(null); }}
                 className="flex-1 rounded-lg bg-red-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-600 transition-colors"
               >
-                Reject
+                {t.trReject || 'Reject'}
               </button>
             </div>
             <button
               onClick={() => setActiveTransferPopup(null)}
               className="w-full text-center text-[11px] text-ink-faint hover:text-ink-dim transition-colors"
             >
-              Dismiss (decide later)
+              {t.trDismiss || 'Dismiss (decide later)'}
             </button>
           </div>
         </div>
@@ -1335,7 +1346,7 @@ export default function App() {
       {toast && <Toast key={toast.id} msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
 
       {!vendorsOpen && (
-        <BottomNav tab={tab} onNavigate={setTab} hidden={!!(invModal || purchaseModal || repairModal || sellTarget || delTarget || repairDelTarget || purchaseDelTarget || settingsOpen || brandsOpen || reportsViewOpen)} />
+        <BottomNav tab={tab} onNavigate={setTab} items={buildNavItems(t)} hidden={!!(invModal || purchaseModal || repairModal || sellTarget || delTarget || repairDelTarget || purchaseDelTarget || settingsOpen || brandsOpen || reportsViewOpen)} />
       )}
       </div>
     </LabelsProvider>
