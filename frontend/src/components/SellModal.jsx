@@ -12,6 +12,7 @@ export default function SellModal({ open, laptop, customers, onSave, onAddCustom
   const [paymentDetail, setPaymentDetail] = useState('');
   const [payError, setPayError] = useState('');
   const [priceError, setPriceError] = useState('');
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (open) {
@@ -26,6 +27,7 @@ export default function SellModal({ open, laptop, customers, onSave, onAddCustom
       setPaymentDetail('');
       setPayError('');
       setPriceError('');
+      setError('');
     }
   }, [open, laptop]);
 
@@ -44,17 +46,27 @@ export default function SellModal({ open, laptop, customers, onSave, onAddCustom
       return;
     }
     setPayError('');
+    if (!newCustomer && !buyer) {
+      setError('Customer is required. Select an existing customer or create a new one.');
+      return;
+    }
+    if (newCustomer) {
+      const n = newForm.name.trim();
+      const p = newForm.phone.trim();
+      if (!n) { setError('Customer name is required.'); return; }
+      if (!p) { setError('Customer phone number is required.'); return; }
+    }
+    setError('');
     setBusy(true);
     try {
       if (newCustomer) {
         const n = newForm.name.trim();
-        if (!n) throw new Error('Customer name is required');
         const added = await onAddCustomer?.({ name: n, phone: newForm.phone, email: newForm.email, address: newForm.address, notes: newForm.notes });
         if (!added) return;
         setBuyer(added.id);
         onSave?.(num, { customerId: added.id, paymentMethod, paymentDetail });
       } else {
-        onSave?.(num, { customerId: buyer ? Number(buyer) : null, paymentMethod, paymentDetail });
+        onSave?.(num, { customerId: Number(buyer), paymentMethod, paymentDetail });
       }
     } finally {
       setBusy(false);
@@ -101,14 +113,14 @@ export default function SellModal({ open, laptop, customers, onSave, onAddCustom
               onChange={() => setNewCustomer(!newCustomer)}
               className="accent-accent"
             />
-            <label htmlFor="newCustomer" className="text-sm text-ink-dim">Customer purchases this</label>
+            <label htmlFor="newCustomer" className="text-sm text-ink-dim">New customer (not in list)</label>
           </div>
 
           {!newCustomer ? (
             <div>
-              <label className="flabel">Customer</label>
-              <select value={buyer} onChange={(e) => setBuyer(e.target.value)} className="field mt-1 w-full">
-                <option value="">— No customer —</option>
+              <label className="flabel">Customer *</label>
+              <select value={buyer} onChange={(e) => { setBuyer(e.target.value); setError(''); }} className="field mt-1 w-full" required>
+                <option value="">— Select a customer —</option>
                 {(customers || []).map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
@@ -116,8 +128,8 @@ export default function SellModal({ open, laptop, customers, onSave, onAddCustom
             </div>
           ) : (
             <div className="space-y-3">
-              <FormRow label="Name" value={newForm.name} onChange={(name) => setNewForm({ ...newForm, name })} placeholder="e.g. Priya Sharma" required />
-              <FormRow label="Phone" value={newForm.phone} onChange={(phone) => setNewForm({ ...newForm, phone })} placeholder="e.g. 98xxxxxxxx" maxLength={12} />
+              <FormRow label="Name *" value={newForm.name} onChange={(name) => setNewForm({ ...newForm, name })} placeholder="e.g. Priya Sharma" />
+              <FormRow label="Phone *" value={newForm.phone} onChange={(phone) => setNewForm({ ...newForm, phone })} placeholder="e.g. 98xxxxxxxx" maxLength={12} />
               <FormRow label="Email" value={newForm.email} onChange={(email) => setNewForm({ ...newForm, email })} placeholder="e.g. name@example.com" />
               <FormRow label="Address" value={newForm.address} onChange={(address) => setNewForm({ ...newForm, address })} placeholder="Shipping / billing address" />
             </div>
@@ -142,9 +154,11 @@ export default function SellModal({ open, laptop, customers, onSave, onAddCustom
             {payError && <p className="text-sm text-stock-risk">{payError}</p>}
           </div>
 
+          {error && <p className="text-sm font-medium text-stock-risk">{error}</p>}
+
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={onClose} className="btn-ghost">Cancel</button>
-            <button type="submit" disabled={busy} className="btn-accent disabled:opacity-50">
+            <button type="submit" disabled={busy || (!newCustomer && !buyer)} className="btn-accent disabled:opacity-50">
               {busy ? 'Selling…' : 'Confirm Sale'}
             </button>
           </div>
