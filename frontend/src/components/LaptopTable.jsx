@@ -49,6 +49,7 @@ export default function LaptopTable({
               <th className={th}>{t.tableSerial}</th>
               <th className={th}>{t.tableStore}</th>
               <th className={th}>{t.tableStatus}</th>
+              <th className={th}>Condition</th>
               <th className={th}>{t.colPurchase || 'Purchase'}</th>
               <th className={th}>{t.colPurchaseDate || 'Purchase Date · IST'}</th>
               <th className={th}>{t.tableChangeLocation}</th>
@@ -98,9 +99,12 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                        <span className="text-ink-faint">{t.unassigned}</span>
                      )}
                    </td>
-                   <td className={td}>
-                     <StatusChip status={l.status} />
-                   </td>
+                    <td className={td}>
+                      <StatusChip status={l.status} />
+                    </td>
+                    <td className={`${td} text-xs text-ink-dim`}>
+                      {l.condition || 'Good'}
+                    </td>
                     <td className={`${td} font-mono text-xs text-ink-dim`}>
                       {l.purchase_rate != null
                         ? `${inr(l.purchase_rate)}${l.extra_charges ? `+${inr(l.extra_charges)}` : ''}`
@@ -310,7 +314,10 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                     <p className="mt-0.5 text-[11px] text-ink-faint truncate max-w-[150px]">From {l.purchased_from}</p>
                   )}
                 </div>
-                <StatusChip status={l.status} />
+                <div className="flex items-center gap-2">
+                  <StatusChip status={l.status} />
+                  {l.condition && <span className="text-[10px] text-ink-faint">· {l.condition}</span>}
+                </div>
               </div>
               {spec && <p className="mt-1.5 text-xs text-ink-dim truncate max-w-[200px]">{spec}</p>}
               {gfx && <p className="mt-0.5 text-[11px] text-ink-faint truncate max-w-[180px]">{gfx}</p>}

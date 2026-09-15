@@ -129,6 +129,8 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
   const [statusF, setStatusF] = useState('');
   const [minPrice, setMinPrice] = useState('');
   const [maxPrice, setMaxPrice] = useState('');
+  const [sortBy, setSortBy] = useState('created_at');
+  const [sortOrder, setSortOrder] = useState('desc');
 
   const brands = useMemo(() => {
     const s = new Set((all || []).map((l) => l?.brand).filter(Boolean));
@@ -160,8 +162,19 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
       if (min != null && rate < min) return false;
       if (max != null && rate > max) return false;
       return true;
+    }).sort((a, b) => {
+      const sortFns = {
+        created_at: (x, y) => new Date(x.created_at || 0) - new Date(y.created_at || 0),
+        brand: (x, y) => (x.brand || '').localeCompare(y.brand || ''),
+        model: (x, y) => (x.brand_model || '').localeCompare(y.brand_model || ''),
+        price: (x, y) => (Number(x.purchase_rate) || 0) - (Number(y.purchase_rate) || 0),
+        serial: (x, y) => (x.serial_number || '').localeCompare(y.serial_number || ''),
+        status: (x, y) => (x.status || '').localeCompare(y.status || ''),
+      };
+      const fn = sortFns[sortBy] || sortFns.created_at;
+      return sortOrder === 'asc' ? fn(a, b) : fn(b, a);
     });
-  }, [all, q, brandF, ramF, storageF, statusF, minPrice, maxPrice]);
+  }, [all, q, brandF, ramF, storageF, statusF, minPrice, maxPrice, sortBy, sortOrder]);
 
   const filtersActive =
     q.trim() !== '' || brandF !== '' || ramF !== '' || storageF !== '' || statusF !== '' || minPrice !== '' || maxPrice !== '';
@@ -283,6 +296,28 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
                   {t.clearButton || 'Clear'}
                 </button>
               )}
+              <div className="flex items-center gap-1.5 ml-auto">
+                <label className="text-xs text-ink-faint">Sort:</label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="rounded-lg border border-line bg-white px-2.5 py-1.5 text-xs font-medium text-ink focus:border-accent focus:outline-none"
+                >
+                  <option value="created_at">Date</option>
+                  <option value="brand">Brand</option>
+                  <option value="model">Model</option>
+                  <option value="price">Price</option>
+                  <option value="serial">Serial</option>
+                  <option value="status">Status</option>
+                </select>
+                <button
+                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                  className="btn-ghost !px-2 !py-1.5 text-xs"
+                  title={`Sort ${sortOrder === 'asc' ? 'ascending' : 'descending'}`}
+                >
+                  {sortOrder === 'asc' ? '↑' : '↓'}
+                </button>
+              </div>
             </div>
           </div>
 

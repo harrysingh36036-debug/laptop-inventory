@@ -20,6 +20,7 @@ const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, isSuperAdmin 
   const [assignTarget, setAssignTarget] = useState(null);
   const [assignStore, setAssignStore] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [editTarget, setEditTarget] = useState(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const { t } = useLabels();
@@ -232,6 +233,7 @@ const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, isSuperAdmin 
                   <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint">{t?.tablePurchasedFrom || 'Vendor'}</th>
                   <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Purchase Date</th>
                   <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Status</th>
+                  <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Condition</th>
                   <th className="px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Actions</th>
                 </tr>
               </thead>
@@ -251,9 +253,11 @@ const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, isSuperAdmin 
                       <td className="px-4 py-3 text-ink-dim">{l.purchased_from || '—'}</td>
                       <td className="px-4 py-3 font-mono text-[11px] text-ink-faint">{l.created_at ? formatIstDate(String(l.created_at).slice(0, 10)) : '—'}</td>
                       <td className="px-4 py-3"><span className={l.status === 'Sold' ? 'text-stock-risk' : 'status-chip'}>{l.status || '—'}</span></td>
+                      <td className="px-4 py-3 text-xs text-ink-dim">{l.condition || 'Good'}</td>
                       <td className="px-4 py-3 text-right">
                         {isAdmin && (
                           <div className="flex items-center justify-end gap-2">
+                            <button onClick={() => setEditTarget(l)} className="btn-ghost text-ink-dim text-xs">Edit</button>
                             <button onClick={() => handleAddLaptop(l)} className="btn-ghost text-accent text-xs">Add to Inventory</button>
                             <button onClick={() => setReturnTarget(l)} className="btn-ghost text-stock-risk text-xs">Return</button>
                             {isSuperAdmin && (
@@ -305,9 +309,13 @@ const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, isSuperAdmin 
                 <span>{l.purchase_rate != null ? inr(l.purchase_rate) : '—'}</span>
                 <span className="truncate max-w-[120px]">{l.purchased_from || '—'}</span>
                 <span className="font-mono">{l.created_at ? formatIstDate(String(l.created_at).slice(0, 10)) : '—'}</span>
+                {l.condition && <span className="text-ink-faint">· {l.condition}</span>}
               </div>
               {isAdmin && (
                 <div className="flex items-center gap-2 mt-1">
+                  <button onClick={() => setEditTarget(l)} className="flex-1 btn-ghost text-[10px] text-ink-dim">
+                    Edit
+                  </button>
                   <button onClick={() => handleAddLaptop(l)} className="flex-1 btn-ghost text-[10px] text-accent">
                     + Add to Inventory
                   </button>
@@ -337,17 +345,17 @@ const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, isSuperAdmin 
         </div>
       </div>
 
-      {isAdmin && showModal && (
+      {isAdmin && (showModal || editTarget) && (
         <InventoryModal
           stores={stores}
           brands={brands}
           vendors={vendors}
           productLines={productLines}
-          editing={null}
-          title="Add Vendor Laptop"
+          editing={editTarget}
+          title={editTarget ? 'Edit Vendor Laptop' : 'Add Vendor Laptop'}
           vendorSelect
           onSave={handleInvSave}
-          onClose={() => setShowModal(false)}
+          onClose={() => { setShowModal(false); setEditTarget(null); }}
         />
       )}
 

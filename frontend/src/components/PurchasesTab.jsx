@@ -186,6 +186,7 @@ export default function PurchasesTab({
                             <p><span className="text-ink-faint">Phone:</span> {p.purchaser_phone || '—'}</p>
                             <p><span className="text-ink-faint">Store:</span> {p.current_store_name || '—'}</p>
                             <p><span className="text-ink-faint">Status:</span> {p.status || '—'}</p>
+                            <p><span className="text-ink-faint">Condition:</span> {p.condition || 'Good'}</p>
                           </div>
                           ) : (
                             <p className="text-[11px] text-ink-faint">

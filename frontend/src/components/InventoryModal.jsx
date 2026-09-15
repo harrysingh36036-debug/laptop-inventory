@@ -3,6 +3,7 @@ import { useLabels } from '../labels.jsx';
 import { getIstToday } from '../utils';
 
 const STATUSES = ['In Stock', 'In Transit'];
+const CONDITIONS = ['Good', 'OK', 'Bad'];
 const SIZES = ['256 GB', '512 GB', '1 TB', '2 TB', '4 TB', '8 TB'];
 const RAMS = ['4 GB', '8 GB', '12 GB', '16 GB', '24 GB', '32 GB', '64 GB'];
 
@@ -25,6 +26,7 @@ const EMPTY = {
   quantity: 1,
   current_store_id: '',
   status: 'In Stock',
+  condition: 'Good',
   purchase_comment: '',
   purchase_date: getIstToday()
 };
@@ -365,6 +367,14 @@ export default function InventoryModal({ stores, brands = [], vendors = [], prod
                   ))}
                 </select>
               )}
+            </div>
+            <div>
+              <label className={label}>Condition</label>
+              <select value={form.condition} onChange={set('condition')} className={input()}>
+                {CONDITIONS.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
             </div>
             {!editing && (
               <div>

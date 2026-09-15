@@ -60,6 +60,7 @@ CREATE TABLE IF NOT EXISTS Laptops (
   purchase_rate    NUMERIC,
   extra_charges    NUMERIC,
   serial_number    TEXT NOT NULL UNIQUE,
+  condition        TEXT DEFAULT 'Good',
   current_store_id BIGINT,
   status           TEXT NOT NULL DEFAULT 'In Stock'
                    CHECK (status IN ('In Stock','In Transit','Sold')),
@@ -154,6 +155,8 @@ async function inTx(fn) {
 // ---------------------------------------------------------------------------
 async function init() {
   await pool.query(SCHEMA);
+  // Migration: add condition column if missing
+  try { await pool.query("ALTER TABLE Laptops ADD COLUMN IF NOT EXISTS condition TEXT DEFAULT 'Good'"); } catch (_) {}
   await seed();
 }
 
@@ -373,6 +376,7 @@ function normalizeLaptop(data, partial = {}) {
     graphics_model: data.graphics_model != null ? String(data.graphics_model).trim() : partial.graphics_model,
     purchase_rate: data.purchase_rate != null && data.purchase_rate !== '' ? Number(data.purchase_rate) : (partial.purchase_rate ?? null),
     extra_charges: data.extra_charges != null && data.extra_charges !== '' ? Number(data.extra_charges) : (partial.extra_charges ?? null),
+    condition: data.condition != null ? String(data.condition).trim() : (partial.condition || 'Good'),
     status: data.status || partial.status || 'In Stock',
     current_store_id: data.current_store_id != null && data.current_store_id !== '' ? Number(data.current_store_id) : (partial.current_store_id ?? null)
   };
@@ -395,9 +399,9 @@ async function createLaptop(data, _opts = {}) {
   const exists = await q('SELECT id FROM Laptops WHERE serial_number = $1', [serial]);
   if (exists.length) return { error: `Serial ${serial} already exists` };
   const r = await q(
-    `INSERT INTO Laptops (brand, brand_model, processor_type, generation, storage_type, purchased_from, graphics, graphics_type, graphics_model, purchase_rate, extra_charges, serial_number, current_store_id, status, updated_at)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14, ${NOW}) RETURNING id`,
-    [l.brand, l.brand_model, l.processor_type, l.generation, l.storage_type, l.purchased_from, l.graphics, l.graphics_type, l.graphics_model, l.purchase_rate, l.extra_charges, serial, l.current_store_id, l.status]
+    `INSERT INTO Laptops (brand, brand_model, processor_type, generation, storage_type, purchased_from, graphics, graphics_type, graphics_model, purchase_rate, extra_charges, serial_number, condition, current_store_id, status, updated_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15, ${NOW}) RETURNING id`,
+    [l.brand, l.brand_model, l.processor_type, l.generation, l.storage_type, l.purchased_from, l.graphics, l.graphics_type, l.graphics_model, l.purchase_rate, l.extra_charges, serial, l.condition, l.current_store_id, l.status]
   );
   return { laptop: await getLaptop(r[0].id) };
 }
@@ -444,8 +448,8 @@ async function updateLaptop(laptopId, data) {
   await q(
     `UPDATE Laptops SET brand=$1, brand_model=$2, processor_type=$3, generation=$4, storage_type=$5,
        purchased_from=$6, graphics=$7, graphics_type=$8, graphics_model=$9, purchase_rate=$10, extra_charges=$11,
-       current_store_id=$12, status=$13, updated_at=${NOW} WHERE id=$14`,
-    [l.brand, l.brand_model, l.processor_type, l.generation, l.storage_type, l.purchased_from, l.graphics, l.graphics_type, l.graphics_model, l.purchase_rate, l.extra_charges, l.current_store_id, l.status, laptopId]
+       condition=$12, current_store_id=$13, status=$14, updated_at=${NOW} WHERE id=$15`,
+    [l.brand, l.brand_model, l.processor_type, l.generation, l.storage_type, l.purchased_from, l.graphics, l.graphics_type, l.graphics_model, l.purchase_rate, l.extra_charges, l.condition, l.current_store_id, l.status, laptopId]
   );
   return { laptop: await getLaptop(laptopId) };
 }

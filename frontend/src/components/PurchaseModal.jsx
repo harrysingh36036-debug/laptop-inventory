@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { hashAadhar } from '../utils';
 
 const STATUSES = ['In Stock', 'In Transit'];
+const CONDITIONS = ['Good', 'OK', 'Bad'];
 
 const SOURCE_TYPES = [
   ['customer', 'Customer'],
@@ -27,6 +28,7 @@ const EMPTY = {
   quantity: 1,
   current_store_id: '',
   status: 'In Stock',
+  condition: 'Good',
   comment: '',
   aadhar_no: '',
   purchaser_name: '',
@@ -280,6 +282,16 @@ aadhar_no: editing.purchaser_aadhar || editing.aadhar_no || '',
                 {STATUSES.map((s) => (
                   <option key={s} value={s}>
                     {s}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="flabel">Condition</label>
+              <select value={form.condition} onChange={set('condition')} className="field mt-1.5">
+                {CONDITIONS.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
                   </option>
                 ))}
               </select>

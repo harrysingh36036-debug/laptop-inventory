@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS Laptops (
   purchase_rate    REAL,
   extra_charges    REAL,
   serial_number    TEXT NOT NULL UNIQUE,
+  condition        TEXT DEFAULT 'Good',
   current_store_id INTEGER,
   status           TEXT NOT NULL DEFAULT 'In Stock'
                    CHECK (status IN ('In Stock','In Transit','Sold')),
@@ -151,6 +152,11 @@ CREATE TABLE IF NOT EXISTS Repairs (
 
 // ---------------------------------------------------------------------------
 // Seed data
+// ---------------------------------------------------------------------------
+// Migration: add condition column if missing (for existing DBs)
+// ---------------------------------------------------------------------------
+try { db.prepare("ALTER TABLE Laptops ADD COLUMN condition TEXT DEFAULT 'Good'").run(); } catch (_) {}
+
 // ---------------------------------------------------------------------------
 const seedStores = () => {
   const count = db.prepare('SELECT COUNT(*) AS n FROM stores').get().n;
@@ -393,6 +399,7 @@ function normalizeLaptop(data, partial = {}) {
     graphics_model: data.graphics_model != null ? String(data.graphics_model).trim() : partial.graphics_model,
     purchase_rate: data.purchase_rate != null && data.purchase_rate !== '' ? Number(data.purchase_rate) : (partial.purchase_rate ?? null),
     extra_charges: data.extra_charges != null && data.extra_charges !== '' ? Number(data.extra_charges) : (partial.extra_charges ?? null),
+    condition: data.condition != null ? String(data.condition).trim() : (partial.condition || 'Good'),
     status: data.status || partial.status || 'In Stock',
     current_store_id: data.current_store_id != null && data.current_store_id !== '' ? Number(data.current_store_id) : (partial.current_store_id ?? null)
   };
@@ -416,8 +423,8 @@ function createLaptop(data, { silent = false } = {}) {
   const exists = db.prepare('SELECT id FROM Laptops WHERE serial_number = ?').get(serial);
   if (exists) return { error: `Serial ${serial} already exists` };
   const info = db.prepare(
-    `INSERT INTO Laptops (brand, brand_model, processor_type, generation, storage_type, purchased_from, graphics, graphics_type, graphics_model, purchase_rate, extra_charges, serial_number, current_store_id, status, updated_at)
-     VALUES ($brand, $brand_model, $processor_type, $generation, $storage_type, $purchased_from, $graphics, $graphics_type, $graphics_model, $purchase_rate, $extra_charges, $serial_number, $current_store_id, $status, datetime('now'))`
+    `INSERT INTO Laptops (brand, brand_model, processor_type, generation, storage_type, purchased_from, graphics, graphics_type, graphics_model, purchase_rate, extra_charges, serial_number, condition, current_store_id, status, updated_at)
+     VALUES ($brand, $brand_model, $processor_type, $generation, $storage_type, $purchased_from, $graphics, $graphics_type, $graphics_model, $purchase_rate, $extra_charges, $serial_number, $condition, $current_store_id, $status, datetime('now'))`
   ).run({ ...l, serial_number: serial });
   return { laptop: getLaptop(info.lastInsertRowid) };
 }
@@ -459,7 +466,7 @@ function updateLaptop(laptopId, data) {
     `UPDATE Laptops SET brand=$brand, brand_model=$brand_model, processor_type=$processor_type,
        generation=$generation, storage_type=$storage_type, purchased_from=$purchased_from,
        graphics=$graphics, graphics_type=$graphics_type, graphics_model=$graphics_model,
-       purchase_rate=$purchase_rate, extra_charges=$extra_charges,
+       purchase_rate=$purchase_rate, extra_charges=$extra_charges, condition=$condition,
        current_store_id=$current_store_id, status=$status, updated_at=datetime('now') WHERE id=$id`
   ).run({ ...l, id: laptopId });
   return { laptop: getLaptop(laptopId) };

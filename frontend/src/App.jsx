@@ -456,12 +456,13 @@ export default function App() {
   // ---- Refetch laptops whenever a filter changes ---------------------------
   const refresh = useCallback(async () => {
     try {
-      setLaptops(await getLaptops({ storeId, status, search }));
+      const params = tab === 'dashboard' ? {} : { storeId, status, search };
+      setLaptops(await getLaptops(params));
     } catch (e) {
       notify(e.message, 'error');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storeId, status, search]);
+  }, [tab, storeId, status, search]);
 
   useEffect(() => {
     if (user) refresh();
@@ -574,9 +575,10 @@ export default function App() {
     // Sheets was edited externally (or full reload) — refetch everything.
     const onDataReloaded = async () => {
       try {
+        const params = tab === 'dashboard' ? {} : { storeId, status, search };
         const [s, l, lg, st] = await Promise.all([
           getStores(),
-          getLaptops({ storeId, status, search }),
+          getLaptops(params),
           getTransferLogs(),
           getSettings()
         ]);
