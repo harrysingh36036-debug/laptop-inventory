@@ -1,83 +1,112 @@
 import { useState, useRef, useEffect } from 'react';
-import { NAV_ITEMS } from '../App';
 
-export default function BottomNav({ tab, onNavigate, hidden }) {
-  const [tooltip, setTooltip] = useState(null);
-  const navRef = useRef(null);
+export default function BottomNav({ tab, onNavigate, hidden, onAddInventory, onAddVendorLaptop }) {
+  const [addOpen, setAddOpen] = useState(false);
+  const popupRef = useRef(null);
 
   useEffect(() => {
-    if (tooltip === null) return;
+    if (!addOpen) return;
     const onDown = (e) => {
-      if (navRef.current && !navRef.current.contains(e.target)) setTooltip(null);
+      if (popupRef.current && !popupRef.current.contains(e.target)) setAddOpen(false);
     };
     document.addEventListener('mousedown', onDown);
     return () => document.removeEventListener('mousedown', onDown);
-  }, [tooltip]);
+  }, [addOpen]);
 
   useEffect(() => {
-    if (hidden) setTooltip(null);
+    if (hidden) setAddOpen(false);
   }, [hidden]);
-
-  const handleNav = (idx, key) => {
-    if (tooltip === idx) {
-      setTooltip(null);
-      onNavigate(key);
-    } else {
-      setTooltip(idx);
-    }
-  };
 
   if (hidden) return null;
 
+  const tabs = [
+    { key: 'dashboard', label: 'Home', icon: (
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h5a1 1 0 011 1v5a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm9 0a1 1 0 011-1h5a1 1 0 011 1v5a1 1 0 01-1 1h-5a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h5a1 1 0 011 1v5a1 1 0 01-1 1H5a1 1 0 01-1-1v-5zm9 0a1 1 0 011-1h5a1 1 0 011 1v5a1 1 0 01-1 1h-5a1 1 0 01-1-1v-5z" />
+      </svg>
+    )},
+    { key: 'purchases', label: 'Purchase', icon: (
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h2l2.4 12.2a1 1 0 001 .8h9.2a1 1 0 001-.8L21 8H6" />
+        <circle cx="9" cy="20" r="1.3" />
+        <circle cx="18" cy="20" r="1.3" />
+      </svg>
+    )},
+    { key: 'sales', label: 'Sale', icon: (
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8 5h7M8 5v14M8 12h6a3 3 0 000-6H8m0 6h6a3 3 0 010 6H8" />
+      </svg>
+    )},
+    { key: 'transfers', label: 'Transfers', icon: (
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+      </svg>
+    )},
+  ];
+
+  const handleAdd = (action) => {
+    setAddOpen(false);
+    action();
+  };
+
   return (
-    <nav ref={navRef} className="fixed left-0 top-14 bottom-0 z-50 w-16 border-r border-line bg-page/95 backdrop-blur-md sm:hidden overflow-y-auto">
-      <div className="flex flex-col items-center py-2">
-        <button
-          onClick={() => { setTooltip(null); onNavigate('dashboard'); }}
-          className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent-soft mb-1"
-          title="Dashboard"
-        >
-          <svg className="h-6 w-6 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-          </svg>
-        </button>
-        <div className="h-px w-10 bg-line mb-1" />
-        <div className="flex flex-col items-center gap-0.5">
-        {NAV_ITEMS.map((it, idx) => {
+    <nav ref={popupRef} className="mobile-bottom-nav">
+      <div className="nav-items">
+        {tabs.slice(0, 2).map((it) => {
           const active = tab === it.key;
-          const showTip = tooltip === idx;
           return (
             <button
               key={it.key}
-              onClick={() => handleNav(idx, it.key)}
-              aria-current={active ? 'page' : undefined}
-              className={`group relative flex flex-col items-center gap-1 w-full py-2.5 text-[10px] leading-none font-bold ${
-                active
-                  ? 'text-accent'
-                  : 'text-ink-dim'
-              }`}
+              onClick={() => onNavigate(it.key)}
+              className={`nav-btn ${active ? 'active' : ''}`}
             >
-              <span
-                className={`flex h-10 w-10 items-center justify-center rounded-xl ${
-                  active ? 'bg-accent-soft' : 'group-hover:bg-surface-2'
-                }`}
-              >
-                {it.icon}
-              </span>
-              <span className="max-w-[56px] truncate leading-tight font-semibold">{it.label}</span>
-              {active && (
-                <span className="absolute left-0 top-1 bottom-1 w-0.5 rounded-r-full bg-accent" />
-              )}
-
-              {showTip && (
-                <span className="absolute left-full ml-2 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-lg border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-ink shadow-pop z-50">
-                  {it.label}
-                </span>
-              )}
+              {it.icon}
+              <span>{it.label}</span>
             </button>
           );
         })}
+
+        <div className="relative">
+          {addOpen && (
+            <div className="add-popup">
+              <button onClick={() => handleAdd(onAddInventory)}>
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                Add Inventory Laptop
+              </button>
+              <button onClick={() => handleAdd(onAddVendorLaptop)}>
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V5a2 2 0 012-2h2a2 2 0 012 2v14m6-8v8m0-8v8m6-4h-8l-4-4m4 4V4" />
+                </svg>
+                Add Vendor Laptop
+              </button>
+            </div>
+          )}
+          <button
+            onClick={() => setAddOpen((o) => !o)}
+            className="nav-add-btn"
+            title="Add"
+          >
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
         </div>
+
+        {tabs.slice(2).map((it) => {
+          const active = tab === it.key;
+          return (
+            <button
+              key={it.key}
+              onClick={() => onNavigate(it.key)}
+              className={`nav-btn ${active ? 'active' : ''}`}
+            >
+              {it.icon}
+              <span>{it.label}</span>
+            </button>
+          );
+        })}
       </div>
     </nav>
   );
