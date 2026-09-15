@@ -2,14 +2,14 @@
   "name": "Universal CRM",
   "short_name": "Universal CRM",
   "description": "Laptop Inventory Management System",
-  "start_url": "/",
+  "start_url": "./",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#F7F9FC",
   "theme_color": "#2563EB",
   "icons": [
     {
-      "src": "/icon.svg",
+      "src": "./icon.svg",
       "sizes": "any",
       "type": "image/svg+xml"
     }
