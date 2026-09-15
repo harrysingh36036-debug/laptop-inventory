@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { formatTime, formatIstDateWithTime, inr } from '../utils';
+import { formatTime, formatIstDateTime, inr } from '../utils';
 import { useLabels } from '../labels.jsx';
 import StatusChip from './StatusChip';
 
@@ -106,7 +106,7 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                         ? `${inr(l.purchase_rate)}${l.extra_charges ? `+${inr(l.extra_charges)}` : ''}`
                         : '—'}
                     </td>
-                    <td className={`${td} font-mono text-[11px] text-ink-faint whitespace-nowrap`}>{l.created_at ? formatIstDateWithTime(l.created_at) : '—'}</td>
+                    <td className={`${td} font-mono text-[11px] text-ink-faint whitespace-nowrap`}>{l.created_at ? formatIstDateTime(l.created_at) : '—'}</td>
                    {canTransfer && !isSold ? (
                      <td className={td}>
                        <div className="flex flex-wrap items-center gap-2">
@@ -328,7 +328,7 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                     {l.extra_charges ? `+${inr(l.extra_charges)}` : ''}
                   </span>
                 )}
-                <span className="font-mono text-[11px] text-ink-faint whitespace-nowrap">{l.created_at ? formatIstDateWithTime(l.created_at) : ''}</span>
+                <span className="font-mono text-[11px] text-ink-faint whitespace-nowrap">{l.created_at ? formatIstDateTime(l.created_at) : ''}</span>
               </div>
               {isSold && (
                 <div className="mt-2 rounded-lg bg-surface-2/60 px-2.5 py-1.5 text-[11px] text-ink-dim">

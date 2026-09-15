@@ -181,18 +181,18 @@ export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <SearchBox
           value={search}
           onChange={setSearch}
           placeholder="Search sales by laptop, serial, store, customer or staff…"
           countLabel={`${filtered.length} of ${sales.length} sales`}
-          className="max-w-md"
+          className="w-full sm:max-w-md"
         />
         <button
           onClick={() => downloadSalesCsv(sales, stores)}
           disabled={!sales.length}
-          className="btn-ghost disabled:cursor-not-allowed disabled:opacity-40"
+          className="btn-ghost w-full sm:w-auto disabled:cursor-not-allowed disabled:opacity-40"
         >
           Download CSV
         </button>

@@ -44,16 +44,16 @@ export default function PurchasesTab({
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <SearchBox
           value={search}
           onChange={setSearch}
           placeholder="Search purchases by brand, serial, vendor or GPU…"
           countLabel={`${filtered.length} of ${purchases.length} purchases`}
-          className="max-w-md"
+          className="w-full sm:max-w-md"
         />
         {canEditInventory && (
-          <button onClick={onAddPurchase} className="btn-accent">
+          <button onClick={onAddPurchase} className="btn-accent w-full sm:w-auto">
             + Record Purchase
           </button>
         )}
