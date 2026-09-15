@@ -50,10 +50,11 @@ export default function ReturnSaleModal({ sale, stores, onNotify, onClose, onDon
     if (!selectedLaptop) { setError('Select a replacement laptop.'); return; }
     const price = Number(salePrice);
     if (!price || price <= 0 || !Number.isInteger(price)) { setError('Enter a valid whole-number sale price (no decimals).'); return; }
+    if (!password.trim()) { setError('Enter your password to confirm.'); return; }
     setBusy(true);
     setError('');
     try {
-      await deleteSale(sale.id, '', 'Exchange — old laptop returned');
+      await deleteSale(sale.id, password.trim(), 'Exchange — old laptop returned');
       await sellLaptop(Number(selectedLaptop), price);
       onNotify?.('Exchange processed — old laptop returned, new sale created', 'success');
       onDone?.();
@@ -149,8 +150,12 @@ export default function ReturnSaleModal({ sale, stores, onNotify, onClose, onDon
               <label className="flabel">Exchange sale price (₹)</label>
               <input type="text" inputMode="numeric" pattern="[0-9]*" value={salePrice} onChange={(e) => setSalePrice(e.target.value.replace(/[^0-9]/g, ''))} placeholder="Enter the new sale price" className="field mt-1.5" />
             </div>
+            <div>
+              <label className="flabel">Your password</label>
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Confirm your identity" className="field mt-1.5" />
+            </div>
             <div className="flex justify-end gap-2 pt-2">
-              <button type="button" onClick={() => { setStep('choose'); setError(''); setSelectedLaptop(''); setSalePrice(''); }} className="btn-ghost">Back</button>
+              <button type="button" onClick={() => { setStep('choose'); setError(''); setSelectedLaptop(''); setSalePrice(''); setPassword(''); }} className="btn-ghost">Back</button>
               <button type="submit" disabled={busy} className="btn-accent disabled:opacity-50">
                 {busy ? 'Processing…' : 'Confirm Exchange'}
               </button>
