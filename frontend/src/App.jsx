@@ -1361,8 +1361,9 @@ export default function App() {
       {toast && <Toast key={toast.id} msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
 
       <QuickBall
-        onAddInventory={() => setInvModal({})}
-        onAddVendorLaptop={() => setTab('vendor-laptops')}
+        currentTab={tab}
+        onNavigate={setTab}
+        canManage={isAdmin || isSuperAdmin}
       />
       </div>
     </LabelsProvider>
