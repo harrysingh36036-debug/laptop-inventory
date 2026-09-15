@@ -120,16 +120,17 @@ aadhar_no: editing.purchaser_aadhar || editing.aadhar_no || '',
       setError('Purchase rate must be a valid number (any amount allowed).');
       return;
     }
-    if (!editing && !form.aadhar_no.trim()) {
-      setError('Aadhar number is mandatory when adding a purchase.');
+    const isVendor = form.source_type === 'vendor' && form.source_id;
+    if (!editing && !isVendor && !form.aadhar_no.trim()) {
+      setError('Aadhar number is mandatory for non-vendor purchases.');
       return;
     }
-    if (!editing && !form.purchaser_name.trim()) {
-      setError('Purchaser name is mandatory when adding a purchase.');
+    if (!editing && !isVendor && !form.purchaser_name.trim()) {
+      setError('Purchaser name is mandatory for non-vendor purchases.');
       return;
     }
-    if (!editing && !form.purchaser_phone.trim()) {
-      setError('Phone number is mandatory when adding a purchase.');
+    if (!editing && !isVendor && !form.purchaser_phone.trim()) {
+      setError('Phone number is mandatory for non-vendor purchases.');
       return;
     }
     if (form.purchaser_phone.trim() && !/^\d{10}$/.test(form.purchaser_phone.trim())) {
@@ -212,21 +213,21 @@ aadhar_no: editing.purchaser_aadhar || editing.aadhar_no || '',
               )}
             </div>
             <div>
-              <label className="flabel">Purchaser Aadhar No. {!editing && <span className="text-stock-risk">*</span>}</label>
+              <label className="flabel">Purchaser Aadhar No. {!editing && form.source_type !== 'vendor' && <span className="text-stock-risk">*</span>}</label>
               <input value={form.aadhar_no} onChange={set('aadhar_no')} inputMode="numeric" maxLength={12}
-                placeholder={editing ? (form.aadhar_no ? '' : 'Optional on edit') : '12-digit Aadhar (required)'}
+                placeholder={editing ? (form.aadhar_no ? '' : 'Optional on edit') : form.source_type === 'vendor' ? 'Optional for vendor purchases' : '12-digit Aadhar (required)'}
                 className="field mt-1.5" />
               <p className="mt-1 text-xs text-ink-faint">Hashed before saving; admin can view the full number.</p>
             </div>
             <div>
-              <label className="flabel">Purchaser Name {!editing && <span className="text-stock-risk">*</span>}</label>
-              <input value={form.purchaser_name} onChange={set('purchaser_name')} placeholder="Full name of buyer…"
+              <label className="flabel">Purchaser Name {!editing && form.source_type !== 'vendor' && <span className="text-stock-risk">*</span>}</label>
+              <input value={form.purchaser_name} onChange={set('purchaser_name')} placeholder={form.source_type === 'vendor' ? 'Optional for vendor purchases' : 'Full name of buyer…'}
                 className="field mt-1.5" />
             </div>
             <div>
-              <label className="flabel">Phone Number {!editing && <span className="text-stock-risk">*</span>}</label>
+              <label className="flabel">Phone Number {!editing && form.source_type !== 'vendor' && <span className="text-stock-risk">*</span>}</label>
               <input value={form.purchaser_phone} onChange={set('purchaser_phone')} inputMode="numeric" maxLength={10}
-                placeholder="10-digit mobile (required)"
+                placeholder={form.source_type === 'vendor' ? 'Optional for vendor purchases' : '10-digit mobile (required)'}
                 className="field mt-1.5" />
               <p className="mt-1 text-xs text-ink-faint">Visible to admins only.</p>
             </div>
