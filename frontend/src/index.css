@@ -138,7 +138,7 @@ body {
  *  Mobile bottom nav — hidden on all screen sizes
  * ------------------------------------------------------------------ */
 .mobile-bottom-nav {
-  display: none !important;
+  display: flex;
 }
 .mobile-bottom-nav .nav-items {
   display: flex;

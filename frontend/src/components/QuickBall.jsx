@@ -62,7 +62,7 @@ export default function QuickBall({ currentTab, onNavigate, canManage = false, i
   };
 
   return (
-    <div ref={ref} className="fixed z-50 sm:hidden" style={{ bottom: 'max(1.25rem, env(safe-area-inset-bottom, 1.25rem))', right: 'max(1.25rem, env(safe-area-inset-right, 1.25rem))' }}>
+      <div ref={ref} className="fixed z-50 block" style={{ bottom: 'max(1.25rem, env(safe-area-inset-bottom, 1.25rem))', right: 'max(1.25rem, env(safe-area-inset-right, 1.25rem))' }}>
       {open && (
         <div className="absolute bottom-16 right-0 max-h-[65vh] overflow-y-auto rounded-2xl bg-white shadow-xl border border-line p-2 w-52 animate-[slideUp_0.15s_ease-out]">
           {NAV_ITEMS.map((it) => (
