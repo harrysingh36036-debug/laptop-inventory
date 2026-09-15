@@ -53,6 +53,9 @@ body {
   background: rgba(var(--accent-rgb), 0.2);
 }
 
+.quick-ball-container { display: block; }
+@media (min-width: 640px) { .quick-ball-container { display: none !important; } }
+
 /* Thin cool scrollbars */
 @keyframes slideUp {
   from { opacity: 0; transform: translateY(12px); }
