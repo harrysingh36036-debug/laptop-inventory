@@ -58,6 +58,7 @@ import VendorLaptopsTab from './components/VendorLaptopsTab';
 import RepairsTab from './components/RepairsTab';
 import RepairModal from './components/RepairModal';
 import PurchaseModal from './components/PurchaseModal';
+import QuickBall from './components/QuickBall';
 
 
 const ReportsTab = lazy(() => import('./components/ReportsTab'));
@@ -1359,6 +1360,10 @@ export default function App() {
 
       {toast && <Toast key={toast.id} msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
 
+      <QuickBall
+        onAddInventory={() => setInvModal({})}
+        onAddVendorLaptop={() => setTab('vendor-laptops')}
+      />
       </div>
     </LabelsProvider>
   );
