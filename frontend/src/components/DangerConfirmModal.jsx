@@ -1,8 +1,8 @@
 import { useState } from 'react';
 
-// Delete confirmation: warning message, then the signed-in user's password and
-// mandatory remarks before anything is deleted (verified server-side).
-export default function DangerConfirmModal({ title, warning, onConfirm, onClose }) {
+// Delete confirmation: warning message, then password and remarks.
+// Super admins bypass the password step.
+export default function DangerConfirmModal({ title, warning, onConfirm, onClose, isSuperAdmin = false }) {
   const [password, setPassword] = useState('');
   const [remarks, setRemarks] = useState('');
   const [busy, setBusy] = useState(false);
@@ -13,6 +13,12 @@ export default function DangerConfirmModal({ title, warning, onConfirm, onClose 
     if (busy) return;
     setBusy(true);
     setError('');
+    if (isSuperAdmin) {
+      const msg = await onConfirm('', remarks.trim());
+      setBusy(false);
+      if (msg) setError(msg);
+      return;
+    }
     const pwd = password.trim();
     if (!pwd) {
       setError('Enter your password to confirm.');
@@ -37,17 +43,19 @@ export default function DangerConfirmModal({ title, warning, onConfirm, onClose 
         )}
 
         <form onSubmit={submit} className="mt-4 space-y-3">
-          <div>
-            <label className="flabel">Your account password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password…"
-              autoFocus
-              className="field mt-1.5"
-            />
-          </div>
+          {!isSuperAdmin && (
+            <div>
+              <label className="flabel">Your account password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password…"
+                autoFocus
+                className="field mt-1.5"
+              />
+            </div>
+          )}
           <div>
             <label className="flabel">Remarks (mandatory)</label>
             <textarea
@@ -64,7 +72,7 @@ export default function DangerConfirmModal({ title, warning, onConfirm, onClose 
               Cancel
             </button>
             <button type="submit" disabled={busy} className="btn-danger disabled:opacity-50">
-              {busy ? 'Verifying…' : 'Delete permanently'}
+              {busy ? (isSuperAdmin ? 'Deleting…' : 'Verifying…') : 'Delete permanently'}
             </button>
           </div>
         </form>

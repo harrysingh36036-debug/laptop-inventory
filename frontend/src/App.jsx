@@ -1066,9 +1066,7 @@ export default function App() {
         </div>
       </header>
 
-      <div className="hidden sm:block"><QuickNav tab={tab} onNavigate={setTab} items={buildNavItems(t)} /></div>
-
-<main className="mx-auto max-w-[1440px] px-4 py-8 sm:pl-16 sm:pr-4 space-y-6">
+      <main className="mx-auto max-w-[1440px] px-4 py-8 sm:pl-16 sm:pr-4 space-y-6">
         {tab === 'dashboard' ? (
 <DashboardTab
               laptops={laptops}
@@ -1214,6 +1212,7 @@ export default function App() {
           warning={`The purchase record for "${purchaseDelTarget.brand_model || purchaseDelTarget.brand || '#' + purchaseDelTarget.id}" will be permanently removed from the ledger. This cannot be undone.`}
           onConfirm={handlePurchaseDeleteConfirm}
           onClose={() => setPurchaseDelTarget(null)}
+          isSuperAdmin={isSuperAdmin}
         />
       )}
 
@@ -1223,6 +1222,7 @@ export default function App() {
           warning={`"${delTarget.label}" will be permanently removed from inventory along with its transfer history. This cannot be undone.`}
           onConfirm={handleDeleteConfirm}
           onClose={() => setDelTarget(null)}
+          isSuperAdmin={isSuperAdmin}
         />
       )}
 
@@ -1232,6 +1232,7 @@ export default function App() {
           warning={`The repair record for "${repairDelTarget.brand_model || repairDelTarget.serial_number || '#' + repairDelTarget.id}" will be permanently removed. This cannot be undone.`}
           onConfirm={handleRepairDeleteConfirm}
           onClose={() => setRepairDelTarget(null)}
+          isSuperAdmin={isSuperAdmin}
         />
       )}
 

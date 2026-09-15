@@ -610,6 +610,7 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
           warning={`"${delStore.name}" will be permanently removed as a store location. This cannot be undone.`}
           onConfirm={confirmDeleteStore}
           onClose={() => setDelStore(null)}
+          isSuperAdmin={isSuperAdmin}
         />
       )}
 
@@ -619,6 +620,7 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
           warning={`"${delUser.display_name || delUser.username}" (@${delUser.username}, ${delUser.role}) will be permanently removed and will no longer be able to sign in. This cannot be undone.`}
           onConfirm={confirmDeleteUser}
           onClose={() => setDelUser(null)}
+          isSuperAdmin={isSuperAdmin}
         />
       )}
     </div>
