@@ -1,11 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import Toolbar from './Toolbar';
 import LaptopTable from './LaptopTable';
 import { useLabels } from '../labels.jsx';
 
-// Inventory drill-down: master search + status → store tiles (with counts) →
-// brand tiles (with counts) → models list of one brand. Keeps the app's
-// existing filter/search/status state (server-side filtered `laptops` list).
 export default function InventoryView({
   laptops,
   stores,
@@ -31,8 +27,8 @@ export default function InventoryView({
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState('desc');
   const t = useLabels();
-  const [brand, setBrand] = useState(''); // '' = brand tiles, value = models view
-  const [ramF, setRamF] = useState(''); // RAM dropdown filter
+  const [brand, setBrand] = useState('');
+  const [ramF, setRamF] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(() =>
     typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches ? 9 : 16
@@ -41,24 +37,20 @@ export default function InventoryView({
 
   const activeStore = stores.find((s) => String(s.id) === String(storeId));
 
-  // Reset drill-down whenever the outer scope (store / status / search) changes.
   useEffect(() => {
     setPage(1);
   }, [storeId, status, search, brand]);
 
-  // RAM values present in the current list, for the dropdown filter (unique, no repeats).
   const ramValues = useMemo(() => {
     const s = new Set((laptops || []).map((l) => l?.ram).filter(Boolean));
     return [...s].sort((a, b) => parseFloat(a) - parseFloat(b));
   }, [laptops]);
 
-  // List after the RAM dropdown filter.
   const filtered = useMemo(
     () => (laptops || []).filter((l) => !ramF || l?.ram === ramF),
     [laptops, ramF]
   );
 
-  // Jump to a specific laptop (from dashboard master search).
   useEffect(() => {
     if (!focusSerial) return;
     const source = allLaptops?.length ? allLaptops : laptops;
@@ -78,10 +70,8 @@ export default function InventoryView({
         setTimeout(() => el?.classList.remove('ring-2', 'ring-accent', 'ring-offset-2'), 2000);
       }, 100);
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusSerial]);
 
-  // ---- Brand tiles (grouped by brand from the active list) ----------------
   const brandGroups = useMemo(() => {
     const map = new Map();
     for (const l of filtered) {
@@ -95,7 +85,7 @@ export default function InventoryView({
   }, [filtered]);
 
   const brandRows = useMemo(() => {
-    const rows = filtered.filter((l) => (l.brand || 'Unbranded') === brand);
+    const rows = filtered.filter((l) => !brand || (l.brand || 'Unbranded') === brand);
     const sortFns = {
       created_at: (a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0),
       brand: (a, b) => (a.brand || '').localeCompare(b.brand || ''),
@@ -111,155 +101,183 @@ export default function InventoryView({
 
   const totalPages = Math.max(1, Math.ceil(brandRows.length / pageSize));
   const currentPage = Math.min(page, totalPages);
-  const from = brandRows.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
-  const pageRows = brandRows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const statuses = ['In Stock', 'In Transit', 'Sold'];
 
-  const tile = (active, onClick, children, extra = '') => (
-    <button
-      onClick={onClick}
-      className={`panel group relative flex flex-col items-start gap-2 p-4 text-left transition-all duration-150 ${extra} ${
-        active ? 'ring-2 ring-accent-line bg-accent-soft/20' : 'hover:bg-surface-2/70'
-      }`}
-    >
-      {children}
-    </button>
-  );
+  const storeCounts = useMemo(() => {
+    const counts = { all: 0 };
+    for (const l of allLaptops || laptops || []) {
+      counts.all++;
+      const sid = String(l.current_store_id || 'unassigned');
+      counts[sid] = (counts[sid] || 0) + 1;
+    }
+    return counts;
+  }, [allLaptops, laptops]);
 
   return (
-    <section className="space-y-4 min-w-0">
-      {/* Status filter — top side of page, above search / buttons / inventory.
-          Full-width bar so it never sits on the left or between button and list
-          on mobile or laptop. */}
-      <div className="panel px-3 py-2.5">
-        <div className="no-scrollbar flex items-center gap-2 overflow-x-auto">
-          <span className="shrink-0 px-1 text-xs font-semibold uppercase tracking-wide text-ink-faint">
-            {t.statusLabel || 'Status'}:
-          </span>
-          <button
-            onClick={() => setStatus('')}
-            className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-              status === ''
-                ? 'border-accent-line bg-accent-soft text-accent'
-                : 'border-line bg-surface text-ink-dim hover:text-ink'
-            }`}
-          >
-            {t.anyStatus || 'All'}
-          </button>
-          {statuses.map((s) => (
-            <button
-              key={s}
-              onClick={() => setStatus(status === s ? '' : s)}
-              aria-pressed={status === s}
-              className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                status === s
-                  ? 'border-accent-line bg-accent-soft text-accent'
-                  : 'border-line bg-surface text-ink-dim hover:text-ink'
-              }`}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Toolbar search={search} setSearch={setSearch} resultCount={laptops.length} sortBy={sortBy} setSortBy={setSortBy} sortOrder={sortOrder} setSortOrder={setSortOrder} />
-        <div className="flex flex-wrap items-center gap-2">
-          <select
-            value={ramF}
-            onChange={(e) => setRamF(e.target.value)}
-            className="rounded-lg border border-line bg-surface px-3 py-2 text-xs font-medium text-ink-dim focus:border-accent-line focus:outline-none"
-            title="Filter by RAM"
-          >
-            <option value="">All RAM</option>
-            {ramValues.map((r) => (
-              <option key={r} value={r}>{r}</option>
-            ))}
-          </select>
-          {canEdit && (
-            <button onClick={() => onEdit(null)} className="btn-accent">
-              {t.addInventoryButton || '+ Update Inventory'}
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Brand tiles with counts */}
-      {!brand ? (
-        /* ---- Brand tiles ---- */
-        brandGroups.length === 0 ? (
-          <div className="panel rounded-2xl p-12 text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-surface-2 text-ink-faint">
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.6">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-              </svg>
-            </div>
-            <p className="mt-4 text-sm font-medium text-ink">
-              {activeStore
-                ? `No inventory in ${activeStore.store_name} yet`
-                : (t.noLaptops || 'No laptops found')}
-            </p>
-            {activeStore && (
-              <p className="mt-1 text-xs text-ink-faint">
-                Add a laptop to this store or switch to another store to see its stock.
-              </p>
-            )}
-          </div>
-        ) : (
-          <div>
-            <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-wide text-ink-faint">
-              {activeStore ? activeStore.store_name : 'All stores'} · brands
-            </h2>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-              {brandGroups.map((g) =>
-                tile(
-                  false,
-                  () => setBrand(g.brand),
-                  <>
-                    <span className="flex w-full items-center justify-between gap-2">
-                      <span className="truncate text-sm font-semibold text-ink">{g.brand}</span>
-                      <span className="mono-chip">{g.total}</span>
-                    </span>
-                    <span className="mt-1 text-[11px] text-ink-faint">
-                      {g.inStock} in stock
-                    </span>
-                  </>
-                )
-              )}
-            </div>
-          </div>
-        )
-      ) : (
-        /* ---- Models list for the selected brand ---- */
-        <div>
-          <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
+    <div className="min-h-screen bg-gray-50">
+      <div className="flex">
+        {/* Left Sidebar - Store Filter */}
+        <div className="w-64 shrink-0 border-r border-gray-200 bg-white p-4 hidden lg:block">
+          <h3 className="mb-4 text-xs font-bold uppercase tracking-wider text-gray-500">
+            Filter by Store
+          </h3>
+          <div className="space-y-1">
             <button
               onClick={() => setStoreId('')}
-              className="rounded-full border border-line bg-surface px-2.5 py-1 font-medium text-ink-dim hover:text-ink transition-colors"
+              className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors ${
+                !storeId
+                  ? 'bg-blue-50 text-blue-700'
+                  : 'text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              <span>All Stores</span>
+              <span className="text-xs text-gray-400">{storeCounts.all}</span>
+            </button>
+            {stores.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => setStoreId(String(s.id))}
+                className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors ${
+                  String(storeId) === String(s.id)
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <span className="truncate">{s.store_name}</span>
+                <span className="text-xs text-gray-400">{storeCounts[String(s.id)] || 0}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1 p-4 lg:p-6">
+          {/* Status Filter Tabs */}
+          <div className="mb-4 flex items-center gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
+              Status:
+            </span>
+            <button
+              onClick={() => setStatus('')}
+              className={`rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
+                status === ''
+                  ? 'bg-blue-600 text-white'
+                  : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              Any status
+            </button>
+            {statuses.map((s) => (
+              <button
+                key={s}
+                onClick={() => setStatus(status === s ? '' : s)}
+                className={`rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
+                  status === s
+                    ? 'bg-blue-600 text-white'
+                    : 'border border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+
+          {/* Search and Controls */}
+          <div className="mb-4 flex flex-wrap items-center gap-3">
+            <div className="flex flex-1 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2">
+              <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
+              </svg>
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by brand/model or serial..."
+                className="w-full bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500">Sort:</span>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 focus:border-blue-500 focus:outline-none"
+              >
+                <option value="created_at">Date</option>
+                <option value="brand">Brand</option>
+                <option value="model">Model</option>
+                <option value="price">Price</option>
+                <option value="serial">Serial</option>
+                <option value="status">Status</option>
+              </select>
+              <button
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                className="rounded-lg border border-gray-200 bg-white p-2 text-gray-500 hover:bg-gray-50"
+                title={`Sort ${sortOrder === 'asc' ? 'ascending' : 'descending'}`}
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+                </svg>
+              </button>
+            </div>
+            <span className="text-sm text-gray-500">{brandRows.length} laptops</span>
+            <select
+              value={ramF}
+              onChange={(e) => setRamF(e.target.value)}
+              className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 focus:border-blue-500 focus:outline-none"
+            >
+              <option value="">All RAM</option>
+              {ramValues.map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+            {canEdit && (
+              <button onClick={() => onEdit(null)} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
+                + Update Inventory
+              </button>
+            )}
+          </div>
+
+          {/* Breadcrumb */}
+          <div className="mb-4 flex items-center gap-2 text-xs">
+            <button
+              onClick={() => { setStoreId(''); setBrand(''); }}
+              className={`rounded-full px-3 py-1 font-medium transition-colors ${
+                !storeId && !brand
+                  ? 'bg-blue-50 text-blue-700'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
             >
               All Stores
             </button>
-            <span className="text-ink-faint">/</span>
-            <button
-              onClick={() => setBrand('')}
-              className="rounded-full border border-line bg-surface px-2.5 py-1 font-medium text-ink-dim hover:text-ink transition-colors"
-            >
-              {activeStore ? activeStore.store_name : 'All Stores'}
-            </button>
-            <span className="text-ink-faint">/</span>
-            <button className="rounded-full border border-accent-line bg-accent-soft px-2.5 py-1 font-medium text-accent">
-              {brand}
-            </button>
-            <span className="ml-auto font-mono text-ink-faint">
-              {brandRows.length} unit{brandRows.length === 1 ? '' : 's'}
-            </span>
+            {activeStore && (
+              <>
+                <span className="text-gray-300">/</span>
+                <button
+                  onClick={() => setBrand('')}
+                  className={`rounded-full px-3 py-1 font-medium transition-colors ${
+                    brand ? 'text-gray-500 hover:text-gray-700' : 'bg-blue-50 text-blue-700'
+                  }`}
+                >
+                  {activeStore.store_name}
+                </button>
+              </>
+            )}
+            {brand && (
+              <>
+                <span className="text-gray-300">/</span>
+                <span className="rounded-full bg-blue-50 px-3 py-1 font-medium text-blue-700">
+                  {brand}
+                </span>
+              </>
+            )}
+            <span className="ml-auto text-gray-400">{brandRows.length} units</span>
           </div>
 
+          {/* Table */}
           <div ref={rowsRef}>
             <LaptopTable
-              laptops={pageRows}
+              laptops={brandRows.slice((currentPage - 1) * pageSize, currentPage * pageSize)}
               stores={stores}
               canEdit={canEdit}
               canTransfer={canTransfer}
@@ -275,42 +293,40 @@ export default function InventoryView({
             />
           </div>
 
+          {/* Pagination */}
           {brandRows.length > 0 && (
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 px-1">
-              <div className="flex items-center gap-2 text-xs text-ink-dim">
-                <span className="text-ink-faint">Rows per page</span>
-                {[9, 16].map((n) => (
+            <div className="mt-4 flex items-center justify-between text-xs text-gray-500">
+              <span>
+                Rows per page:
+                {[9, 16, 25].map((n) => (
                   <button
                     key={n}
                     onClick={() => setPageSize(n)}
-                    className={`rounded-full border px-2.5 py-1 font-medium transition-colors ${
+                    className={`ml-2 rounded px-2 py-1 font-medium transition-colors ${
                       pageSize === n
-                        ? 'border-accent-line bg-accent-soft text-accent'
-                        : 'border-line bg-surface text-ink-dim hover:text-ink'
+                        ? 'bg-blue-50 text-blue-700'
+                        : 'hover:bg-gray-100'
                     }`}
                   >
                     {n}
                   </button>
                 ))}
-                <span className="ml-2 font-mono text-ink-faint">
-                  Showing {from}–{Math.min(brandRows.length, currentPage * pageSize)} of {brandRows.length}
-                </span>
-              </div>
+              </span>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setPage(currentPage - 1)}
                   disabled={currentPage <= 1}
-                  className="btn-ghost disabled:cursor-not-allowed disabled:opacity-40"
+                  className="rounded px-3 py-1 font-medium hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   ← Prev
                 </button>
-                <span className="font-mono text-xs text-ink-dim">
+                <span className="font-mono">
                   Page {currentPage} / {totalPages}
                 </span>
                 <button
                   onClick={() => setPage(currentPage + 1)}
                   disabled={currentPage >= totalPages}
-                  className="btn-ghost disabled:cursor-not-allowed disabled:opacity-40"
+                  className="rounded px-3 py-1 font-medium hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   Next →
                 </button>
@@ -318,7 +334,7 @@ export default function InventoryView({
             </div>
           )}
         </div>
-      )}
-    </section>
+      </div>
+    </div>
   );
 }

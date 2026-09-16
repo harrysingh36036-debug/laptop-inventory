@@ -1078,18 +1078,9 @@ export default function App() {
               onFocusLaptop={handleFocusLaptop}
             />
         ) : tab === 'inventory' ? (
-        <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
-          <aside className="lg:sticky lg:top-6 self-start">
-            <StoreFilter
-              stores={stores}
-              storeId={storeId}
-              setStoreId={setStoreId}
-              countFor={storeCount}
-            />
-          </aside>
-
           <InventoryView
             laptops={laptops.filter((l) => l.current_store_id != null)}
+            allLaptops={laptops}
             stores={stores}
             storeId={storeId}
             setStoreId={setStoreId}
@@ -1108,7 +1099,6 @@ export default function App() {
             onEdit={(laptop) => setInvModal({ laptop })}
             onDelete={handleDelete}
           />
-        </div>
         ) : tab === 'purchases' ? (
           <PurchasesTab
             purchases={purchases}
