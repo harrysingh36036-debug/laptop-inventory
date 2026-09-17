@@ -32,14 +32,14 @@ export default function DangerConfirmModal({ title, warning, onConfirm, onClose,
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-2xl border border-stock-risk/30 bg-surface p-6 shadow-pop">
-        <h3 className="font-display text-base font-semibold tracking-tight text-stock-risk">{title || 'Confirm deletion'}</h3>
-        <p className="mt-2 text-sm leading-relaxed text-ink-dim">
+      <div className="w-full max-w-md rounded-2xl border border-red-600/30 bg-white p-6 shadow-lg">
+        <h3 className="  text-base font-semibold tracking-tight text-red-600">{title || 'Confirm deletion'}</h3>
+        <p className="mt-2 text-sm leading-relaxed text-gray-600">
           {warning || 'This action cannot be undone. Please verify your identity before continuing.'}
         </p>
 
         {error && (
-          <p className="mt-3 rounded-lg border border-stock-risk/30 bg-stock-risk/10 px-3 py-2 text-sm text-stock-risk">{error}</p>
+          <p className="mt-3 rounded-lg border border-red-600/30 bg-red-600/10 px-3 py-2 text-sm text-red-600">{error}</p>
         )}
 
         <form onSubmit={submit} className="mt-4 space-y-3">
@@ -68,10 +68,10 @@ export default function DangerConfirmModal({ title, warning, onConfirm, onClose,
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={onClose} className="btn-ghost">
+            <button type="button" onClick={onClose} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100">
               Cancel
             </button>
-            <button type="submit" disabled={busy} className="btn-danger disabled:opacity-50">
+            <button type="submit" disabled={busy} className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100 disabled:opacity-50">
               {busy ? (isSuperAdmin ? 'Deleting…' : 'Verifying…') : 'Delete permanently'}
             </button>
           </div>

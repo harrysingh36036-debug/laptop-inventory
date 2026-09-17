@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 
 const NAV_ITEMS = [
-  { key: 'dashboard', label: 'Dashboard', color: 'bg-accent', icon: (
+  { key: 'dashboard', label: 'Dashboard', color: 'bg-blue-600', icon: (
     <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" className="h-4 w-4 text-white">
       <path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h5a1 1 0 011 1v5a1 1 0 01-1 1H5a1 1 0 01-1-1V5zm9 0a1 1 0 011-1h5a1 1 0 011 1v5a1 1 0 01-1 1h-5a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h5a1 1 0 011 1v5a1 1 0 01-1 1H5a1 1 0 01-1-1v-5zm9 0a1 1 0 011-1h5a1 1 0 011 1v5a1 1 0 01-1 1h-5a1 1 0 01-1-1v-5z" />
     </svg>
@@ -64,13 +64,13 @@ export default function QuickBall({ currentTab, onNavigate, canManage = false, i
   return (
       <div ref={ref} className="quick-ball-container fixed z-50" style={{ bottom: 'max(1.25rem, env(safe-area-inset-bottom, 1.25rem))', right: 'max(1.25rem, env(safe-area-inset-right, 1.25rem))' }}>
       {open && (
-        <div className="absolute bottom-16 right-0 max-h-[65vh] overflow-y-auto rounded-2xl bg-white shadow-xl border border-line p-2 w-52 animate-[slideUp_0.15s_ease-out]">
+        <div className="absolute bottom-16 right-0 max-h-[65vh] overflow-y-auto rounded-2xl bg-white shadow-xl border border-gray-200 p-2 w-52 animate-[slideUp_0.15s_ease-out]">
           {NAV_ITEMS.map((it) => (
             <button
               key={it.key}
               onClick={() => go(it.key)}
               className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
-                currentTab === it.key ? 'bg-accent-soft text-accent' : 'text-ink-dim hover:bg-surface-2'
+                currentTab === it.key ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
               <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${it.color}`}>
@@ -83,7 +83,7 @@ export default function QuickBall({ currentTab, onNavigate, canManage = false, i
             <button
               onClick={() => { setOpen(false); onOpenData?.(); }}
               className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
-                currentTab === 'data-audit' ? 'bg-accent-soft text-accent' : 'text-ink-dim hover:bg-surface-2'
+                currentTab === 'data-audit' ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-600">
@@ -98,7 +98,7 @@ export default function QuickBall({ currentTab, onNavigate, canManage = false, i
       )}
       <button
         onClick={() => setOpen((o) => !o)}
-        className={`flex h-14 w-14 items-center justify-center rounded-full bg-accent shadow-lg shadow-accent/30 transition-all duration-200 ${open ? 'rotate-45 scale-95' : 'hover:scale-105'}`}
+        className={`flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 shadow-lg shadow-accent/30 transition-all duration-200 ${open ? 'rotate-45 scale-95' : 'hover:scale-105'}`}
       >
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" className="h-6 w-6 text-white transition-transform duration-200">
           <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />

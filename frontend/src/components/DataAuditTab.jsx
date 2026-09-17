@@ -4,8 +4,8 @@ import { formatIstDateTime, inr } from '../utils';
 import SearchBox from './SearchBox';
 
 const ENTITY_COLORS = {
-  laptop: 'bg-stock-risk/10 text-stock-risk border-stock-risk/20',
-  sale: 'bg-accent-soft text-accent border-accent-line',
+  laptop: 'bg-red-600/10 text-red-600 border-red-600/20',
+  sale: 'bg-blue-50 text-blue-600 border-blue-200',
   repair: 'bg-amber-50 text-amber-700 border-amber-200',
   customer: 'bg-purple-50 text-purple-700 border-purple-200',
   brand: 'bg-emerald-50 text-emerald-700 border-emerald-200',
@@ -32,7 +32,7 @@ const ENTITY_ICONS = {
 };
 
 function EntityTypeBadge({ type }) {
-  const color = ENTITY_COLORS[type] || 'bg-surface-2 text-ink-dim border-line';
+  const color = ENTITY_COLORS[type] || 'bg-gray-50 text-gray-600 border-gray-200';
   const icon = ENTITY_ICONS[type];
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${color}`}>
@@ -105,15 +105,15 @@ export default function DataAuditTab({ isAdmin, isSuperAdmin }) {
     return byType;
   }, [logs]);
 
-  if (loading) return <p className="text-sm text-ink-faint">Loading data…</p>;
-  if (error) return <p className="text-sm text-stock-risk">{error}</p>;
+  if (loading) return <p className="text-sm text-gray-500">Loading data…</p>;
+  if (error) return <p className="text-sm text-red-600">{error}</p>;
 
   return (
     <div className="space-y-6">
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-accent">Audit Trail</p>
-        <h2 className="mt-1.5 font-display text-xl font-semibold tracking-tight text-ink">Data Log</h2>
-        <p className="mt-0.5 text-xs text-ink-faint">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-blue-600">Audit Trail</p>
+        <h2 className="mt-1.5   text-xl font-semibold tracking-tight text-gray-900">Data Log</h2>
+        <p className="mt-0.5 text-xs text-gray-500">
           All deleted items, returns, and exchanges — every action is recorded.
         </p>
       </div>
@@ -126,21 +126,21 @@ export default function DataAuditTab({ isAdmin, isSuperAdmin }) {
             onClick={() => setTypeFilter(typeFilter === type ? '' : type)}
             className={`rounded-xl border p-3 text-left transition-all duration-150 ${
               typeFilter === type
-                ? 'ring-2 ring-accent-line bg-accent-soft/20 border-accent-line'
-                : 'border-line bg-surface hover:bg-surface-2/70'
+                ? 'ring-2 ring-accent-line bg-blue-50/20 border-blue-200'
+                : 'border-gray-200 bg-white hover:bg-gray-50'
             }`}
           >
             <div className="flex items-center gap-2">
               <EntityTypeBadge type={type} />
             </div>
-            <p className="mt-2 font-display text-2xl font-bold text-ink">{count}</p>
-            <p className="text-[11px] text-ink-faint">deleted</p>
+            <p className="mt-2   text-2xl font-bold text-gray-900">{count}</p>
+            <p className="text-[11px] text-gray-500">deleted</p>
           </button>
         ))}
-        <div className="rounded-xl border border-line bg-surface p-3">
-          <p className="text-[10px] uppercase tracking-wide text-ink-faint">Total Sales</p>
-          <p className="mt-1.5 font-display text-2xl font-bold text-accent">{sales.length}</p>
-          <p className="text-[11px] text-ink-faint">all time</p>
+        <div className="rounded-xl border border-gray-200 bg-white p-3">
+          <p className="text-[10px] uppercase tracking-wide text-gray-500">Total Sales</p>
+          <p className="mt-1.5   text-2xl font-bold text-blue-600">{sales.length}</p>
+          <p className="text-[11px] text-gray-500">all time</p>
         </div>
       </div>
 
@@ -159,8 +159,8 @@ export default function DataAuditTab({ isAdmin, isSuperAdmin }) {
               onClick={() => setTypeFilter('')}
               className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
                 typeFilter === ''
-                  ? 'border-accent-line bg-accent-soft text-accent'
-                  : 'border-line bg-surface text-ink-dim hover:text-ink'
+                  ? 'border-blue-200 bg-blue-50 text-blue-600'
+                  : 'border-gray-200 bg-white text-gray-600 hover:text-gray-900'
               }`}
             >
               All
@@ -171,8 +171,8 @@ export default function DataAuditTab({ isAdmin, isSuperAdmin }) {
                 onClick={() => setTypeFilter(typeFilter === t ? '' : t)}
                 className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
                   typeFilter === t
-                    ? 'border-accent-line bg-accent-soft text-accent'
-                    : 'border-line bg-surface text-ink-dim hover:text-ink'
+                    ? 'border-blue-200 bg-blue-50 text-blue-600'
+                    : 'border-gray-200 bg-white text-gray-600 hover:text-gray-900'
                 }`}
               >
                 {t}
@@ -183,33 +183,33 @@ export default function DataAuditTab({ isAdmin, isSuperAdmin }) {
       </div>
 
       {/* Logs table */}
-      <div className="panel overflow-hidden">
+      <div className="rounded-xl border border-gray-100 bg-white overflow-hidden">
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full min-w-[700px] text-left text-sm">
             <thead>
-              <tr className="border-b border-line">
-                <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Type</th>
-                <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Item</th>
-                <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Remarks</th>
-                <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Deleted By</th>
-                <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint">Date</th>
+              <tr className="border-b border-gray-200">
+                <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500">Type</th>
+                <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500">Item</th>
+                <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500">Remarks</th>
+                <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500">Deleted By</th>
+                <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500">Date</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--hairline)]">
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-10 text-center text-sm text-ink-faint">
+                  <td colSpan={5} className="px-4 py-10 text-center text-sm text-gray-500">
                     {q || typeFilter ? 'No logs match your filters.' : 'No delete logs yet.'}
                   </td>
                 </tr>
               )}
               {filtered.map((l) => (
-                <tr key={l.id} className="transition-colors duration-150 hover:bg-surface-2/60">
+                <tr key={l.id} className="transition-colors duration-150 hover:bg-gray-50/60">
                   <td className="px-4 py-3"><EntityTypeBadge type={l.entity_type} /></td>
-                  <td className="px-4 py-3 font-medium text-ink">{l.entity_label || `#${l.entity_id}`}</td>
-                  <td className="px-4 py-3 text-ink-dim max-w-[200px] truncate">{l.remarks || '—'}</td>
-                  <td className="px-4 py-3 text-ink-dim">{l.deleted_by || '—'}</td>
-                  <td className="px-4 py-3 font-mono text-[11px] text-ink-faint">{formatIstDateTime(l.created_at)}</td>
+                  <td className="px-4 py-3 font-medium text-gray-900">{l.entity_label || `#${l.entity_id}`}</td>
+                  <td className="px-4 py-3 text-gray-600 max-w-[200px] truncate">{l.remarks || '—'}</td>
+                  <td className="px-4 py-3 text-gray-600">{l.deleted_by || '—'}</td>
+                  <td className="px-4 py-3 font-mono text-[11px] text-gray-500">{formatIstDateTime(l.created_at)}</td>
                 </tr>
               ))}
             </tbody>
@@ -220,7 +220,7 @@ export default function DataAuditTab({ isAdmin, isSuperAdmin }) {
       {/* Mobile card list */}
       <div className="md:hidden divide-y divide-[var(--hairline)]">
         {filtered.length === 0 && (
-          <div className="px-4 py-12 text-center text-sm text-ink-faint">
+          <div className="px-4 py-12 text-center text-sm text-gray-500">
             {q || typeFilter ? 'No logs match your filters.' : 'No delete logs yet.'}
           </div>
         )}
@@ -229,15 +229,15 @@ export default function DataAuditTab({ isAdmin, isSuperAdmin }) {
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <EntityTypeBadge type={l.entity_type} />
-                <p className="mt-1.5 font-medium text-ink">{l.entity_label || `#${l.entity_id}`}</p>
+                <p className="mt-1.5 font-medium text-gray-900">{l.entity_label || `#${l.entity_id}`}</p>
               </div>
-              <span className="font-mono text-[11px] text-ink-faint shrink-0">{formatIstDateTime(l.created_at)}</span>
+              <span className="font-mono text-[11px] text-gray-500 shrink-0">{formatIstDateTime(l.created_at)}</span>
             </div>
             {l.remarks && (
-              <p className="mt-1.5 text-xs text-ink-dim">{l.remarks}</p>
+              <p className="mt-1.5 text-xs text-gray-600">{l.remarks}</p>
             )}
             {l.deleted_by && (
-              <p className="mt-1 text-[11px] text-ink-faint">by {l.deleted_by}</p>
+              <p className="mt-1 text-[11px] text-gray-500">by {l.deleted_by}</p>
             )}
           </div>
         ))}

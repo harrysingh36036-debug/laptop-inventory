@@ -103,10 +103,10 @@ function MenuRow({ label, icon, onClick, danger = false }) {
     <button
       onClick={onClick}
       className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm font-medium transition-all duration-200 ease-out hover:translate-x-0.5 active:scale-[0.98] ${
-        danger ? 'text-stock-risk hover:bg-stock-risk/10' : 'text-ink-dim hover:bg-surface-2 hover:text-ink'
+        danger ? 'text-red-600 hover:bg-red-50' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
       }`}
     >
-      <span className={`shrink-0 ${danger ? 'text-stock-risk' : 'text-accent'}`}>{MENU_ICONS[icon]}</span>
+      <span className={`shrink-0 ${danger ? 'text-red-600' : 'text-blue-600'}`}>{MENU_ICONS[icon]}</span>
       {label}
     </button>
   );
@@ -206,7 +206,7 @@ function QuickNav({ tab, onNavigate, items = [] }) {
     el?.scrollIntoView({ inline: 'center', block: 'nearest', behavior: 'smooth' });
   }, [tab]);
   return (
-    <nav className="sticky top-14 z-30 border-b border-line bg-page/85 backdrop-blur-md">
+    <nav className="sticky top-14 z-30 border-b border-gray-200 bg-page/85 backdrop-blur-md">
       <div className="mx-auto max-w-[1440px] px-3">
         <div ref={railRef} className="no-scrollbar flex justify-center gap-1 overflow-x-auto py-2">
           {items.map((it) => {
@@ -220,7 +220,7 @@ function QuickNav({ tab, onNavigate, items = [] }) {
                 className={`flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-[15px] font-bold ${
                   active
                     ? 'bg-accent text-white shadow-sm'
-                    : 'text-ink-dim hover:bg-surface-2 hover:text-ink'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 }`}
               >
                 <span className="h-4 w-4 shrink-0">{it.icon}</span>
@@ -954,7 +954,7 @@ export default function App() {
   if (!authReady) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-page">
-        <p className="text-sm text-ink-faint">Loading…</p>
+        <p className="text-sm text-gray-500">Loading…</p>
       </div>
     );
   }
@@ -965,9 +965,9 @@ export default function App() {
 
   return (
     <LabelsProvider labels={labels}>
-      <div className="min-h-screen bg-page text-ink overflow-y-auto">
+      <div className="min-h-screen bg-page text-gray-900 overflow-y-auto">
         {/* Header */}
-        <header className="sticky top-0 z-40 border-b border-line bg-page/80 backdrop-blur-md">
+        <header className="sticky top-0 z-40 border-b border-gray-200 bg-page/80 backdrop-blur-md">
           <div className="mx-auto max-w-[1440px] px-4 h-14 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 min-w-0">
             <button
@@ -975,14 +975,14 @@ export default function App() {
               className="flex items-center gap-3 min-w-0 text-left transition-opacity duration-150 hover:opacity-80"
               title="Go to dashboard"
             >
-              <span className="h-6 w-6 rounded-md bg-accent-soft flex items-center justify-center">
-                <svg className="h-3.5 w-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <span className="h-6 w-6 rounded-md bg-blue-50 flex items-center justify-center">
+                <svg className="h-3.5 w-3.5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
               </span>
               <div className="min-w-0">
-                <h1 className="truncate font-display text-sm font-semibold tracking-tight">{labels.appTitle || 'Laptop Inventory Tracker'}</h1>
-                <p className="hidden sm:block text-[12px] text-ink-faint">
+                <h1 className="truncate text-sm font-semibold tracking-tight">{labels.appTitle || 'Laptop Inventory Tracker'}</h1>
+                <p className="hidden sm:block text-[12px] text-gray-500">
                   {labels.appSubtitle || 'Real-time location tracking across 7 retail stores'}
                 </p>
               </div>
@@ -992,26 +992,26 @@ export default function App() {
             <span
               className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 font-medium ${
                 connected
-                  ? 'border-stock-ok/25 bg-stock-ok/10 text-stock-ok'
-                  : 'border-stock-risk/25 bg-stock-risk/10 text-stock-risk'
+                  ? 'border-stock-ok/25 bg-green-500/10 text-green-600'
+                  : 'border-stock-risk/25 bg-red-500/10 text-red-600'
               }`}
             >
               <span
-                className={`h-1.5 w-1.5 rounded-full ${connected ? 'bg-stock-ok' : 'bg-stock-risk'}`}
+                className={`h-1.5 w-1.5 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`}
               />
               <span className="hidden sm:inline">{connected ? (t.liveSynced || 'Live · synced') : (t.reconnecting || 'Reconnecting…')}</span>
               {user?.home_store_id && (
-                <span className="text-ink-faint">· {stores.find((s) => s.id === user.home_store_id)?.store_name || ''}</span>
+                <span className="text-gray-500">· {stores.find((s) => s.id === user.home_store_id)?.store_name || ''}</span>
               )}
             </span>
 
-            <span className="flex items-center gap-1 rounded-full border border-line bg-surface p-1">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent-soft font-display text-xs font-semibold text-accent">
+            <span className="flex items-center gap-1 rounded-full border border-gray-200 bg-white p-1">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-semibold text-blue-600">
                 {(user.display_name || user.username).slice(0, 1)}
               </span>
               <span className="hidden md:block leading-tight px-1">
-                <span className="block max-w-[120px] truncate text-xs font-medium text-ink">{user.display_name || user.username}</span>
-                <span className="block text-[10px] uppercase tracking-wide text-ink-faint">{user.role}</span>
+                <span className="block max-w-[120px] truncate text-xs font-medium text-gray-900">{user.display_name || user.username}</span>
+                <span className="block text-[10px] uppercase tracking-wide text-gray-500">{user.role}</span>
               </span>
             </span>
 
@@ -1023,8 +1023,8 @@ export default function App() {
                 aria-expanded={menuOpen}
                 className={`flex h-9 w-9 items-center justify-center rounded-full border transition-colors duration-150 ${
                   menuOpen
-                    ? 'border-accent-line bg-accent-soft text-accent'
-                    : 'border-line bg-surface text-ink-dim hover:bg-surface-2 hover:text-ink'
+                    ? 'border-blue-200 bg-blue-50 text-blue-600'
+                    : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 }`}
               >
                 <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 16 16">
@@ -1035,11 +1035,11 @@ export default function App() {
               </button>
 
               {menuOpen && (
-                <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-2xl border border-line bg-surface p-1.5 shadow-pop">
-                  <p className="px-3 pb-1 pt-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
+                <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-2xl border border-gray-200 bg-white p-1.5 shadow-lg">
+                  <p className="px-3 pb-1 pt-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-500">
                     {(user.display_name || user.username).slice(0, 1)} — {user.role}
                   </p>
-                  <div className="mb-1 border-b border-line" />
+                  <div className="mb-1 border-b border-gray-200" />
                   <MenuRow
                     label={t.menuDashboard || 'Dashboard'}
                     icon="dashboard"
@@ -1057,7 +1057,7 @@ export default function App() {
                   {!isAdmin && canRenameStores && (
                     <MenuRow label={t.menuStores || 'Stores'} icon="stores" onClick={() => pick(() => setSettingsOpen(true))} />
                   )}
-                  <div className="my-1 border-t border-line" />
+                  <div className="my-1 border-t border-gray-200" />
                   <MenuRow label={t.menuSignOut || 'Sign out'} icon="logout" danger onClick={handleLogout} />
                 </div>
               )}
@@ -1121,11 +1121,11 @@ export default function App() {
           <SalesTab stores={stores} isSuperAdmin={isSuperAdmin} isAdmin={isAdmin} canSeeCustomer={canViewPII} userRole={user?.role} homeStoreId={user?.home_store_id ?? null} onNotify={notify} />
         ) : tab === 'customers' ? (
           <div className="space-y-4">
-            <p className="text-sm text-ink-dim">{t.custIntro || 'Manage your customers. Linked to sales when a laptop is sold to them.'}</p>
+            <p className="text-sm text-gray-600">{t.custIntro || 'Manage your customers. Linked to sales when a laptop is sold to them.'}</p>
             <CustomersManager onNotify={notify} />
           </div>
 ) : tab === 'stats' ? (
-          <Suspense fallback={<div className="py-10 text-center text-sm text-ink-faint">Loading reports…</div>}>
+          <Suspense fallback={<div className="py-10 text-center text-sm text-gray-500">Loading reports…</div>}>
             <ReportsTab
             stores={stores}
             logs={logs}
@@ -1239,10 +1239,10 @@ export default function App() {
 
       {brandsOpen && isAdmin && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-line bg-surface p-6 shadow-pop">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-gray-200 bg-white p-6 shadow-lg">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-display text-base font-semibold tracking-tight text-ink">{t.brTitle || 'Manage Brands'}</h2>
-              <button onClick={() => setBrandsOpen(false)} className="text-ink-faint hover:text-ink transition-colors" aria-label="Close">
+              <h2 className="text-base font-semibold tracking-tight text-gray-900">{t.brTitle || 'Manage Brands'}</h2>
+              <button onClick={() => setBrandsOpen(false)} className="text-gray-500 hover:text-gray-900 transition-colors" aria-label="Close">
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -1255,10 +1255,10 @@ export default function App() {
 
       {vendorsOpen && canManageVendors && (
         <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/60 sm:p-4 backdrop-blur-sm">
-          <div className="max-h-[92vh] sm:max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-t-2xl sm:rounded-2xl border border-line bg-surface p-4 sm:p-6 shadow-pop">
+          <div className="max-h-[92vh] sm:max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-t-2xl sm:rounded-2xl border border-gray-200 bg-white p-4 sm:p-6 shadow-lg">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-display text-base font-semibold tracking-tight text-ink">{t.vendManageT || 'Manage Vendors'}</h2>
-              <button onClick={() => setVendorsOpen(false)} className="text-ink-faint hover:text-ink transition-colors" aria-label="Close">
+              <h2 className="text-base font-semibold tracking-tight text-gray-900">{t.vendManageT || 'Manage Vendors'}</h2>
+              <button onClick={() => setVendorsOpen(false)} className="text-gray-500 hover:text-gray-900 transition-colors" aria-label="Close">
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -1304,15 +1304,15 @@ export default function App() {
                 </svg>
               </div>
               <div>
-                <h3 className="font-display text-sm font-semibold text-ink">{t.trPopT || 'Incoming Transfer Request'}</h3>
-                <p className="text-[11px] text-ink-faint">{t.trPopBy || 'Requested by'} {activeTransferPopup.initiated_by}</p>
+                <h3 className="text-sm font-semibold text-gray-900">{t.trPopT || 'Incoming Transfer Request'}</h3>
+                <p className="text-[11px] text-gray-500">{t.trPopBy || 'Requested by'} {activeTransferPopup.initiated_by}</p>
               </div>
             </div>
-            <div className="rounded-lg border border-line bg-surface-2/60 p-3 space-y-1.5">
-              <p className="text-sm font-medium text-ink">
+            <div className="rounded-lg border border-gray-200 bg-gray-50/60 p-3 space-y-1.5">
+              <p className="text-sm font-medium text-gray-900">
                 {[activeTransferPopup.brand, activeTransferPopup.product_line, activeTransferPopup.brand_model].filter(Boolean).join(' ') || activeTransferPopup.brand_model || 'Laptop'}
               </p>
-              <p className="text-xs text-ink-faint">
+              <p className="text-xs text-gray-500">
                 {[
                   activeTransferPopup.processor_type,
                   activeTransferPopup.ram,
@@ -1321,11 +1321,11 @@ export default function App() {
                 ].filter(Boolean).join(' • ') || '—'}
               </p>
               <div className="flex items-center gap-2 text-xs">
-                <span className="rounded-md border border-line bg-surface px-1.5 py-0.5 font-medium text-ink-dim">{activeTransferPopup.from_store_name}</span>
-                <svg className="h-3.5 w-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <span className="rounded-md border border-gray-200 bg-white px-1.5 py-0.5 font-medium text-gray-600">{activeTransferPopup.from_store_name}</span>
+                <svg className="h-3.5 w-3.5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </svg>
-                <span className="rounded-md border border-accent-line bg-accent-soft px-1.5 py-0.5 font-medium text-accent">{activeTransferPopup.to_store_name}</span>
+                <span className="rounded-md border border-blue-200 bg-blue-50 px-1.5 py-0.5 font-medium text-blue-600">{activeTransferPopup.to_store_name}</span>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -1344,7 +1344,7 @@ export default function App() {
             </div>
             <button
               onClick={() => setActiveTransferPopup(null)}
-              className="w-full text-center text-[11px] text-ink-faint hover:text-ink-dim transition-colors"
+              className="w-full text-center text-[11px] text-gray-500 hover:text-gray-600 transition-colors"
             >
               {t.trDismiss || 'Dismiss (decide later)'}
             </button>

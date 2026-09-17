@@ -190,12 +190,12 @@ export default function VendorsManager({ onNotify }) {
     }
   };
 
-  if (loading) return <p className="text-sm text-ink-faint">Loading vendors…</p>;
+  if (loading) return <p className="text-sm text-gray-500">Loading vendors…</p>;
 
   return (
     <div className="space-y-4">
-      <form onSubmit={submit} className="rounded-xl border border-line bg-surface-2/40 p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-ink">
+      <form onSubmit={submit} className="rounded-xl border border-gray-200 bg-gray-50/40 p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-gray-900">
           {editingId ? `Edit vendor: ${form.name}` : 'Add a new vendor'}
         </h3>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -227,7 +227,7 @@ export default function VendorsManager({ onNotify }) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search vendors..."
-            className="field w-40 rounded-lg border border-line bg-surface-2 px-2 py-1.5 text-sm"
+            className="field w-40 rounded-lg border border-gray-200 bg-gray-50 px-2 py-1.5 text-sm"
           />
           <select
             value={selectedVendor !== null ? String(selectedVendor) : ''}
@@ -242,7 +242,7 @@ export default function VendorsManager({ onNotify }) {
                 setSelectedVendor(null);
               }
             }}
-            className="field w-24 rounded-lg border border-line bg-surface-2 px-2 py-1.5 text-sm"
+            className="field w-24 rounded-lg border border-gray-200 bg-gray-50 px-2 py-1.5 text-sm"
           >
             <option value="">All</option>
             {vendors.map((v) => (
@@ -258,14 +258,14 @@ export default function VendorsManager({ onNotify }) {
             value={minPrice}
             onChange={(e) => setMinPrice(e.target.value)}
             placeholder="Min ₹"
-            className="field w-32 rounded-lg border border-line bg-surface-2 px-2 py-1.5 text-sm"
+            className="field w-32 rounded-lg border border-gray-200 bg-gray-50 px-2 py-1.5 text-sm"
           />
           <input
             type="number"
             value={maxPrice}
             onChange={(e) => setMaxPrice(e.target.value)}
             placeholder="Max ₹"
-            className="field w-32 rounded-lg border border-line bg-surface-2 px-2 py-1.5 text-sm"
+            className="field w-32 rounded-lg border border-gray-200 bg-gray-50 px-2 py-1.5 text-sm"
           />
         </div>
         <div>
@@ -279,33 +279,33 @@ export default function VendorsManager({ onNotify }) {
         </div>
         <div className="flex justify-end gap-2">
           {editingId && (
-            <button type="button" onClick={cancelEdit} className="btn-ghost">
+            <button type="button" onClick={cancelEdit} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100">
               Cancel
             </button>
           )}
-          <button type="submit" disabled={busy} className="btn-accent disabled:opacity-50">
+          <button type="submit" disabled={busy} className="rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
             {busy ? 'Saving…' : editingId ? 'Save Changes' : 'Add Vendor'}
           </button>
         </div>
       </form>
 
       {selected.size > 0 && (
-        <div className="flex items-center justify-between rounded-lg border border-stock-risk/25 bg-stock-risk/10 px-4 py-2.5">
-          <p className="text-sm text-stock-risk">{selected.size} selected</p>
-          <button onClick={bulkRemove} disabled={busy} className="btn-danger disabled:opacity-50">
+        <div className="flex items-center justify-between rounded-lg border border-red-600/25 bg-red-600/10 px-4 py-2.5">
+          <p className="text-sm text-red-600">{selected.size} selected</p>
+          <button onClick={bulkRemove} disabled={busy} className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100 disabled:opacity-50">
             {busy ? 'Deleting…' : 'Delete Selected'}
           </button>
         </div>
       )}
 
       {editingId && !addingLaptop && (
-        <div className="mt-4 p-4 bg-surface-2/50 rounded-lg border border-accent-line max-h-[85vh] md:max-h-none flex flex-col">
-          <h4 className="font-semibold text-ink mb-3">Add Laptop(s) from Vendor</h4>
-          <p className="text-xs text-ink-faint mb-3">
+        <div className="mt-4 p-4 bg-gray-50/50 rounded-lg border border-blue-200 max-h-[85vh] md:max-h-none flex flex-col">
+          <h4 className="font-semibold text-gray-900 mb-3">Add Laptop(s) from Vendor</h4>
+          <p className="text-xs text-gray-500 mb-3">
             Add new laptop(s) associated with this vendor. These will be tracked in inventory with the vendor name.
           </p>
           <div className="overflow-y-auto flex-1 -mx-1 px-1 pb-2 space-y-3">
-            <p className="text-xs text-ink-faint">
+            <p className="text-xs text-gray-500">
               Search laptops to add or enter details manually:
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
@@ -362,35 +362,35 @@ export default function VendorsManager({ onNotify }) {
                 value={minPrice}
                 onChange={(e) => setMinPrice(e.target.value)}
                 placeholder="Min ₹"
-                className="field rounded-lg border border-line bg-surface-2 px-2 py-1.5 text-sm"
+                className="field rounded-lg border border-gray-200 bg-gray-50 px-2 py-1.5 text-sm"
               />
               <input
                 type="number"
                 value={maxPrice}
                 onChange={(e) => setMaxPrice(e.target.value)}
                 placeholder="Max ₹"
-                className="field rounded-lg border border-line bg-surface-2 px-2 py-1.5 text-sm"
+                className="field rounded-lg border border-gray-200 bg-gray-50 px-2 py-1.5 text-sm"
               />
             </div>
-            <div className="h-60 md:h-96 overflow-y-auto bg-surface-2/50 rounded-lg border border-line p-3">
-              <p className="text-xs text-ink-faint mb-2">Matching laptops:</p>
-              {filteredLaptops().length === 0 && <p className="text-xs text-ink-faint">No matching laptops</p>}
+            <div className="h-60 md:h-96 overflow-y-auto bg-gray-50/50 rounded-lg border border-gray-200 p-3">
+              <p className="text-xs text-gray-500 mb-2">Matching laptops:</p>
+              {filteredLaptops().length === 0 && <p className="text-xs text-gray-500">No matching laptops</p>}
               {filteredLaptops().map((l) => (
                 <div
                   key={l.id}
                   onClick={() => selectLaptopForVendor(l)}
-                  className="p-2 rounded-md border border-line cursor-pointer hover:bg-surface-2/60 mb-1"
+                  className="p-2 rounded-md border border-gray-200 cursor-pointer hover:bg-gray-50/60 mb-1"
                   title={`Serial: ${l.serial_number} - ${l.brand_model}`}
                 >
-                  <div className="font-medium text-ink">{l.brand_model || l.brand}</div>
-                  <div className="text-[10px] text-ink-dim">Serial: {l.serial_number} · Config: {l.ram || '—'}·{l.storage_type || '—'} · Rate: {l.purchase_rate != null ? `₹${l.purchase_rate}` : '—'} · Vendor: {l.purchased_from || 'Unassigned'}</div>
+                  <div className="font-medium text-gray-900">{l.brand_model || l.brand}</div>
+                  <div className="text-[10px] text-gray-900-dim">Serial: {l.serial_number} · Config: {l.ram || '—'}·{l.storage_type || '—'} · Rate: {l.purchase_rate != null ? `₹${l.purchase_rate}` : '—'} · Vendor: {l.purchased_from || 'Unassigned'}</div>
                 </div>
               ))}
             </div>
           </div>
-          <div className="flex justify-end gap-2 pt-3 border-t border-line shrink-0">
-            <button type="button" onClick={() => setAddLaptopForm({ brand: '', model: '', serial_number: '', purchase_rate: '', storage: '', ram: '', processor: '', generation: '', purchase_date: getIstToday() })} className="btn-ghost">Cancel</button>
-            <button type="submit" disabled={busy} className="btn-accent disabled:opacity-50">
+          <div className="flex justify-end gap-2 pt-3 border-t border-gray-200 shrink-0">
+            <button type="button" onClick={() => setAddLaptopForm({ brand: '', model: '', serial_number: '', purchase_rate: '', storage: '', ram: '', processor: '', generation: '', purchase_date: getIstToday() })} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100">Cancel</button>
+            <button type="submit" disabled={busy} className="rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
               {busy ? 'Adding…' : 'Add to Inventory'}
             </button>
             <button
@@ -402,7 +402,7 @@ export default function VendorsManager({ onNotify }) {
                 }
               }}
               disabled={!selectedVendor || busy}
-              className="btn-ghost text-stock-risk disabled:opacity-50"
+              className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 text-red-600 disabled:opacity-50"
             >
               Return
             </button>
@@ -411,9 +411,9 @@ export default function VendorsManager({ onNotify }) {
       )}
 
       {/* Desktop table */}
-      <div className="hidden md:block overflow-hidden rounded-xl border border-line">
+      <div className="hidden md:block overflow-hidden rounded-xl border border-gray-200">
         <table className="w-full text-left text-sm">
-          <thead className="bg-surface-2/50 text-[10px] uppercase tracking-wider text-ink-faint">
+          <thead className="bg-gray-50/50 text-[10px] uppercase tracking-wider text-gray-500">
             <tr>
               <th className="px-4 py-2.5 font-semibold w-10">
                 <input
@@ -432,10 +432,10 @@ export default function VendorsManager({ onNotify }) {
           </thead>
           <tbody className="divide-y divide-[var(--hairline)]">
             {vendors.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-8 text-center text-ink-faint">No vendors yet.</td></tr>
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">No vendors yet.</td></tr>
             )}
             {vendors.map((v) => (
-              <tr key={v.id} className="transition-colors duration-150 hover:bg-surface-2/60">
+              <tr key={v.id} className="transition-colors duration-150 hover:bg-gray-50/60">
                 <td className="px-4 py-2.5">
                   <input
                     type="checkbox"
@@ -445,13 +445,13 @@ export default function VendorsManager({ onNotify }) {
                     aria-label={`Select ${v.name}`}
                   />
                 </td>
-                <td className="px-4 py-2.5 font-medium text-ink">{v.name}</td>
-                <td className="px-4 py-2.5 text-ink-dim">{v.contact || '—'}</td>
-                <td className="px-4 py-2.5 text-ink-dim">{v.address || '—'}</td>
+                <td className="px-4 py-2.5 font-medium text-gray-900">{v.name}</td>
+                <td className="px-4 py-2.5 text-gray-900-dim">{v.contact || '—'}</td>
+                <td className="px-4 py-2.5 text-gray-900-dim">{v.address || '—'}</td>
                 <td className="px-4 py-2.5">
                   <div className="flex items-center justify-end gap-2">
-                    <button onClick={() => startEdit(v)} className="btn-ghost">Edit</button>
-                    <button onClick={() => setDanger({ kind: 'one', v })} className="btn-danger">Delete</button>
+                    <button onClick={() => startEdit(v)} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100">Edit</button>
+                    <button onClick={() => setDanger({ kind: 'one', v })} className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100">Delete</button>
                   </div>
                 </td>
               </tr>
@@ -463,16 +463,16 @@ export default function VendorsManager({ onNotify }) {
       {/* Mobile cards – horizontal swipe */}
       <div className="md:hidden">
         {vendors.length === 0 ? (
-          <p className="text-center text-sm text-ink-faint py-6">No vendors yet.</p>
+          <p className="text-center text-sm text-gray-500 py-6">No vendors yet.</p>
         ) : (
           <div className="-mx-4 px-4 overflow-x-auto snap-x snap-mandatory flex gap-3 pb-2 scrollbar-none">
             {vendors.map((v) => (
-              <div key={v.id} className="min-w-[260px] max-w-[80vw] snap-start shrink-0 rounded-xl border border-line bg-surface-2/40 p-4 space-y-2">
+              <div key={v.id} className="min-w-[260px] max-w-[80vw] snap-start shrink-0 rounded-xl border border-gray-200 bg-gray-50/40 p-4 space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <p className="font-medium text-ink truncate">{v.name}</p>
-                    {v.contact && <p className="text-xs text-ink-dim mt-0.5 truncate">{v.contact}</p>}
-                    {v.address && <p className="text-xs text-ink-faint mt-0.5 truncate">{v.address}</p>}
+                    <p className="font-medium text-gray-900 truncate">{v.name}</p>
+                    {v.contact && <p className="text-xs text-gray-900-dim mt-0.5 truncate">{v.contact}</p>}
+                    {v.address && <p className="text-xs text-gray-500 mt-0.5 truncate">{v.address}</p>}
                   </div>
                   <input
                     type="checkbox"
@@ -482,16 +482,16 @@ export default function VendorsManager({ onNotify }) {
                     aria-label={`Select ${v.name}`}
                   />
                 </div>
-                <div className="flex items-center gap-2 pt-1 border-t border-line">
-                  <button onClick={() => startEdit(v)} className="btn-ghost text-xs">Edit</button>
-                  <button onClick={() => setDanger({ kind: 'one', v })} className="btn-danger text-xs">Delete</button>
+                <div className="flex items-center gap-2 pt-1 border-t border-gray-200">
+                  <button onClick={() => startEdit(v)} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 text-xs">Edit</button>
+                  <button onClick={() => setDanger({ kind: 'one', v })} className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100 text-xs">Delete</button>
                 </div>
               </div>
             ))}
           </div>
         )}
         {vendors.length > 1 && (
-          <p className="text-center text-[10px] text-ink-faint mt-1">Swipe to browse vendors</p>
+          <p className="text-center text-[10px] text-gray-500 mt-1">Swipe to browse vendors</p>
         )}
       </div>
 

@@ -56,17 +56,17 @@ export default function RepairModal({ editing = null, laptops = [], stores = [],
     if (err) setError(err);
   };
 
-  const input = 'w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-accent-line focus:outline-none';
-  const label = 'mb-1 block text-xs font-medium text-ink-dim';
+  const input = 'w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-900-faint focus:border-blue-200 focus:outline-none';
+  const label = 'mb-1 block text-xs font-medium text-gray-900-dim';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <form onSubmit={submit} className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-line bg-surface p-6 shadow-pop">
+      <form onSubmit={submit} className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-gray-200 bg-white p-6 shadow-lg">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-display text-base font-semibold tracking-tight text-ink">
+          <h2 className="  text-base font-semibold tracking-tight text-gray-900">
             {editing ? 'Edit Repair' : 'Add Repair'}
           </h2>
-          <button type="button" onClick={onClose} className="text-ink-faint hover:text-ink transition-colors" aria-label="Close">
+          <button type="button" onClick={onClose} className="text-gray-900-faint hover:text-gray-900 transition-colors" aria-label="Close">
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -137,7 +137,7 @@ export default function RepairModal({ editing = null, laptops = [], stores = [],
             <label className={label} htmlFor="repair-charge">Charged to Customer (₹)</label>
             <input id="repair-charge" value={form.charge} onChange={set('charge')} type="number" step="any" className={input} placeholder="Any amount" />
             {Number.isFinite(Number(form.cost)) && Number.isFinite(Number(form.charge)) && form.cost !== '' && form.charge !== '' && (
-              <p className="mt-1 text-xs text-ink-faint">
+              <p className="mt-1 text-xs text-gray-900-faint">
                 Profit: {inr((Number(form.charge) || 0) - (Number(form.cost) || 0))}
               </p>
             )}
@@ -157,17 +157,17 @@ export default function RepairModal({ editing = null, laptops = [], stores = [],
             <textarea id="repair-notes" value={form.notes} onChange={set('notes')} rows={2} className={input} placeholder="Anything else worth remembering…" />
           </div>
 
-          {error && <p className="text-sm text-stock-risk">{error}</p>}
+          {error && <p className="text-sm text-red-600">{error}</p>}
           {editing?.cost != null && !form.cost && (
-            <p className="text-xs text-ink-faint">Currently {inr(editing.cost)} — leave the field empty to keep it.</p>
+            <p className="text-xs text-gray-900-faint">Currently {inr(editing.cost)} — leave the field empty to keep it.</p>
           )}
           {editing?.charge != null && !form.charge && (
-            <p className="text-xs text-ink-faint">Currently charged {inr(editing.charge)} — leave the field empty to keep it.</p>
+            <p className="text-xs text-gray-900-faint">Currently charged {inr(editing.charge)} — leave the field empty to keep it.</p>
           )}
 
           <div className="flex items-center justify-end gap-2 pt-2">
-            <button type="button" onClick={onClose} className="btn-ghost">Cancel</button>
-            <button type="submit" disabled={busy} className="btn-accent disabled:cursor-not-allowed disabled:opacity-40">
+            <button type="button" onClick={onClose} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100">Cancel</button>
+            <button type="submit" disabled={busy} className="rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40">
               {busy ? 'Saving…' : editing ? 'Save Changes' : 'Add Repair'}
             </button>
           </div>

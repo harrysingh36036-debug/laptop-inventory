@@ -117,12 +117,12 @@ export default function CustomersManager({ onNotify }) {
     setDanger({ kind: 'bulk', ids: [...selected], names });
   };
 
-  if (loading) return <p className="text-sm text-ink-faint">Loading customers…</p>;
+  if (loading) return <p className="text-sm text-gray-500">Loading customers…</p>;
 
   return (
     <div className="space-y-4">
-      <form onSubmit={submit} className="rounded-xl border border-line bg-surface-2/40 p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-ink">
+      <form onSubmit={submit} className="rounded-xl border border-gray-200 bg-gray-50/40 p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-gray-900">
           {editingId ? `Edit customer: ${form.name}` : 'Add a new customer'}
         </h3>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -175,29 +175,29 @@ export default function CustomersManager({ onNotify }) {
         </div>
         <div className="flex justify-end gap-2">
           {editingId && (
-            <button type="button" onClick={cancelEdit} className="btn-ghost">
+            <button type="button" onClick={cancelEdit} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100">
               Cancel
             </button>
           )}
-          <button type="submit" disabled={busy} className="btn-accent disabled:opacity-50">
+          <button type="submit" disabled={busy} className="rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
             {busy ? 'Saving…' : editingId ? 'Save Changes' : 'Add Customer'}
           </button>
         </div>
       </form>
 
       {selected.size > 0 && (
-        <div className="flex items-center justify-between rounded-lg border border-stock-risk/25 bg-stock-risk/10 px-4 py-2.5">
-          <p className="text-sm text-stock-risk">{selected.size} selected</p>
-          <button onClick={bulkRemove} disabled={busy} className="btn-danger disabled:opacity-50">
+        <div className="flex items-center justify-between rounded-lg border border-red-600/25 bg-red-600/10 px-4 py-2.5">
+          <p className="text-sm text-red-600">{selected.size} selected</p>
+          <button onClick={bulkRemove} disabled={busy} className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100 disabled:opacity-50">
             {busy ? 'Deleting…' : 'Delete Selected'}
           </button>
         </div>
       )}
 
-      <div className="overflow-hidden rounded-xl border border-line">
+      <div className="overflow-hidden rounded-xl border border-gray-200">
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full min-w-[760px] text-left text-sm">
-            <thead className="bg-surface-2/50 text-[10px] uppercase tracking-wider text-ink-faint">
+            <thead className="bg-gray-50/50 text-[10px] uppercase tracking-wider text-gray-500">
               <tr>
                 <th className={`${th} w-10`}>
                   <input
@@ -219,14 +219,14 @@ export default function CustomersManager({ onNotify }) {
             <tbody className="divide-y divide-[var(--hairline)]">
               {customers.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-ink-faint">
+                  <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
                     No customers yet.
                   </td>
                 </tr>
               )}
               {customers.map((c) => (
                 <Fragment key={c.id}>
-                <tr className="transition-colors duration-150 hover:bg-surface-2/60">
+                <tr className="transition-colors duration-150 hover:bg-gray-50/60">
                   <td className={td}>
                     <input
                       type="checkbox"
@@ -236,24 +236,24 @@ export default function CustomersManager({ onNotify }) {
                       aria-label={`Select ${c.name}`}
                     />
                   </td>
-                  <td className={`${td} font-medium text-ink`}>{c.name}</td>
-                  <td className={`${td} font-mono text-xs text-ink-dim`}>{c.phone || '—'}</td>
-                  <td className={`${td} text-ink-dim`}>{c.email || '—'}</td>
-                  <td className={`${td} text-ink-dim`}>{c.address || '—'}</td>
+                  <td className={`${td} font-medium text-gray-900`}>{c.name}</td>
+                  <td className={`${td} font-mono text-xs text-gray-600`}>{c.phone || '—'}</td>
+                  <td className={`${td} text-gray-600`}>{c.email || '—'}</td>
+                  <td className={`${td} text-gray-600`}>{c.address || '—'}</td>
                   <td className={td}>
                     <span
-                      className={`mono-chip ${purchasesFor(c).length > 0 ? '' : 'text-ink-faint'}`}
+                      className={`inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[11px] text-gray-600 ${purchasesFor(c).length > 0 ? '' : 'text-gray-500'}`}
                     >
                       {purchasesFor(c).length} laptop{purchasesFor(c).length === 1 ? '' : 's'}
                     </span>
                   </td>
                   <td className="px-4 py-2.5">
                     <div className="flex items-center justify-end gap-2">
-                      <button onClick={() => setOpenCustomer(openCustomer === c.id ? null : c.id)} className="btn-ghost" aria-label={`Show purchases for ${c.name}`}>
+                      <button onClick={() => setOpenCustomer(openCustomer === c.id ? null : c.id)} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100" aria-label={`Show purchases for ${c.name}`}>
                         {openCustomer === c.id ? '▲ Hide purchases' : purchasesFor(c).length > 0 ? `▼ ${purchasesFor(c).length} purchase${purchasesFor(c).length === 1 ? '' : 's'}` : '—'}
                       </button>
-                      <button onClick={() => startEdit(c)} className="btn-ghost">Edit</button>
-                      <button onClick={() => setDanger({ kind: 'one', c })} className="btn-danger">Delete</button>
+                      <button onClick={() => startEdit(c)} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100">Edit</button>
+                      <button onClick={() => setDanger({ kind: 'one', c })} className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100">Delete</button>
                     </div>
                   </td>
                 </tr>
@@ -261,11 +261,11 @@ export default function CustomersManager({ onNotify }) {
                   <tr>
                     <td colSpan={9} className="px-4 py-0 pb-2">
                       {purchasesFor(c).length === 0 ? (
-                        <p className="text-xs text-ink-faint">No purchases recorded.</p>
+                        <p className="text-xs text-gray-500">No purchases recorded.</p>
                       ) : (
                         <div className="overflow-x-auto">
                           <table className="w-full min-w-[600px] text-left text-xs">
-                            <thead className="text-[10px] uppercase tracking-wider text-ink-faint">
+                            <thead className="text-[10px] uppercase tracking-wider text-gray-500">
                               <tr>
                                 <th className="px-2 py-1.5 text-left">Laptop</th>
                                 <th className="px-2 py-1.5 text-left">Serial</th>
@@ -276,12 +276,12 @@ export default function CustomersManager({ onNotify }) {
                             </thead>
                             <tbody className="divide-y divide-[var(--hairline)]">
                               {purchasesFor(c).map((s) => (
-                                <tr key={s.id} className="hover:bg-surface-2/50">
+                                <tr key={s.id} className="hover:bg-gray-50/50">
                                   <td className="px-2 py-1">{s.brand_model}</td>
-                                  <td className="px-2 py-1 mono-chip text-[10px]">{s.serial_number}</td>
-                                  <td className="px-2 py-1 text-ink-dim">{s.store_name || '—'}</td>
+                                  <td className="px-2 py-1 inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[11px] text-gray-600 text-[10px]">{s.serial_number}</td>
+                                  <td className="px-2 py-1 text-gray-600">{s.store_name || '—'}</td>
                                   <td className="px-2 py-1 text-right font-mono">{inr(s.sale_price)}</td>
-                                  <td className="px-2 py-1 text-ink-faint">{formatTime(s.sold_at)}</td>
+                                  <td className="px-2 py-1 text-gray-500">{formatTime(s.sold_at)}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -300,7 +300,7 @@ export default function CustomersManager({ onNotify }) {
         {/* Mobile: card list instead of wide table */}
         <div className="md:hidden divide-y divide-[var(--hairline)]">
           {customers.length === 0 && (
-            <div className="px-4 py-8 text-center text-sm text-ink-faint">No customers yet.</div>
+            <div className="px-4 py-8 text-center text-sm text-gray-500">No customers yet.</div>
           )}
           {customers.map((c) => {
             const open = openCustomer === c.id;
@@ -317,41 +317,41 @@ export default function CustomersManager({ onNotify }) {
                       aria-label={`Select ${c.name}`}
                     />
                     <div className="min-w-0">
-                      <p className="font-medium text-ink">{c.name}</p>
-                      <p className="mt-0.5 font-mono text-[11px] text-ink-dim">{c.phone || '—'}</p>
+                      <p className="font-medium text-gray-900">{c.name}</p>
+                      <p className="mt-0.5 font-mono text-[11px] text-gray-600">{c.phone || '—'}</p>
                     </div>
                   </div>
-                  <span className={`mono-chip ${purchases.length > 0 ? '' : 'text-ink-faint'}`}>
+                  <span className={`inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[11px] text-gray-600 ${purchases.length > 0 ? '' : 'text-gray-500'}`}>
                     {purchases.length} laptop{purchases.length === 1 ? '' : 's'}
                   </span>
                 </div>
                 {(c.email || c.address) && (
-                  <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] text-ink-dim">
+                  <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] text-gray-600">
                     {c.email && <span>{c.email}</span>}
                     {c.address && <span>{c.address}</span>}
                   </div>
                 )}
                 <div className="mt-2.5 flex flex-wrap items-center gap-2">
-                  <button onClick={() => setOpenCustomer(open ? null : c.id)} className="btn-ghost" aria-label={`Show purchases for ${c.name}`}>
+                  <button onClick={() => setOpenCustomer(open ? null : c.id)} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100" aria-label={`Show purchases for ${c.name}`}>
                     {open ? '▲ Hide purchases' : purchases.length > 0 ? `▼ ${purchases.length} purchase${purchases.length === 1 ? '' : 's'}` : '—'}
                   </button>
-                  <button onClick={() => startEdit(c)} className="btn-ghost">Edit</button>
-                  <button onClick={() => setDanger({ kind: 'one', c })} className="btn-danger ml-auto">Delete</button>
+                  <button onClick={() => startEdit(c)} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100">Edit</button>
+                  <button onClick={() => setDanger({ kind: 'one', c })} className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100 ml-auto">Delete</button>
                 </div>
                 {open && (
-                  <div className="mt-2 rounded-lg border border-accent-line bg-accent-soft p-3">
+                  <div className="mt-2 rounded-lg border border-blue-200 bg-blue-50 p-3">
                     {purchases.length === 0 ? (
-                      <p className="text-xs text-ink-faint">No purchases recorded.</p>
+                      <p className="text-xs text-gray-500">No purchases recorded.</p>
                     ) : (
                       <div className="divide-y divide-[var(--hairline)]">
                         {purchases.map((s) => (
-                          <div key={s.id} className="py-1.5 text-[11px] text-ink-dim">
+                          <div key={s.id} className="py-1.5 text-[11px] text-gray-600">
                             <div className="flex items-center justify-between gap-2">
-                              <p className="min-w-0 truncate font-medium text-ink">{s.brand_model}</p>
+                              <p className="min-w-0 truncate font-medium text-gray-900">{s.brand_model}</p>
                               <p className="font-mono">{inr(s.sale_price)}</p>
                             </div>
-                            <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-ink-faint">
-                              {s.serial_number && <span className="mono-chip text-[10px]">{s.serial_number}</span>}
+                            <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-gray-500">
+                              {s.serial_number && <span className="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[11px] text-gray-600 text-[10px]">{s.serial_number}</span>}
                               {s.store_name && <span>{s.store_name}</span>}
                               <span>{formatTime(s.sold_at)}</span>
                             </div>

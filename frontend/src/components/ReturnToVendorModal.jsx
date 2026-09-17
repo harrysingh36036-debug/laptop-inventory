@@ -66,49 +66,49 @@ export default function ReturnToVendorModal({ laptop, onNotify, onClose }) {
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-line bg-surface p-6 shadow-pop">
+      <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-gray-200 bg-white p-6 shadow-lg">
         <div className="flex items-center justify-between">
-          <h3 className="font-display text-base font-semibold tracking-tight text-ink">Return to Vendor</h3>
-          <button onClick={onClose} className="text-ink-faint hover:text-ink transition-colors" aria-label="Close">
+          <h3 className="  text-base font-semibold tracking-tight text-gray-900">Return to Vendor</h3>
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-900 transition-colors" aria-label="Close">
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        <div className="mt-3 rounded-xl border border-line bg-surface-2/50 p-4 text-sm">
-          <div className="flex justify-between"><span className="text-ink-faint">Brand</span><span className="text-ink">{laptop.brand || '—'}</span></div>
-          <div className="mt-1.5 flex justify-between"><span className="text-ink-faint">Model</span><span className="text-ink">{laptop.brand_model || '—'}</span></div>
-          <div className="mt-1.5 flex justify-between"><span className="text-ink-faint">Serial</span><span className="mono-chip">{laptop.serial_number}</span></div>
-          {laptop.purchased_from && <div className="mt-1.5 flex justify-between"><span className="text-ink-faint">Vendor</span><span className="text-ink">{laptop.purchased_from}</span></div>}
+        <div className="mt-3 rounded-xl border border-gray-200 bg-white-2/50 p-4 text-sm">
+          <div className="flex justify-between"><span className="text-gray-500">Brand</span><span className="text-gray-900">{laptop.brand || '—'}</span></div>
+          <div className="mt-1.5 flex justify-between"><span className="text-gray-500">Model</span><span className="text-gray-900">{laptop.brand_model || '—'}</span></div>
+          <div className="mt-1.5 flex justify-between"><span className="text-gray-500">Serial</span><span className="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[11px] text-gray-600">{laptop.serial_number}</span></div>
+          {laptop.purchased_from && <div className="mt-1.5 flex justify-between"><span className="text-gray-500">Vendor</span><span className="text-gray-900">{laptop.purchased_from}</span></div>}
         </div>
 
         {error && (
-          <p className="mt-3 rounded-lg border border-stock-risk/30 bg-stock-risk/10 px-3 py-2 text-sm text-stock-risk">{error}</p>
+          <p className="mt-3 rounded-lg border border-red-600/30 bg-red-600/10 px-3 py-2 text-sm text-red-600">{error}</p>
         )}
 
         {step === 'choose' && (
           <div className="mt-4 grid grid-cols-2 gap-3">
             <button
               onClick={() => setStep('confirm-return')}
-              className="rounded-xl border border-stock-risk/25 bg-stock-risk/5 p-4 text-center transition-colors hover:bg-stock-risk/10"
+              className="rounded-xl border border-red-600/25 bg-red-600/5 p-4 text-center transition-colors hover:bg-red-600/10"
             >
-              <p className="text-sm font-semibold text-stock-risk">Return</p>
-              <p className="mt-1 text-[11px] text-ink-faint">Remove laptop from inventory permanently.</p>
+              <p className="text-sm font-semibold text-red-600">Return</p>
+              <p className="mt-1 text-[11px] text-gray-500">Remove laptop from inventory permanently.</p>
             </button>
             <button
               onClick={() => setStep('exchange')}
-              className="rounded-xl border border-accent-line bg-accent-soft/20 p-4 text-center transition-colors hover:bg-accent-soft/40"
+              className="rounded-xl border border-blue-200 bg-blue-50/20 p-4 text-center transition-colors hover:bg-blue-50/40"
             >
-              <p className="text-sm font-semibold text-accent">Exchange</p>
-              <p className="mt-1 text-[11px] text-ink-faint">Replace with new config from vendor.</p>
+              <p className="text-sm font-semibold text-blue-600">Exchange</p>
+              <p className="mt-1 text-[11px] text-gray-500">Replace with new config from vendor.</p>
             </button>
           </div>
         )}
 
         {step === 'confirm-return' && (
           <form onSubmit={handleReturn} className="mt-4 space-y-3">
-            <p className="text-sm text-ink-dim">
+            <p className="text-sm text-gray-600">
               <strong>{laptop.brand_model}</strong> will be permanently removed from inventory.
             </p>
             <div>
@@ -120,8 +120,8 @@ export default function ReturnToVendorModal({ laptop, onNotify, onClose }) {
               <input value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="e.g. Defective unit returned to vendor" className="field mt-1.5" />
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <button type="button" onClick={() => { setStep('choose'); setError(''); setPassword(''); setRemarks(''); }} className="btn-ghost">Back</button>
-              <button type="submit" disabled={busy} className="btn-danger disabled:opacity-50">
+              <button type="button" onClick={() => { setStep('choose'); setError(''); setPassword(''); setRemarks(''); }} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100">Back</button>
+              <button type="submit" disabled={busy} className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100 disabled:opacity-50">
                 {busy ? 'Processing…' : 'Confirm Return'}
               </button>
             </div>
@@ -130,7 +130,7 @@ export default function ReturnToVendorModal({ laptop, onNotify, onClose }) {
 
         {step === 'exchange' && (
           <form onSubmit={handleExchange} className="mt-4 space-y-3">
-            <p className="text-sm text-ink-dim">
+            <p className="text-sm text-gray-600">
               Enter the new configuration provided by the vendor for <strong>{laptop.brand_model}</strong>.
             </p>
             <div className="grid grid-cols-2 gap-3">
@@ -172,8 +172,8 @@ export default function ReturnToVendorModal({ laptop, onNotify, onClose }) {
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Confirm your identity" className="field mt-1.5" />
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <button type="button" onClick={() => { setStep('choose'); setError(''); setPassword(''); }} className="btn-ghost">Back</button>
-              <button type="submit" disabled={busy} className="btn-accent disabled:opacity-50">
+              <button type="button" onClick={() => { setStep('choose'); setError(''); setPassword(''); }} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100">Back</button>
+              <button type="submit" disabled={busy} className="rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
                 {busy ? 'Processing…' : 'Confirm Exchange'}
               </button>
             </div>

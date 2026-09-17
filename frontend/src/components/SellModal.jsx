@@ -77,12 +77,12 @@ export default function SellModal({ open, laptop, customers, onSave, onAddCustom
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-2xl border border-line bg-surface p-6 shadow-pop">
+      <div className="w-full max-w-lg rounded-2xl border border-gray-200 bg-white p-6 shadow-lg">
         <header className="flex items-center justify-between">
-          <h2 className="font-display text-base font-semibold tracking-tight text-ink">
+          <h2 className="  text-base font-semibold tracking-tight text-gray-900">
             Sell {laptop?.brand_model}
           </h2>
-          <button onClick={onClose} className="text-ink-faint hover:text-ink" aria-label="Close">
+          <button onClick={onClose} className="text-gray-900-faint hover:text-gray-900" aria-label="Close">
             ×
           </button>
         </header>
@@ -102,8 +102,8 @@ export default function SellModal({ open, laptop, customers, onSave, onAddCustom
               className="field w-full"
               autoFocus
             />
-            {priceError && <p className="mt-1 text-sm text-stock-risk">{priceError}</p>}
-            {cost ? <p className="mt-1 text-xs text-ink-faint">Cost: ₹{Math.round(cost).toLocaleString('en-IN')}</p> : null}
+            {priceError && <p className="mt-1 text-sm text-red-600">{priceError}</p>}
+            {cost ? <p className="mt-1 text-xs text-gray-900-faint">Cost: ₹{Math.round(cost).toLocaleString('en-IN')}</p> : null}
           </div>
 
           <div className="flex items-center gap-2">
@@ -113,7 +113,7 @@ export default function SellModal({ open, laptop, customers, onSave, onAddCustom
               onChange={() => setNewCustomer(!newCustomer)}
               className="accent-accent"
             />
-            <label htmlFor="newCustomer" className="text-sm text-ink-dim">New customer (not in list)</label>
+            <label htmlFor="newCustomer" className="text-sm text-gray-600">New customer (not in list)</label>
           </div>
 
           {!newCustomer ? (
@@ -151,14 +151,14 @@ export default function SellModal({ open, laptop, customers, onSave, onAddCustom
             {paymentMethod === 'Credit Card' && (
               <FormRow label="Machine Name" value={paymentDetail} onChange={setPaymentDetail} placeholder="e.g. POS 02" required />
             )}
-            {payError && <p className="text-sm text-stock-risk">{payError}</p>}
+            {payError && <p className="text-sm text-red-600">{payError}</p>}
           </div>
 
-          {error && <p className="text-sm font-medium text-stock-risk">{error}</p>}
+          {error && <p className="text-sm font-medium text-red-600">{error}</p>}
 
           <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={onClose} className="btn-ghost">Cancel</button>
-            <button type="submit" disabled={busy || (!newCustomer && !buyer)} className="btn-accent disabled:opacity-50">
+            <button type="button" onClick={onClose} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100">Cancel</button>
+            <button type="submit" disabled={busy || (!newCustomer && !buyer)} className="rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
               {busy ? 'Selling…' : 'Confirm Sale'}
             </button>
           </div>

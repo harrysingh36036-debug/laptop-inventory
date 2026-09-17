@@ -131,17 +131,17 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [], pend
     };
   }, [transferFiltered, filterMode, singleStoreId]);
 
-  if (loading) return <p className="text-sm text-ink-faint">Loading transfer history…</p>;
-  if (error) return <p className="text-sm text-stock-risk">{error}</p>;
+  if (loading) return <p className="text-sm text-gray-500">Loading transfer history…</p>;
+  if (error) return <p className="text-sm text-red-600">{error}</p>;
 
-  const th = 'px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint';
+  const th = 'px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500';
   const td = 'px-4 py-3 align-middle';
 
   // --- Filter controls section ---
   const renderFilterControls = () => (
-    <div className="panel p-4 space-y-4">
+    <div className="rounded-xl border border-gray-100 bg-white p-4 space-y-4">
       <div className="flex items-center gap-3">
-        <label className="text-xs font-semibold uppercase tracking-wide text-ink-faint shrink-0">
+        <label className="text-xs font-semibold uppercase tracking-wide text-gray-500 shrink-0">
           View Transfers
         </label>
         <div className="flex flex-wrap gap-2">
@@ -149,8 +149,8 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [], pend
             onClick={() => { setFilterMode('all'); setSingleStoreId(''); setInterFromStoreId(''); setInterToStoreId(''); setDateFrom(''); setDateTo(''); }}
             className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors duration-150 ${
               filterMode === 'all'
-                ? 'border-accent-line bg-accent-soft text-accent'
-                : 'border-line bg-surface text-ink-dim hover:bg-surface-2 hover:text-ink'
+                ? 'border-blue-200 bg-blue-50 text-blue-600'
+                : 'border-gray-200 bg-white text-gray-900-dim hover:bg-gray-50 hover:text-gray-900'
             }`}
           >
             All Stores
@@ -159,8 +159,8 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [], pend
             onClick={() => { setFilterMode('single'); setInterFromStoreId(''); setInterToStoreId(''); setDateFrom(''); setDateTo(''); }}
             className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors duration-150 ${
               filterMode === 'single'
-                ? 'border-accent-line bg-accent-soft text-accent'
-                : 'border-line bg-surface text-ink-dim hover:bg-surface-2 hover:text-ink'
+                ? 'border-blue-200 bg-blue-50 text-blue-600'
+                : 'border-gray-200 bg-white text-gray-900-dim hover:bg-gray-50 hover:text-gray-900'
             }`}
           >
             Single Store
@@ -169,8 +169,8 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [], pend
             onClick={() => { setFilterMode('inter'); setSingleStoreId(''); setDateFrom(''); setDateTo(''); }}
             className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors duration-150 ${
               filterMode === 'inter'
-                ? 'border-accent-line bg-accent-soft text-accent'
-                : 'border-line bg-surface text-ink-dim hover:bg-surface-2 hover:text-ink'
+                ? 'border-blue-200 bg-blue-50 text-blue-600'
+                : 'border-gray-200 bg-white text-gray-900-dim hover:bg-gray-50 hover:text-gray-900'
             }`}
           >
             Inter-Store
@@ -180,7 +180,7 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [], pend
 
       {filterMode === 'single' && (
         <div className="flex flex-wrap items-center gap-3 animate-fade">
-          <label className="text-xs font-medium text-ink-dim">Select store:</label>
+          <label className="text-xs font-medium text-gray-900-dim">Select store:</label>
           <select
             value={singleStoreId}
             onChange={(e) => setSingleStoreId(e.target.value)}
@@ -192,7 +192,7 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [], pend
             ))}
           </select>
           {singleStoreId && (
-            <span className="text-[11px] text-ink-faint">
+            <span className="text-[11px] text-gray-500">
               Showing all transfers involving {storeName(Number(singleStoreId))}
             </span>
           )}
@@ -201,7 +201,7 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [], pend
 
       {filterMode === 'inter' && (
         <div className="flex flex-wrap items-center gap-3 animate-fade">
-          <label className="text-xs font-medium text-ink-dim">From store:</label>
+          <label className="text-xs font-medium text-gray-900-dim">From store:</label>
           <select
             value={interFromStoreId}
             onChange={(e) => setInterFromStoreId(e.target.value)}
@@ -213,7 +213,7 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [], pend
             ))}
           </select>
 
-          <label className="text-xs font-medium text-ink-dim">To store:</label>
+          <label className="text-xs font-medium text-gray-900-dim">To store:</label>
           <select
             value={interToStoreId}
             onChange={(e) => setInterToStoreId(e.target.value)}
@@ -225,7 +225,7 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [], pend
             ))}
           </select>
 
-          <label className="text-xs font-medium text-ink-dim">Direction:</label>
+          <label className="text-xs font-medium text-gray-900-dim">Direction:</label>
           <select
             value={interDirection}
             onChange={(e) => setInterDirection(e.target.value)}
@@ -236,7 +236,7 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [], pend
           </select>
 
           {interFromStoreId && interToStoreId && (
-            <span className="text-[11px] text-ink-faint">
+            <span className="text-[11px] text-gray-500">
               {interDirection === 'in' ? 'Incoming' : 'Outgoing'} transfers{' '}
               from {storeName(Number(interFromStoreId))} to {storeName(Number(interToStoreId))}
             </span>
@@ -245,8 +245,8 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [], pend
       )}
 
       {/* Date range row — always visible */}
-      <div className="flex flex-wrap items-center gap-3 pt-1 border-t border-line animate-fade">
-        <label className="text-xs font-semibold uppercase tracking-wide text-ink-faint shrink-0">
+      <div className="flex flex-wrap items-center gap-3 pt-1 border-t border-gray-200 animate-fade">
+        <label className="text-xs font-semibold uppercase tracking-wide text-gray-500 shrink-0">
           Date Range
         </label>
         <div className="flex flex-wrap items-center gap-2">
@@ -257,7 +257,7 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [], pend
             className="field max-w-[170px]"
             placeholder="From"
           />
-          <span className="text-xs text-ink-faint">to</span>
+          <span className="text-xs text-gray-500">to</span>
           <input
             type="date"
             value={dateTo}
@@ -268,14 +268,14 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [], pend
           {(dateFrom || dateTo) && (
             <button
               onClick={() => { setDateFrom(''); setDateTo(''); }}
-              className="btn-ghost text-xs"
+              className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 text-xs"
             >
               Clear dates
             </button>
           )}
         </div>
         {dateFrom || dateTo ? (
-          <span className="text-[11px] text-ink-faint">
+          <span className="text-[11px] text-gray-500">
             Showing transfers{dateFrom ? ` from ${dateFrom}` : ''}{dateTo ? ` up to ${dateTo}` : ''}
           </span>
         ) : null}
@@ -288,20 +288,20 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [], pend
     if (filterMode === 'single' && singleStoreId) {
       return (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
-          <div key="total" className="rounded-xl border border-line bg-surface p-3 sm:p-5">
-            <p className="text-[10px] uppercase tracking-wide text-ink-faint sm:text-xs">Total Transfers</p>
-            <p className="mt-1.5 font-mono text-xl sm:text-2xl font-medium tracking-tight text-ink sm:mt-2">{stats.totalTransfers}</p>
-            <p className="mt-0.5 text-[10px] text-ink-faint sm:mt-1 sm:text-[11px]">All transfers involving {stats.storeLabel}</p>
+          <div key="total" className="rounded-xl border border-gray-200 bg-white p-3 sm:p-5">
+            <p className="text-[10px] uppercase tracking-wide text-gray-500 sm:text-xs">Total Transfers</p>
+            <p className="mt-1.5 font-mono text-xl sm:text-2xl font-medium tracking-tight text-gray-900 sm:mt-2">{stats.totalTransfers}</p>
+            <p className="mt-0.5 text-[10px] text-gray-500 sm:mt-1 sm:text-[11px]">All transfers involving {stats.storeLabel}</p>
           </div>
-          <div key="in" className="rounded-xl border border-line bg-surface p-3 sm:p-5">
-            <p className="text-[10px] uppercase tracking-wide text-ink-faint sm:text-xs">Incoming</p>
-            <p className="mt-1.5 font-mono text-xl sm:text-2xl font-medium tracking-tight text-stock-ok sm:mt-2">{stats.incoming}</p>
-            <p className="mt-0.5 text-[10px] text-ink-faint sm:mt-1 sm:text-[11px]">Laptops received at {stats.storeLabel}</p>
+          <div key="in" className="rounded-xl border border-gray-200 bg-white p-3 sm:p-5">
+            <p className="text-[10px] uppercase tracking-wide text-gray-500 sm:text-xs">Incoming</p>
+            <p className="mt-1.5 font-mono text-xl sm:text-2xl font-medium tracking-tight text-green-600 sm:mt-2">{stats.incoming}</p>
+            <p className="mt-0.5 text-[10px] text-gray-500 sm:mt-1 sm:text-[11px]">Laptops received at {stats.storeLabel}</p>
           </div>
-          <div key="out" className="col-span-2 sm:col-span-1 rounded-xl border border-line bg-surface p-3 sm:p-5">
-            <p className="text-[10px] uppercase tracking-wide text-ink-faint sm:text-xs">Outgoing</p>
-            <p className="mt-1.5 font-mono text-xl sm:text-2xl font-medium tracking-tight text-stock-risk sm:mt-2">{stats.outgoing}</p>
-            <p className="mt-0.5 text-[10px] text-ink-faint sm:mt-1 sm:text-[11px]">Laptops sent from {stats.storeLabel}</p>
+          <div key="out" className="col-span-2 sm:col-span-1 rounded-xl border border-gray-200 bg-white p-3 sm:p-5">
+            <p className="text-[10px] uppercase tracking-wide text-gray-500 sm:text-xs">Outgoing</p>
+            <p className="mt-1.5 font-mono text-xl sm:text-2xl font-medium tracking-tight text-red-600 sm:mt-2">{stats.outgoing}</p>
+            <p className="mt-0.5 text-[10px] text-gray-500 sm:mt-1 sm:text-[11px]">Laptops sent from {stats.storeLabel}</p>
           </div>
         </div>
       );
@@ -309,18 +309,18 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [], pend
 
     return (
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-4">
-        <div key="total" className="rounded-xl border border-line bg-surface p-3 sm:p-5">
-          <p className="text-[10px] uppercase tracking-wide text-ink-faint sm:text-xs">Total Transfers</p>
-          <p className="mt-1.5 font-mono text-xl sm:text-2xl font-medium tracking-tight text-ink sm:mt-2">{stats.totalTransfers}</p>
+        <div key="total" className="rounded-xl border border-gray-200 bg-white p-3 sm:p-5">
+          <p className="text-[10px] uppercase tracking-wide text-gray-500 sm:text-xs">Total Transfers</p>
+          <p className="mt-1.5 font-mono text-xl sm:text-2xl font-medium tracking-tight text-gray-900 sm:mt-2">{stats.totalTransfers}</p>
           {filterMode === 'inter' && interFromStoreId && interToStoreId && (
-            <p className="mt-0.5 text-[10px] text-ink-faint sm:mt-1 sm:text-[11px]">
+            <p className="mt-0.5 text-[10px] text-gray-500 sm:mt-1 sm:text-[11px]">
               Between {storeName(Number(interFromStoreId))} and {storeName(Number(interToStoreId))}
             </p>
           )}
         </div>
-        <div key="unique" className="rounded-xl border border-line bg-surface p-3 sm:p-5">
-          <p className="text-[10px] uppercase tracking-wide text-ink-faint sm:text-xs">Unique Laptops</p>
-          <p className="mt-1.5 font-mono text-xl sm:text-2xl font-medium tracking-tight text-ink sm:mt-2">{stats.uniqueLaptops}</p>
+        <div key="unique" className="rounded-xl border border-gray-200 bg-white p-3 sm:p-5">
+          <p className="text-[10px] uppercase tracking-wide text-gray-500 sm:text-xs">Unique Laptops</p>
+          <p className="mt-1.5 font-mono text-xl sm:text-2xl font-medium tracking-tight text-gray-900 sm:mt-2">{stats.uniqueLaptops}</p>
         </div>
       </div>
     );
@@ -330,10 +330,10 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [], pend
     <div className="space-y-4 sm:space-y-6">
       {/* Pending Transfers — requires action */}
       {pendingTransfers.length > 0 && (
-        <div className="panel overflow-hidden border border-amber-300/40">
+        <div className="rounded-xl border border-gray-100 bg-white overflow-hidden border border-amber-300/40">
           <div className="flex items-center gap-2 border-b border-amber-200/60 bg-amber-50/60 px-5 py-3">
             <span className="inline-block h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
-            <h2 className="font-display text-sm font-semibold text-amber-800">Pending Transfers</h2>
+            <h2 className="  text-sm font-semibold text-amber-800">Pending Transfers</h2>
             <span className="ml-auto rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
               {pendingTransfers.length}
             </span>
@@ -343,7 +343,7 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [], pend
           <div className="hidden md:block overflow-x-auto">
             <table className="w-full min-w-[780px] text-left text-sm">
               <thead>
-                <tr className="border-b border-line">
+                <tr className="border-b border-gray-200">
                   <th className={th}>Requested</th>
                   <th className={th}>{t.tableBrand}</th>
                   <th className={th}>{t.tableSerial}</th>
@@ -360,27 +360,27 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [], pend
                   const isAdmin = userRole === 'admin' || userRole === 'superadmin';
                   return (
                     <tr key={pt.id} className="transition-colors duration-150 hover:bg-amber-50/30">
-                      <td className={`${td} font-mono text-[11px] text-ink-faint`}>
+                      <td className={`${td} font-mono text-[11px] text-gray-500`}>
                         {formatTime(pt.created_at)}
                       </td>
                       <td className={td}>
-                        <p className="font-medium text-ink">{pt.brand_model}</p>
+                        <p className="font-medium text-gray-900">{pt.brand_model}</p>
                       </td>
                       <td className={td}>
-                        <span className="mono-chip">{pt.serial_number}</span>
+                        <span className="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[11px] text-gray-600">{pt.serial_number}</span>
                       </td>
                       <td className={td}>
-                        <span className="rounded-md border border-line bg-surface-2 px-1.5 py-0.5 font-medium text-ink-dim">
+                        <span className="rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-medium text-gray-900-dim">
                           {pt.from_store_name || '—'}
                         </span>
                       </td>
                       <td className={td}>
-                        <span className="rounded-md border border-line bg-surface-2 px-1.5 py-0.5 font-medium text-ink-dim">
+                        <span className="rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-medium text-gray-900-dim">
                           {pt.to_store_name || '—'}
                         </span>
                       </td>
                       <td className={td}>
-                        <span className="mono-chip">{pt.initiated_by}</span>
+                        <span className="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[11px] text-gray-600">{pt.initiated_by}</span>
                       </td>
                       <td className={`${td} text-right`}>
                         <div className="flex items-center justify-end gap-2">
@@ -434,27 +434,27 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [], pend
               return (
                 <div key={pt.id} className="px-4 py-3">
                   <div className="flex items-start justify-between gap-3">
-                    <p className="font-medium text-ink">{pt.brand_model}</p>
-                    <span className="shrink-0 font-mono text-[11px] text-ink-faint">
+                    <p className="font-medium text-gray-900">{pt.brand_model}</p>
+                    <span className="shrink-0 font-mono text-[11px] text-gray-500">
                       {formatTime(pt.created_at)}
                     </span>
                   </div>
                   <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                    <span className="mono-chip">{pt.serial_number}</span>
+                    <span className="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[11px] text-gray-600">{pt.serial_number}</span>
                   </div>
                   <div className="mt-2 flex items-center gap-2 text-xs">
-                    <span className="rounded-md border border-line bg-surface-2 px-1.5 py-0.5 font-medium text-ink-dim">
+                    <span className="rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-medium text-gray-900-dim">
                       {pt.from_store_name || '—'}
                     </span>
                     <svg className="h-3.5 w-3.5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
                     </svg>
-                    <span className="rounded-md border border-line bg-surface-2 px-1.5 py-0.5 font-medium text-ink-dim">
+                    <span className="rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-medium text-gray-900-dim">
                       {pt.to_store_name || '—'}
                     </span>
                   </div>
-                  <p className="mt-1.5 text-[11px] text-ink-faint">
-                    Requested by <span className="font-medium text-ink-dim">{pt.initiated_by}</span>
+                  <p className="mt-1.5 text-[11px] text-gray-500">
+                    Requested by <span className="font-medium text-gray-900-dim">{pt.initiated_by}</span>
                   </p>
                   <div className="mt-3 flex items-center gap-2">
                     {isDestinationManager && (
@@ -504,15 +504,15 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [], pend
       {renderCards()}
 
       {/* Transfer table (desktop) */}
-      <div className="panel overflow-hidden">
-        <div className="flex items-center justify-between border-b border-line px-5 py-3">
-          <h2 className="font-display text-sm font-semibold tracking-tight text-ink">Transfer History</h2>
-          <span className="mono-chip text-[10px]">{filtered.length} moves</span>
+      <div className="rounded-xl border border-gray-100 bg-white overflow-hidden">
+        <div className="flex items-center justify-between border-b border-gray-200 px-5 py-3">
+          <h2 className="  text-sm font-semibold tracking-tight text-gray-900">Transfer History</h2>
+          <span className="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[11px] text-gray-600 text-[10px]">{filtered.length} moves</span>
         </div>
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full min-w-[880px] text-left text-sm">
             <thead>
-              <tr className="border-b border-line">
+              <tr className="border-b border-gray-200">
                 <th className={th}>Date / Time</th>
                 <th className={th}>{t.tableBrand}</th>
                 <th className={th}>{t.tableSerial}</th>
@@ -524,37 +524,37 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [], pend
             <tbody className="divide-y divide-[var(--hairline)]">
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-10 text-center text-sm text-ink-faint">
+                  <td colSpan={6} className="px-4 py-10 text-center text-sm text-gray-500">
                     {q ? 'No transfers match your search.' : 'No transfers recorded yet. Move a laptop to a different store to see it here.'}
                   </td>
                 </tr>
               )}
               {filtered.map((l) => (
-                <tr key={l.id} className="transition-colors duration-150 hover:bg-surface-2/60">
-                  <td className={`${td} font-mono text-[11px] text-ink-faint`}>
+                <tr key={l.id} className="transition-colors duration-150 hover:bg-gray-50/60">
+                  <td className={`${td} font-mono text-[11px] text-gray-500`}>
                     {formatTime(l.changed_at)}
                   </td>
                   <td className={td}>
-                    <p className="font-medium text-ink">{l.brand_model}</p>
+                    <p className="font-medium text-gray-900">{l.brand_model}</p>
                   </td>
                   <td className={td}>
-                    <span className="mono-chip">{l.serial_number}</span>
+                    <span className="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[11px] text-gray-600">{l.serial_number}</span>
                   </td>
                   <td className={td}>
                     {l.from_store_name || (l.from_store_id && storeName(l.from_store_id)) || (
-                      <span className="text-ink-faint">—</span>
+                      <span className="text-gray-500">—</span>
                     )}
                   </td>
                   <td className={td}>
                     {l.to_store_name || (l.to_store_id && storeName(l.to_store_id)) || (
-                      <span className="text-ink-faint">—</span>
+                      <span className="text-gray-500">—</span>
                     )}
                   </td>
                   <td className={td}>
                     {l.transferred_by ? (
-                      <span className="mono-chip">{l.transferred_by}</span>
+                      <span className="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[11px] text-gray-600">{l.transferred_by}</span>
                     ) : (
-                      <span className="text-ink-faint">—</span>
+                      <span className="text-gray-500">—</span>
                     )}
                   </td>
                 </tr>
@@ -566,35 +566,35 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [], pend
         {/* Mobile: stackable vertical cards — no horizontal scroll */}
         <div className="md:hidden divide-y divide-[var(--hairline)]">
           {filtered.length === 0 && (
-            <div className="px-4 py-10 text-center text-sm text-ink-faint">
+            <div className="px-4 py-10 text-center text-sm text-gray-500">
               {q ? 'No transfers match your search.' : 'No transfers recorded yet. Move a laptop to a different store to see it here.'}
             </div>
           )}
           {filtered.map((l) => (
             <div key={l.id} className="px-4 py-3">
               <div className="flex items-start justify-between gap-3">
-                <p className="font-medium text-ink">{l.brand_model}</p>
-                <span className="shrink-0 font-mono text-[11px] text-ink-faint">
+                <p className="font-medium text-gray-900">{l.brand_model}</p>
+                <span className="shrink-0 font-mono text-[11px] text-gray-500">
                   {formatTime(l.changed_at)}
                 </span>
               </div>
               <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                <span className="mono-chip">{l.serial_number}</span>
+                <span className="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[11px] text-gray-600">{l.serial_number}</span>
               </div>
               <div className="mt-2 flex items-center gap-2 text-xs">
-                <span className="rounded-md border border-line bg-surface-2 px-1.5 py-0.5 font-medium text-ink-dim">
+                <span className="rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-medium text-gray-900-dim">
                   {l.from_store_name || (l.from_store_id && storeName(l.from_store_id)) || '—'}
                 </span>
-                <svg className="h-3.5 w-3.5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <svg className="h-3.5 w-3.5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </svg>
-                <span className="rounded-md border border-line bg-surface-2 px-1.5 py-0.5 font-medium text-ink-dim">
+                <span className="rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-medium text-gray-900-dim">
                   {l.to_store_name || (l.to_store_id && storeName(l.to_store_id)) || '—'}
                 </span>
               </div>
               {l.transferred_by && (
-                <p className="mt-1.5 text-[11px] text-ink-faint">
-                  Transferred by <span className="font-medium text-ink-dim">{l.transferred_by}</span>
+                <p className="mt-1.5 text-[11px] text-gray-500">
+                  Transferred by <span className="font-medium text-gray-900-dim">{l.transferred_by}</span>
                 </p>
               )}
             </div>

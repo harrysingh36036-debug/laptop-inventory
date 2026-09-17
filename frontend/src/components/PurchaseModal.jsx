@@ -156,17 +156,17 @@ aadhar_no: editing.purchaser_aadhar || editing.aadhar_no || '',
 
   return (
     <div className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-black/70 p-4 backdrop-blur-sm">
-      <div className="my-8 w-full max-w-2xl rounded-2xl border border-line bg-surface p-6 shadow-pop">
+      <div className="my-8 w-full max-w-2xl rounded-2xl border border-gray-200 bg-white p-6 shadow-lg">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h3 className="font-display text-base font-semibold tracking-tight text-ink">
+            <h3 className="  text-base font-semibold tracking-tight text-gray-900">
               {editing ? 'Edit Purchase Record' : 'Record a Purchase'}
             </h3>
-            <p className="mt-1 text-xs text-ink-faint">
+            <p className="mt-1 text-xs text-gray-500">
               Separate spending ledger — records how much money was spent buying the system. Not linked to inventory units.
             </p>
           </div>
-          <button onClick={onClose} className="text-ink-faint hover:text-ink transition-colors" aria-label="Close purchase modal">
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-900 transition-colors" aria-label="Close purchase modal">
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -174,7 +174,7 @@ aadhar_no: editing.purchaser_aadhar || editing.aadhar_no || '',
         </div>
 
         {error && (
-          <p className="mt-3 rounded-lg border border-stock-risk/30 bg-stock-risk/10 px-3 py-2 text-sm text-stock-risk">{error}</p>
+          <p className="mt-3 rounded-lg border border-red-600/30 bg-red-600/10 px-3 py-2 text-sm text-red-600">{error}</p>
         )}
 
         <form onSubmit={submit} className="mt-4 space-y-4">
@@ -213,23 +213,23 @@ aadhar_no: editing.purchaser_aadhar || editing.aadhar_no || '',
               )}
             </div>
             <div>
-              <label className="flabel">Purchaser Aadhar No. {!editing && form.source_type !== 'vendor' && <span className="text-stock-risk">*</span>}</label>
+              <label className="flabel">Purchaser Aadhar No. {!editing && form.source_type !== 'vendor' && <span className="text-red-600">*</span>}</label>
               <input value={form.aadhar_no} onChange={set('aadhar_no')} inputMode="numeric" maxLength={12}
                 placeholder={editing ? (form.aadhar_no ? '' : 'Optional on edit') : form.source_type === 'vendor' ? 'Optional for vendor purchases' : '12-digit Aadhar (required)'}
                 className="field mt-1.5" />
-              <p className="mt-1 text-xs text-ink-faint">Hashed before saving; admin can view the full number.</p>
+              <p className="mt-1 text-xs text-gray-500">Hashed before saving; admin can view the full number.</p>
             </div>
             <div>
-              <label className="flabel">Purchaser Name {!editing && form.source_type !== 'vendor' && <span className="text-stock-risk">*</span>}</label>
+              <label className="flabel">Purchaser Name {!editing && form.source_type !== 'vendor' && <span className="text-red-600">*</span>}</label>
               <input value={form.purchaser_name} onChange={set('purchaser_name')} placeholder={form.source_type === 'vendor' ? 'Optional for vendor purchases' : 'Full name of buyer…'}
                 className="field mt-1.5" />
             </div>
             <div>
-              <label className="flabel">Phone Number {!editing && form.source_type !== 'vendor' && <span className="text-stock-risk">*</span>}</label>
+              <label className="flabel">Phone Number {!editing && form.source_type !== 'vendor' && <span className="text-red-600">*</span>}</label>
               <input value={form.purchaser_phone} onChange={set('purchaser_phone')} inputMode="numeric" maxLength={10}
                 placeholder={form.source_type === 'vendor' ? 'Optional for vendor purchases' : '10-digit mobile (required)'}
                 className="field mt-1.5" />
-              <p className="mt-1 text-xs text-ink-faint">Visible to admins only.</p>
+              <p className="mt-1 text-xs text-gray-500">Visible to admins only.</p>
             </div>
             <div>
               <label className="flabel">Brand</label>
@@ -249,7 +249,7 @@ aadhar_no: editing.purchaser_aadhar || editing.aadhar_no || '',
                         setCustomBrand(false);
                         setForm((f) => ({ ...f, brand: '' }));
                       }}
-                      className="mt-1.5 shrink-0 text-xs font-medium text-ink-dim hover:text-ink"
+                      className="mt-1.5 shrink-0 text-xs font-medium text-gray-600 hover:text-gray-900"
                     >
                       List
                     </button>
@@ -354,10 +354,10 @@ aadhar_no: editing.purchaser_aadhar || editing.aadhar_no || '',
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={onClose} className="btn-ghost">
+            <button type="button" onClick={onClose} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100">
               Cancel
             </button>
-            <button type="submit" className="btn-accent">
+            <button type="submit" className="rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700">
               {editing ? 'Save changes' : 'Record purchase'}
             </button>
           </div>

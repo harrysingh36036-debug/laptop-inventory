@@ -299,12 +299,12 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-4 backdrop-blur-sm">
-      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden rounded-2xl border border-line bg-surface p-4 sm:p-6 shadow-pop">
+      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden rounded-2xl border border-gray-200 bg-white p-4 sm:p-6 shadow-lg">
         <div className="flex items-center justify-between">
-          <h2 className="font-display text-base font-semibold tracking-tight text-ink">
+          <h2 className="  text-base font-semibold tracking-tight text-gray-900">
             {isAdmin ? 'Admin Settings' : 'Store Management'}
           </h2>
-          <button onClick={onClose} className="text-ink-faint hover:text-ink transition-colors" aria-label="Close">
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-900 transition-colors" aria-label="Close">
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -312,19 +312,19 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
         </div>
 
         {message && (
-          <p className="mt-3 rounded-lg border border-stock-ok/25 bg-stock-ok/10 px-3 py-2 text-sm text-stock-ok">
+          <p className="mt-3 rounded-lg border border-green-600/25 bg-green-600/10 px-3 py-2 text-sm text-green-600">
             {message}
           </p>
         )}
 
         {/* Tabs - scrollable on phone so labels don't spill outside rounded box */}
-        <div className="mt-4 flex gap-1 overflow-x-auto rounded-xl border border-line bg-surface-2 p-1 no-scrollbar">
+        <div className="mt-4 flex gap-1 overflow-x-auto rounded-xl border border-gray-200 bg-gray-50 p-1 no-scrollbar">
           {TABS.map(([k, n]) => (
             <button
               key={k}
               onClick={() => selectTab(k)}
               className={`shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition-colors duration-150 sm:flex-1 sm:whitespace-normal sm:text-sm ${
-                tab === k ? 'bg-surface-3 text-ink' : 'text-ink-dim hover:text-ink'
+                tab === k ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:text-gray-900'
               }`}
             >
               {n}
@@ -342,7 +342,7 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
                   placeholder="New store name…"
                   className="field flex-1"
                 />
-                <button type="submit" className="btn-accent">
+                <button type="submit" className="rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700">
                   Add Store
                 </button>
               </form>
@@ -361,14 +361,14 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
                     <button
                       onClick={() => renameOne(s.id, draft)}
                       disabled={draft.trim() === s.store_name}
-                      className="btn-ghost disabled:opacity-40"
+                      className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40"
                     >
                       Rename
                     </button>
                     {isAdmin && (
                       <button
                         onClick={() => removeOne(s.id, s.store_name)}
-                        className="btn-danger"
+                        className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100"
                       >
                         Remove
                       </button>
@@ -378,7 +378,7 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
               })}
             </div>
             {!isAdmin && (
-              <p className="text-xs text-ink-faint">
+              <p className="text-xs text-gray-500">
                 Managers can rename stores. Adding or removing stores is restricted to admins.
               </p>
             )}
@@ -398,7 +398,7 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
               </div>
             ))}
             <div className="flex justify-end pt-2">
-              <button onClick={saveLabels} disabled={saving} className="btn-accent disabled:opacity-50">
+              <button onClick={saveLabels} disabled={saving} className="rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
                 {saving ? 'Saving…' : 'Save Labels'}
               </button>
             </div>
@@ -407,21 +407,21 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
 
         {tab === 'permissions' && (
           <div className="mt-4 space-y-4">
-            <p className="text-sm text-ink-faint">
+            <p className="text-sm text-gray-500">
               Grant or revoke each permission for admins, managers and staff. The super admin always has access to everything.
             </p>
             {!perms ? (
-              <p className="text-sm text-ink-faint">Loading permissions…</p>
+              <p className="text-sm text-gray-500">Loading permissions…</p>
             ) : (
               <>
                 {['admin', 'manager', 'staff'].map((role) => (
-                  <div key={role} className="rounded-xl border border-line bg-surface-2/40 p-4">
-                    <h3 className="text-sm font-semibold capitalize text-ink">{role}</h3>
+                  <div key={role} className="rounded-xl border border-gray-200 bg-gray-50/40 p-4">
+                    <h3 className="text-sm font-semibold capitalize text-gray-900">{role}</h3>
                     <div className="mt-2 space-y-2">
                       {PERMISSION_FIELDS.map(([key, hint]) => (
                         <label
                           key={key}
-                          className="flex cursor-pointer items-center justify-between rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm text-ink-dim transition-colors duration-150 hover:bg-surface-3 hover:text-ink"
+                          className="flex cursor-pointer items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600 transition-colors duration-150 hover:bg-gray-100 hover:text-gray-900"
                         >
                           <span>{hint}</span>
                           <input
@@ -436,7 +436,7 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
                   </div>
                 ))}
                 <div className="flex justify-end pt-1">
-                  <button onClick={savePerms} disabled={permsSaving} className="btn-accent disabled:opacity-50">
+                  <button onClick={savePerms} disabled={permsSaving} className="rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
                     {permsSaving ? 'Saving…' : 'Save Permissions'}
                   </button>
                 </div>
@@ -447,23 +447,23 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
 
         {tab === 'users' && (
           <div className="mt-4 space-y-4">
-            <p className="text-sm text-ink-faint">
+            <p className="text-sm text-gray-500">
               Assign each account its role and home store. A manager sees only their home store's daily report. Admins can create and delete manager, admin and staff accounts (never their own account); only the super admin can manage a super admin account.
             </p>
 
-            <form onSubmit={createAccount} className="rounded-xl border border-line bg-surface-2/40 p-4">
-              <h3 className="text-sm font-semibold text-ink">Create account</h3>
+            <form onSubmit={createAccount} className="rounded-xl border border-gray-200 bg-gray-50/40 p-4">
+              <h3 className="text-sm font-semibold text-gray-900">Create account</h3>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <div>
                   <label className="flabel">Display name</label>
                   <input value={newUser.display_name} onChange={setNew('display_name')} className="field mt-1.5" placeholder="e.g. Priya Sharma" />
                 </div>
                 <div>
-                  <label className="flabel">Username <span className="text-stock-risk">*</span></label>
+                  <label className="flabel">Username <span className="text-red-600">*</span></label>
                   <input value={newUser.username} onChange={setNew('username')} className="field mt-1.5" placeholder="e.g. priya (3-32 chars)" autoComplete="off" />
                 </div>
                 <div>
-                  <label className="flabel">Password <span className="text-stock-risk">*</span></label>
+                  <label className="flabel">Password <span className="text-red-600">*</span></label>
                   <input type="password" value={newUser.password} onChange={setNew('password')} className="field mt-1.5" placeholder="At least 6 characters" autoComplete="new-password" />
                 </div>
                 <div>
@@ -488,29 +488,29 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
                 </div>
               </div>
               <div className="mt-3 flex justify-end">
-                <button type="submit" disabled={creating} className="btn-accent disabled:opacity-50">
+                <button type="submit" disabled={creating} className="rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
                   {creating ? 'Creating…' : 'Create Account'}
                 </button>
               </div>
             </form>
 
-            <p className="text-sm text-ink-faint">
+            <p className="text-sm text-gray-500">
               Existing accounts — change a role or home store, then press Save. Admins can also reset passwords.
             </p>
             {!usersLoaded ? (
-              <p className="text-sm text-ink-faint">Loading users…</p>
+              <p className="text-sm text-gray-500">Loading users…</p>
             ) : users.length === 0 ? (
-              <p className="text-sm text-ink-faint">No accounts found.</p>
+              <p className="text-sm text-gray-500">No accounts found.</p>
             ) : (
               <div className="space-y-2">
                 {users.map((u) => {
                   const d = drafts[u.id] || {};
                   return (
-                    <div key={u.id} className="rounded-xl border border-line bg-surface-2/40 p-4 overflow-hidden">
+                    <div key={u.id} className="rounded-xl border border-gray-200 bg-gray-50/40 p-4 overflow-hidden">
                       <div className="flex flex-col gap-3 min-w-0">
                         <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-ink">{u.display_name || u.username}</p>
-                          <p className="truncate text-xs text-ink-faint">
+                          <p className="truncate text-sm font-semibold text-gray-900">{u.display_name || u.username}</p>
+                          <p className="truncate text-xs text-gray-500">
                             @{u.username}
                             {u.home_store_name ? ` · ${u.home_store_name}` : ''}
                           </p>
@@ -549,7 +549,7 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
                             <button
                               onClick={() => saveUser(u)}
                               disabled={usersBusy}
-                              className="btn-accent disabled:opacity-50"
+                              className="rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                             >
                               Save
                             </button>
@@ -557,7 +557,7 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
                               <button
                                 onClick={() => { setResetPwdUser(resetPwdUser?.id === u.id ? null : u); setNewPassword(''); }}
                                 disabled={usersBusy}
-                                className="btn-ghost disabled:opacity-50"
+                                className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-50"
                               >
                                 {resetPwdUser?.id === u.id ? 'Cancel' : 'Reset Password'}
                               </button>
@@ -565,7 +565,7 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
                             <button
                               onClick={() => removeOneUser(u)}
                               disabled={usersBusy || u.id === currentUserId}
-                              className="btn-danger disabled:opacity-40"
+                              className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100 disabled:opacity-40"
                             >
                               Delete
                             </button>
@@ -585,7 +585,7 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
                           <button
                             onClick={() => resetPassword(u)}
                             disabled={usersBusy || !newPassword || newPassword.length < 6}
-                            className="btn-accent disabled:opacity-50"
+                            className="rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                           >
                             {usersBusy ? 'Saving…' : 'Set Password'}
                           </button>

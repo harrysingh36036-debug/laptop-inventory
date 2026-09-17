@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { getSales, getSalesSummary, deleteSale } from '../api';
 import { formatTime, inr, getIstToday } from '../utils';
 import { socket } from '../socket';
-import SearchBox from './SearchBox';
+
 import DangerConfirmModal from './DangerConfirmModal';
 import ReturnSaleModal from './ReturnSaleModal';
 
@@ -159,8 +159,8 @@ export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false
     }
   };
 
-  if (loading) return <p className="text-sm text-ink-faint">Loading sales…</p>;
-  if (error) return <p className="text-sm text-stock-risk">{error}</p>;
+  if (loading) return <p className="text-sm text-gray-500">Loading sales…</p>;
+  if (error) return <p className="text-sm text-red-600">{error}</p>;
 
   const cards = [
     { label: 'Units Sold', value: String(summary?.count ?? 0), mono: true },
@@ -168,7 +168,7 @@ export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false
     { label: 'Total Profit', value: inr(summary?.total_profit), mono: true }
   ];
 
-  const th = 'px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint';
+  const th = 'px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500';
   const td = 'px-4 py-3 align-middle';
   const activeStore = stores.find((s) => String(s.id) === storeF);
   // Managers can process returns only for sales made from their own store.
@@ -182,17 +182,20 @@ export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <SearchBox
-          value={search}
-          onChange={setSearch}
-          placeholder="Search sales by laptop, serial, store, customer or staff…"
-          countLabel={`${filtered.length} of ${sales.length} sales`}
-          className="w-full sm:max-w-md"
-        />
+        <div className="relative w-full sm:max-w-md">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search sales by laptop, serial, store, customer or staff…"
+            className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+          />
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500">{filtered.length} of {sales.length}</span>
+        </div>
         <button
           onClick={() => downloadSalesCsv(sales, stores)}
           disabled={!sales.length}
-          className="btn-ghost w-full sm:w-auto disabled:cursor-not-allowed disabled:opacity-40"
+          className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 w-full sm:w-auto disabled:cursor-not-allowed disabled:opacity-40"
         >
           Download CSV
         </button>
@@ -201,9 +204,9 @@ export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false
       {/* Summary cards */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
         {cards.map((c) => (
-          <div key={c.label} className="rounded-xl border border-line bg-surface p-3 sm:p-5">
-            <p className="text-[10px] uppercase tracking-wide text-ink-faint sm:text-xs">{c.label}</p>
-            <p className={`mt-1.5 font-mono text-xl sm:text-2xl font-medium tracking-tight sm:mt-2 ${c.accent ? 'text-accent' : 'text-ink'}`}>
+          <div key={c.label} className="rounded-xl border border-gray-200 bg-white p-3 sm:p-5">
+            <p className="text-[10px] uppercase tracking-wide text-gray-500 sm:text-xs">{c.label}</p>
+            <p className={`mt-1.5 font-mono text-xl sm:text-2xl font-medium tracking-tight sm:mt-2 ${c.accent ? 'text-blue-600' : 'text-gray-900'}`}>
               {c.value}
             </p>
           </div>
@@ -212,51 +215,51 @@ export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false
 
       {/* Store-wise sales boxes */}
       <div>
-        <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-wide text-ink-faint">Store-wise sales</h2>
+        <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-wide text-gray-500">Store-wise sales</h2>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           <button
             onClick={() => setStoreF('')}
-            className={`panel flex flex-col items-start gap-1.5 p-4 text-left transition-colors duration-150 ${
-              storeF === '' ? 'ring-2 ring-accent-line bg-accent-soft/20' : 'hover:bg-surface-2/70'
+            className={`rounded-xl border border-gray-100 bg-white flex flex-col items-start gap-1.5 p-4 text-left transition-colors duration-150 ${
+              storeF === '' ? 'ring-2 ring-blue-200 bg-blue-50' : 'hover:bg-gray-50'
             }`}
           >
-            <span className="text-xs font-semibold uppercase tracking-wide text-ink-faint">All Stores</span>
-            <span className="font-display text-2xl font-bold text-accent">{sales.length}</span>
-            <span className="text-[11px] text-ink-faint">units sold</span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">All Stores</span>
+            <span className="text-2xl font-bold text-blue-600">{sales.length}</span>
+            <span className="text-[11px] text-gray-500">units sold</span>
           </button>
           {storeBoxes.map((b) => (
             <button
               key={b.store_id ?? 'none'}
               onClick={() => setStoreF(String(b.store_id ?? ''))}
-              className={`panel flex flex-col items-start gap-1.5 p-4 text-left transition-colors duration-150 ${
-                storeF === String(b.store_id ?? '') ? 'ring-2 ring-accent-line bg-accent-soft/20' : 'hover:bg-surface-2/70'
+              className={`rounded-xl border border-gray-100 bg-white flex flex-col items-start gap-1.5 p-4 text-left transition-colors duration-150 ${
+                storeF === String(b.store_id ?? '') ? 'ring-2 ring-blue-200 bg-blue-50' : 'hover:bg-gray-50'
               }`}
             >
-              <span className="truncate w-full text-xs font-semibold uppercase tracking-wide text-ink-faint">
+              <span className="truncate w-full text-xs font-semibold uppercase tracking-wide text-gray-500">
                 {storeName(b.store_id) || (b.store_id ? `Store #${b.store_id}` : 'Unknown store')}
               </span>
-              <span className="font-display text-2xl font-bold text-accent">{b.units}</span>
-              <span className="font-mono text-[11px] text-ink-faint">
+              <span className="text-2xl font-bold text-blue-600">{b.units}</span>
+              <span className="font-mono text-[11px] text-gray-500">
                 {inr(b.amount)} · profit {inr(b.profit)}
               </span>
             </button>
           ))}
         </div>
         {canSeeCustomer && (
-          <p className="mt-2 px-1 text-[11px] text-ink-faint">
+          <p className="mt-2 px-1 text-[11px] text-gray-500">
             Customer name + phone shown only to admins / supervisors.
           </p>
         )}
       </div>
 
       {/* Sales details table */}
-      <div className="panel overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-5 py-3">
-          <h2 className="font-display text-sm font-semibold tracking-tight text-ink">
+      <div className="rounded-xl border border-gray-100 bg-white overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 px-5 py-3">
+           <h2 className="text-sm font-semibold tracking-tight text-gray-900">
             {activeStore ? `${activeStore.store_name} — sold details` : 'Sales details'}
           </h2>
           {activeStore && (
-            <button onClick={() => setStoreF('')} className="btn-ghost">
+            <button onClick={() => setStoreF('')} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100">
               Show all stores
             </button>
           )}
@@ -264,7 +267,7 @@ export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full min-w-[980px] text-left text-sm">
             <thead>
-              <tr className="border-b border-line">
+              <tr className="border-b border-gray-200">
                 <th className={th}>Laptop</th>
                 <th className={th}>Serial</th>
                 <th className={th}>Customer</th>
@@ -279,24 +282,24 @@ export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false
                 {isSuperAdmin && <th className={th}>Actions</th>}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[var(--hairline)]">
+            <tbody className="divide-y divide-gray-100">
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={emptyCols} className="px-4 py-10 text-center text-sm text-ink-faint">
+                  <td colSpan={emptyCols} className="px-4 py-10 text-center text-sm text-gray-500">
                     {q ? 'No sales match your search.' : 'No sales recorded yet.'}
                   </td>
                 </tr>
               )}
               {filtered.map((s) => (
-                <tr key={s.id} className="transition-colors duration-150 hover:bg-surface-2/60">
-                  <td className={`${td} font-medium text-ink`}>{s.brand_model}</td>
-                  <td className={td}><span className="mono-chip">{s.serial_number}</span></td>
-                  <td className={`${td} text-ink-dim`}>
+                <tr key={s.id} className="transition-colors duration-150 hover:bg-gray-50">
+                  <td className={`${td} font-medium text-gray-900`}>{s.brand_model}</td>
+                  <td className={td}><span className="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[11px] text-gray-600">{s.serial_number}</span></td>
+                  <td className={`${td} text-gray-600`}>
                     {canSeeCustomer
-                      ? (s.customer_name || <span className="text-ink-faint">—</span>)
-                      : <span className="text-ink-faint">Restricted</span>}
+                      ? (s.customer_name || <span className="text-gray-500">—</span>)
+                      : <span className="text-gray-500">Restricted</span>}
                   </td>
-                  <td className={`${td} font-mono text-xs text-ink-dim`}>
+                  <td className={`${td} font-mono text-xs text-gray-600`}>
                     {canSeeCustomer && (s.customer_phone_last4 || s.customer_phone)
                       ? <span className="inline-flex items-center gap-1">
                           <span>{revealedPhones.has(s.id) && s.customer_phone ? s.customer_phone : `••••${s.customer_phone_last4}`}</span>
@@ -304,7 +307,7 @@ export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false
                             <button
                               type="button"
                               onClick={() => setRevealedPhones((prev) => { const next = new Set(prev); next.has(s.id) ? next.delete(s.id) : next.add(s.id); return next; })}
-                              className="text-ink-faint hover:text-accent transition-colors"
+                              className="text-gray-500 hover:text-blue-600 transition-colors"
                               title={revealedPhones.has(s.id) ? 'Hide phone' : 'Show full phone'}
                             >
                               {revealedPhones.has(s.id)
@@ -313,25 +316,25 @@ export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false
                             </button>
                           )}
                         </span>
-                      : <span className="text-ink-faint">—</span>}
+                      : <span className="text-gray-500">—</span>}
                   </td>
-                  <td className={`${td} font-mono text-xs text-ink`}>{inr(s.sale_price)}</td>
-                  <td className={`${td} font-mono text-xs font-medium ${s.profit >= 0 ? 'text-stock-ok' : 'text-stock-risk'}`}>
+                  <td className={`${td} font-mono text-xs text-gray-900`}>{inr(s.sale_price)}</td>
+                  <td className={`${td} font-mono text-xs font-medium ${s.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {inr(s.profit)}
                   </td>
-                  <td className={`${td} text-xs text-ink-dim`}>
+                  <td className={`${td} text-xs text-gray-600`}>
                     {s.payment_method ? (
                       <span>{s.payment_method}{s.payment_detail ? ` · ${s.payment_detail}` : ''}</span>
                     ) : (
-                      <span className="text-ink-faint">—</span>
+                      <span className="text-gray-500">—</span>
                     )}
                   </td>
-                  <td className={`${td} text-ink-dim`}>{s.sold_by || '—'}</td>
-                  <td className={`${td} font-mono text-[11px] text-ink-faint`}>{formatTime(s.sold_at)}</td>
+                  <td className={`${td} text-gray-600`}>{s.sold_by || '—'}</td>
+                  <td className={`${td} font-mono text-[11px] text-gray-500`}>{formatTime(s.sold_at)}</td>
                   <td className={td}>
                     <button
                       onClick={() => printSaleReceipt(s, storeName(s.store_id), null, revealedPhones.has(s.id) ? s.customer_phone : null)}
-                      className="btn-ghost"
+                      className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100"
                       title="Print sales receipt"
                     >
                       Receipt
@@ -341,7 +344,7 @@ export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false
                     <td className={td}>
                       <button
                         onClick={() => setReturnModal({ sale: s })}
-                        className="btn-ghost"
+                        className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100"
                         title="Return this sale"
                       >
                         Return
@@ -352,7 +355,7 @@ export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false
                     <td className={td}>
                       <button
                         onClick={() => setDanger({ sale: s })}
-                        className="btn-danger"
+                        className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100"
                         title="Delete this sale (laptop returns to In Stock)"
                       >
                         Delete
@@ -367,9 +370,9 @@ export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false
       </div>
 
       {/* Mobile: card list instead of wide table */}
-      <div className="md:hidden divide-y divide-[var(--hairline)]">
+      <div className="md:hidden divide-y divide-gray-100">
         {filtered.length === 0 && (
-          <div className="px-4 py-12 text-center text-sm text-ink-faint">
+          <div className="px-4 py-12 text-center text-sm text-gray-500">
             {q ? 'No sales match your search.' : 'No sales recorded yet.'}
           </div>
         )}
@@ -377,25 +380,25 @@ export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false
           <div key={s.id} className="px-4 py-3">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="font-medium text-ink">{s.brand_model}</p>
-                {s.serial_number && <span className="mt-0.5 inline-block mono-chip">{s.serial_number}</span>}
+                <p className="font-medium text-gray-900">{s.brand_model}</p>
+                {s.serial_number && <span className="mt-0.5 inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[11px] text-gray-600">{s.serial_number}</span>}
               </div>
               <div className="text-right">
-                <p className="font-mono text-sm font-medium text-ink">{inr(s.sale_price)}</p>
-                <p className={`font-mono text-[11px] ${s.profit >= 0 ? 'text-stock-ok' : 'text-stock-risk'}`}>{inr(s.profit)}</p>
+                <p className="font-mono text-sm font-medium text-gray-900">{inr(s.sale_price)}</p>
+                <p className={`font-mono text-[11px] ${s.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{inr(s.profit)}</p>
               </div>
             </div>
             {s.payment_method && (
-              <p className="mt-1 text-[11px] text-ink-dim">
-                <span className="text-ink-faint">Payment:</span> {s.payment_method}{s.payment_detail ? ` · ${s.payment_detail}` : ''}
+              <p className="mt-1 text-[11px] text-gray-600">
+                <span className="text-gray-500">Payment:</span> {s.payment_method}{s.payment_detail ? ` · ${s.payment_detail}` : ''}
               </p>
             )}
-            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-[11px] text-ink-dim">
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-[11px] text-gray-600">
               <span>
-                <span className="text-ink-faint">Customer:</span>{' '}
+                <span className="text-gray-500">Customer:</span>{' '}
                 {canSeeCustomer
                   ? (s.customer_name || '—')
-                  : <span className="text-ink-faint">Restricted</span>}
+                  : <span className="text-gray-500">Restricted</span>}
               </span>
               {canSeeCustomer && (s.customer_phone_last4 || s.customer_phone) && (
                 <span className="inline-flex items-center gap-1 font-mono">
@@ -404,7 +407,7 @@ export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false
                     <button
                       type="button"
                       onClick={() => setRevealedPhones((prev) => { const next = new Set(prev); next.has(s.id) ? next.delete(s.id) : next.add(s.id); return next; })}
-                      className="text-ink-faint hover:text-accent transition-colors"
+                      className="text-gray-500 hover:text-blue-600 transition-colors"
                       title={revealedPhones.has(s.id) ? 'Hide phone' : 'Show full phone'}
                     >
                       {revealedPhones.has(s.id)
@@ -415,7 +418,7 @@ export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false
                 </span>
               )}
             </div>
-            <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-[11px] text-ink-faint">
+            <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-0.5 text-[11px] text-gray-500">
               <span>{storeName(s.store_id) || '—'}</span>
               {s.sold_by && <span>sold by {s.sold_by}</span>}
               <span>{formatTime(s.sold_at)}</span>
@@ -423,7 +426,7 @@ export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false
             <div className="mt-2.5 flex flex-wrap items-center gap-2">
               <button
                 onClick={() => printSaleReceipt(s, storeName(s.store_id), null, revealedPhones.has(s.id) ? s.customer_phone : null)}
-                className="btn-ghost"
+                className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100"
                 title="Print sales receipt"
               >
                 Receipt
@@ -431,14 +434,14 @@ export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false
               {canReturnRow(s) && (
                 <button
                   onClick={() => setReturnModal({ sale: s })}
-                  className="btn-ghost"
+                  className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100"
                   title="Return this sale"
                 >
                   Return
                 </button>
               )}
               {isSuperAdmin && (
-                <button onClick={() => setDanger({ sale: s })} className="btn-danger ml-auto" title="Delete this sale (laptop returns to In Stock)">
+                <button onClick={() => setDanger({ sale: s })} className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100 ml-auto" title="Delete this sale (laptop returns to In Stock)">
                   Delete
                 </button>
               )}

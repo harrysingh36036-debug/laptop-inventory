@@ -1,15 +1,15 @@
 // Status styles for the warm-dark surface. Saturated color is reserved for
 // status semantics only — matching the Stockroom token rules.
 const STATUS_MAP = {
-  'In Stock': { color: 'text-stock-ok', dot: 'bg-stock-ok', label: 'In Stock' },
-  'In Transit': { color: 'text-stock-transit', dot: 'bg-stock-transit', label: 'In Transit' },
-  Sold: { color: 'text-stock-sold', dot: 'bg-stock-sold', label: 'Sold' }
+  'In Stock': { color: 'text-green-600', dot: 'bg-green-600', label: 'In Stock' },
+  'In Transit': { color: 'text-amber-600', dot: 'bg-amber-600', label: 'In Transit' },
+  Sold: { color: 'text-gray-500', dot: 'bg-gray-400', label: 'Sold' }
 };
 
 export default function StatusChip({ status }) {
   const s = STATUS_MAP[status] || {
-    color: 'text-stock-sold',
-    dot: 'bg-stock-sold',
+    color: 'text-gray-500',
+    dot: 'bg-gray-400',
     label: status || '—'
   };
   return (

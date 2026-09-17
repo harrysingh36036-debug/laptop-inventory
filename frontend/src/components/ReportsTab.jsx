@@ -593,11 +593,11 @@ ${tailLines}
 
   return (
     <div className="space-y-6">
-      <section className="panel p-5">
+      <section className="rounded-xl border border-gray-100 bg-white p-5">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div>
-            <h2 className="font-display text-base font-semibold tracking-tight text-ink">Inventory Overview</h2>
-            <p className="text-xs text-ink-faint">Stock levels by brand, generation and configuration.</p>
+            <h2 className="  text-base font-semibold tracking-tight text-gray-900">Inventory Overview</h2>
+            <p className="text-xs text-gray-900-faint">Stock levels by brand, generation and configuration.</p>
           </div>
           {isAdmin && visibleStores.length > 0 && (
             <select
@@ -628,16 +628,16 @@ ${tailLines}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {reports.map((r) => (
-          <div key={r.title} className="panel flex flex-col p-5">
-            <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl border border-accent-line bg-accent-soft text-accent">
+          <div key={r.title} className="rounded-xl border border-gray-100 bg-white flex flex-col p-5">
+            <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl border border-blue-200 bg-blue-50 text-blue-600">
               {r.icon}
             </div>
-            <h3 className="font-display text-sm font-semibold tracking-tight text-ink">{r.title}</h3>
-            <p className="mt-1 text-xs text-ink-faint">{r.desc}</p>
+            <h3 className="  text-sm font-semibold tracking-tight text-gray-900">{r.title}</h3>
+            <p className="mt-1 text-xs text-gray-900-faint">{r.desc}</p>
             {r.title === 'Daily Report' && (
-              <div className="mt-3 space-y-2.5 rounded-xl border border-line bg-surface-2/40 p-3">
+              <div className="mt-3 space-y-2.5 rounded-xl border border-gray-200 bg-gray-50/40 p-3">
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">Date</label>
+                  <label className="text-[10px] font-semibold uppercase tracking-wide text-gray-900-faint">Date</label>
                   <input
                     type="date"
                     value={reportDate}
@@ -646,7 +646,7 @@ ${tailLines}
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] font-semibold uppercase tracking-wide text-ink-faint">Store</label>
+                  <label className="text-[10px] font-semibold uppercase tracking-wide text-gray-900-faint">Store</label>
                   {isAdmin ? (
                     <select
                       value={effectiveFilter}
@@ -661,36 +661,36 @@ ${tailLines}
                       ))}
                     </select>
                   ) : (
-                    <div className="field flex items-center gap-1.5 bg-surface-2 py-1.5 text-sm text-ink">
+                    <div className="field flex items-center gap-1.5 bg-gray-50 py-1.5 text-sm text-gray-900">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                       <span className="truncate">{stores.find((s) => s.id === homeStoreId)?.store_name || 'Your store'}</span>
-                      <span className="ml-auto text-[10px] font-medium uppercase tracking-wide text-ink-faint">locked</span>
+                      <span className="ml-auto text-[10px] font-medium uppercase tracking-wide text-gray-900-faint">locked</span>
                     </div>
                   )}
                 </div>
-                {!isAdmin && <p className="text-[10px] leading-tight text-ink-faint">Managers see only their home store. Admins see all stores.</p>}
+                {!isAdmin && <p className="text-[10px] leading-tight text-gray-900-faint">Managers see only their home store. Admins see all stores.</p>}
               </div>
             )}
-            {r.stat && <p className={`font-mono text-sm font-medium tracking-tight text-accent ${r.title === 'Daily Report' ? 'mt-3' : 'mt-2 text-lg'}`}>{r.stat}</p>}
+            {r.stat && <p className={`font-mono text-sm font-medium tracking-tight text-blue-600 ${r.title === 'Daily Report' ? 'mt-3' : 'mt-2 text-lg'}`}>{r.stat}</p>}
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <button
                 onClick={r.action}
                 disabled={r.disabled}
-                className="btn-accent disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 CSV
               </button>
               <button
                 onClick={r.pdfAction}
                 disabled={r.disabled}
-                className="btn-ghost disabled:cursor-not-allowed disabled:opacity-40"
+                className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 PDF
               </button>
               {r.onView && (
                 <button
                   onClick={r.onView}
-                  className="btn-ghost"
+                  className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100"
                 >
                   View
                 </button>
@@ -701,11 +701,11 @@ ${tailLines}
       </div>
 
       {/* Daily report */}
-      <section className="panel p-5" id="daily-report">
+      <section className="rounded-xl border border-gray-100 bg-white p-5" id="daily-report">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="font-display text-base font-semibold tracking-tight text-ink">Daily report</h2>
-            <p className="text-xs text-ink-faint">Per-store system in / out and store-wise sales for one day.</p>
+            <h2 className="  text-base font-semibold tracking-tight text-gray-900">Daily report</h2>
+            <p className="text-xs text-gray-900-faint">Per-store system in / out and store-wise sales for one day.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {isAdmin && visibleStores.length > 0 && (
@@ -728,19 +728,19 @@ ${tailLines}
               onChange={(e) => setReportDate(e.target.value)}
               className="field max-w-[170px]"
             />
-            <button onClick={printDailyReport} disabled={dailyLoading || (!daily && !storeSales)} className="btn-ghost disabled:opacity-40">
+            <button onClick={printDailyReport} disabled={dailyLoading || (!daily && !storeSales)} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40">
               Print
             </button>
-            <button onClick={downloadDailyPdf} disabled={dailyLoading || (!daily && !storeSales)} className="btn-ghost disabled:opacity-40">
+            <button onClick={downloadDailyPdf} disabled={dailyLoading || (!daily && !storeSales)} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40">
               PDF
             </button>
           </div>
         </div>
 
         {dailyError && (
-          <p className="mt-4 rounded-lg border border-stock-risk/30 bg-stock-risk/10 px-3 py-2 text-sm text-stock-risk">{dailyError}</p>
+          <p className="mt-4 rounded-lg border border-red-600/30 bg-red-600/10 px-3 py-2 text-sm text-red-600">{dailyError}</p>
         )}
-        {dailyLoading && <p className="mt-4 text-sm text-ink-faint">Loading daily report…</p>}
+        {dailyLoading && <p className="mt-4 text-sm text-gray-900-faint">Loading daily report…</p>}
 
         {!dailyLoading && daily && (
           <div className="mt-5 space-y-6">
@@ -748,12 +748,12 @@ ${tailLines}
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               <button
                 onClick={() => onOpenStore?.('')}
-                className="panel flex flex-col items-start gap-1 p-4 text-left transition-colors hover:bg-surface-2/70"
+                className="rounded-xl border border-gray-100 bg-white flex flex-col items-start gap-1 p-4 text-left transition-colors hover:bg-gray-50"
                 title="Open all stores in Inventory"
               >
-                <span className="truncate w-full text-xs font-semibold uppercase tracking-wide text-ink-faint">All Stores</span>
-                <span className="mt-1 font-display text-2xl font-bold text-accent">{dailyTotals.in_store}</span>
-                <span className="text-[11px] text-ink-faint">
+                <span className="truncate w-full text-xs font-semibold uppercase tracking-wide text-gray-900-faint">All Stores</span>
+                <span className="mt-1   text-2xl font-bold text-blue-600">{dailyTotals.in_store}</span>
+                <span className="text-[11px] text-gray-900-faint">
                   {dailyTotals.sold_on} sold on {reportDate}
                 </span>
               </button>
@@ -761,12 +761,12 @@ ${tailLines}
                 <button
                   key={st.store_id}
                   onClick={() => onOpenStore?.(st.store_id)}
-                  className="panel flex flex-col items-start gap-1 p-4 text-left transition-colors hover:bg-surface-2/70"
+                  className="rounded-xl border border-gray-100 bg-white flex flex-col items-start gap-1 p-4 text-left transition-colors hover:bg-gray-50"
                   title={`Open ${st.store_name} in Inventory`}
                 >
-                  <span className="truncate w-full text-xs font-semibold uppercase tracking-wide text-ink-faint">{st.store_name}</span>
-                  <span className="mt-1 font-display text-2xl font-bold text-accent">{st.in_store ?? 0}</span>
-                  <span className="text-[11px] text-ink-faint">
+                  <span className="truncate w-full text-xs font-semibold uppercase tracking-wide text-gray-900-faint">{st.store_name}</span>
+                  <span className="mt-1   text-2xl font-bold text-blue-600">{st.in_store ?? 0}</span>
+                  <span className="text-[11px] text-gray-900-faint">
                     {st.in_store === 1 ? 'system' : 'systems'} · {st.sold_on ?? 0} sold
                   </span>
                 </button>
@@ -775,7 +775,7 @@ ${tailLines}
 
             {/* Daily report: uniform per-store tiles (in / out) */}
             <div>
-              <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-wide text-ink-faint">
+              <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-wide text-gray-900-faint">
                 Store status — in / out on {reportDate}
               </h2>
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -783,12 +783,12 @@ ${tailLines}
                   <button
                     key={st.store_id}
                     onClick={() => onOpenStore?.(st.store_id)}
-                    className="panel flex flex-col gap-2.5 p-4 text-left transition-colors hover:bg-surface-2/70"
+                    className="rounded-xl border border-gray-100 bg-white flex flex-col gap-2.5 p-4 text-left transition-colors hover:bg-gray-50"
                     title={`Open ${st.store_name} in Inventory`}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className="truncate text-sm font-semibold text-ink">{st.store_name}</span>
-                      <span className="mono-chip">{st.in_store ?? 0} in store</span>
+                      <span className="truncate text-sm font-semibold text-gray-900">{st.store_name}</span>
+                      <span className="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[11px] text-gray-600">{st.in_store ?? 0} in store</span>
                     </div>
                     <div className="grid grid-cols-3 gap-2">
                       {[
@@ -796,15 +796,15 @@ ${tailLines}
                         { label: 'Transferred Out', value: st.transferred_out_on ?? 0, strong: false },
                         { label: 'Transferred In', value: st.transferred_in_on ?? 0, strong: false }
                       ].map((m) => (
-                        <div key={m.label} className="flex flex-col items-center justify-between rounded-lg border border-line bg-surface-2/60 px-1 py-2 text-center">
-                          <p className="text-[9px] font-semibold uppercase leading-tight tracking-wide text-ink-faint">{m.label}</p>
-                          <p className={`mt-1 font-mono text-sm ${m.strong ? 'font-medium text-accent' : 'text-ink-dim'}`}>{m.value}</p>
+                        <div key={m.label} className="flex flex-col items-center justify-between rounded-lg border border-gray-200 bg-gray-50/60 px-1 py-2 text-center">
+                          <p className="text-[9px] font-semibold uppercase leading-tight tracking-wide text-gray-900-faint">{m.label}</p>
+                          <p className={`mt-1 font-mono text-sm ${m.strong ? 'font-medium text-blue-600' : 'text-gray-600'}`}>{m.value}</p>
                         </div>
                       ))}
                     </div>
-                    <div className="flex items-center justify-between border-t border-line pt-2">
-                      <span className="text-[11px] text-ink-faint">Out total</span>
-                      <span className="font-mono text-sm font-medium text-accent">{st.out_total ?? 0}</span>
+                    <div className="flex items-center justify-between border-t border-gray-200 pt-2">
+                      <span className="text-[11px] text-gray-900-faint">Out total</span>
+                      <span className="font-mono text-sm font-medium text-blue-600">{st.out_total ?? 0}</span>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {(st.models || []).map((m) => (
@@ -823,18 +823,18 @@ ${tailLines}
                               onOpenStore?.(st.store_id, m.model);
                             }
                           }}
-                          className="cursor-pointer rounded-md border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] text-ink-dim transition-colors hover:border-accent-line hover:text-accent"
+                          className="cursor-pointer rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[10px] text-gray-600 transition-colors hover:border-blue-200 hover:text-blue-600"
                           title={`Find ${m.model} in ${st.store_name}`}
                         >
                           {m.model} × {m.count}
                         </span>
                       ))}
-                      {(st.models || []).length === 0 && <span className="text-[10px] text-ink-faint">—</span>}
+                      {(st.models || []).length === 0 && <span className="text-[10px] text-gray-900-faint">—</span>}
                     </div>
                   </button>
                 ))}
                 {dailyStores.length === 0 && (
-                  <p className="col-span-full px-1 text-sm text-ink-faint">No stores on this date.</p>
+                  <p className="col-span-full px-1 text-sm text-gray-900-faint">No stores on this date.</p>
                 )}
               </div>
             </div>
@@ -842,7 +842,7 @@ ${tailLines}
             {/* Store-wise sales: uniform tiles */}
             {storeSales && (
               <div>
-                <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-wide text-ink-faint">
+                <h2 className="mb-3 px-1 text-xs font-semibold uppercase tracking-wide text-gray-900-faint">
                   Store-wise sales on {reportDate}
                 </h2>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -850,27 +850,27 @@ ${tailLines}
                     <button
                       key={st.store_id}
                       onClick={() => onOpenStore?.(st.store_id)}
-                      className="panel flex flex-col gap-2 p-4 text-left transition-colors hover:bg-surface-2/70"
+                      className="rounded-xl border border-gray-100 bg-white flex flex-col gap-2 p-4 text-left transition-colors hover:bg-gray-50"
                       title={`Open ${st.store_name} in Inventory`}
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <span className="truncate text-sm font-semibold text-ink">{st.store_name}</span>
-                        <span className="mono-chip">{st.units ?? 0} units</span>
+                        <span className="truncate text-sm font-semibold text-gray-900">{st.store_name}</span>
+                        <span className="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[11px] text-gray-600">{st.units ?? 0} units</span>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
-                        <div className="flex flex-col items-center justify-between rounded-lg border border-line bg-surface-2/60 px-2 py-2 text-center">
-                          <p className="text-[9px] font-semibold uppercase leading-tight tracking-wide text-ink-faint">Amount</p>
-                          <p className="mt-1 font-mono text-sm text-ink">{inr(st.amount)}</p>
+                        <div className="flex flex-col items-center justify-between rounded-lg border border-gray-200 bg-gray-50/60 px-2 py-2 text-center">
+                          <p className="text-[9px] font-semibold uppercase leading-tight tracking-wide text-gray-900-faint">Amount</p>
+                          <p className="mt-1 font-mono text-sm text-gray-900">{inr(st.amount)}</p>
                         </div>
-                        <div className="flex flex-col items-center justify-between rounded-lg border border-line bg-surface-2/60 px-2 py-2 text-center">
-                          <p className="text-[9px] font-semibold uppercase leading-tight tracking-wide text-ink-faint">Profit</p>
-                          <p className="mt-1 font-mono text-sm text-ink-dim">{inr(st.profit)}</p>
+                        <div className="flex flex-col items-center justify-between rounded-lg border border-gray-200 bg-gray-50/60 px-2 py-2 text-center">
+                          <p className="text-[9px] font-semibold uppercase leading-tight tracking-wide text-gray-900-faint">Profit</p>
+                          <p className="mt-1 font-mono text-sm text-gray-600">{inr(st.profit)}</p>
                         </div>
                       </div>
                     </button>
                   ))}
                   {storeSalesRows.length === 0 && (
-                    <p className="col-span-full px-1 text-sm text-ink-faint">No sales on this date.</p>
+                    <p className="col-span-full px-1 text-sm text-gray-900-faint">No sales on this date.</p>
                   )}
                 </div>
               </div>
@@ -881,44 +881,44 @@ ${tailLines}
 
       {/* Store-wise repairs */}
       {repairByStore && (
-        <section className="panel p-5" id="store-repairs">
+        <section className="rounded-xl border border-gray-100 bg-white p-5" id="store-repairs">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="font-display text-base font-semibold tracking-tight text-ink">Store-wise repairs</h2>
-              <p className="text-xs text-ink-faint">Item cost spent vs amount charged to customers, per store.</p>
+              <h2 className="  text-base font-semibold tracking-tight text-gray-900">Store-wise repairs</h2>
+              <p className="text-xs text-gray-900-faint">Item cost spent vs amount charged to customers, per store.</p>
             </div>
-            <button onClick={downloadRepairs} disabled={!repairRows.length} className="btn-ghost disabled:opacity-40">
+            <button onClick={downloadRepairs} disabled={!repairRows.length} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40">
               CSV
             </button>
-            <button onClick={downloadRepairsPdf} disabled={!repairRows.length} className="btn-ghost disabled:opacity-40">
+            <button onClick={downloadRepairsPdf} disabled={!repairRows.length} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40">
               PDF
             </button>
           </div>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {repairRows.map((st) => (
-              <div key={st.store_id} className="panel flex flex-col gap-2 p-4">
+              <div key={st.store_id} className="rounded-xl border border-gray-100 bg-white flex flex-col gap-2 p-4">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="truncate text-sm font-semibold text-ink">{st.store_name}</span>
-                  <span className="mono-chip">{st.count ?? 0} repairs</span>
+                  <span className="truncate text-sm font-semibold text-gray-900">{st.store_name}</span>
+                  <span className="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[11px] text-gray-600">{st.count ?? 0} repairs</span>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
-                  <div className="flex flex-col items-center justify-between rounded-lg border border-line bg-surface-2/60 px-1 py-2 text-center">
-                    <p className="text-[9px] font-semibold uppercase leading-tight tracking-wide text-ink-faint">Item Cost</p>
-                    <p className="mt-1 font-mono text-sm text-ink-dim">{inr(st.total_cost)}</p>
+                  <div className="flex flex-col items-center justify-between rounded-lg border border-gray-200 bg-gray-50/60 px-1 py-2 text-center">
+                    <p className="text-[9px] font-semibold uppercase leading-tight tracking-wide text-gray-900-faint">Item Cost</p>
+                    <p className="mt-1 font-mono text-sm text-gray-600">{inr(st.total_cost)}</p>
                   </div>
-                  <div className="flex flex-col items-center justify-between rounded-lg border border-line bg-surface-2/60 px-1 py-2 text-center">
-                    <p className="text-[9px] font-semibold uppercase leading-tight tracking-wide text-ink-faint">Charged</p>
-                    <p className="mt-1 font-mono text-sm text-ink">{inr(st.total_charge)}</p>
+                  <div className="flex flex-col items-center justify-between rounded-lg border border-gray-200 bg-gray-50/60 px-1 py-2 text-center">
+                    <p className="text-[9px] font-semibold uppercase leading-tight tracking-wide text-gray-900-faint">Charged</p>
+                    <p className="mt-1 font-mono text-sm text-gray-900">{inr(st.total_charge)}</p>
                   </div>
-                  <div className="flex flex-col items-center justify-between rounded-lg border border-line bg-surface-2/60 px-1 py-2 text-center">
-                    <p className="text-[9px] font-semibold uppercase leading-tight tracking-wide text-ink-faint">Profit</p>
-                    <p className="mt-1 font-mono text-sm text-ink-dim">{inr(st.profit)}</p>
+                  <div className="flex flex-col items-center justify-between rounded-lg border border-gray-200 bg-gray-50/60 px-1 py-2 text-center">
+                    <p className="text-[9px] font-semibold uppercase leading-tight tracking-wide text-gray-900-faint">Profit</p>
+                    <p className="mt-1 font-mono text-sm text-gray-600">{inr(st.profit)}</p>
                   </div>
                 </div>
               </div>
             ))}
             {repairRows.length === 0 && (
-              <p className="col-span-full px-1 text-sm text-ink-faint">No repairs recorded yet.</p>
+              <p className="col-span-full px-1 text-sm text-gray-900-faint">No repairs recorded yet.</p>
             )}
           </div>
         </section>
@@ -928,31 +928,31 @@ ${tailLines}
       {dailyViewOpen && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
           <button aria-label="Close" onClick={() => setDailyViewOpen(false)} className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-          <div className="relative w-full max-w-md max-h-[90vh] overflow-auto rounded-2xl border border-line bg-surface p-5 shadow-pop">
+          <div className="relative w-full max-w-md max-h-[90vh] overflow-auto rounded-2xl border border-gray-200 bg-white p-5 shadow-lg">
             <div className="flex items-start justify-between gap-3">
-              <h3 className="font-display text-sm font-semibold tracking-tight text-ink">Daily &amp; Stock Report</h3>
-              <button onClick={() => setDailyViewOpen(false)} className="rounded-full border border-line bg-surface-2 p-1.5 text-ink-faint hover:text-ink" aria-label="Close">
+              <h3 className="  text-sm font-semibold tracking-tight text-gray-900">Daily &amp; Stock Report</h3>
+              <button onClick={() => setDailyViewOpen(false)} className="rounded-full border border-gray-200 bg-gray-50 p-1.5 text-gray-900-faint hover:text-gray-900" aria-label="Close">
                 <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
             </div>
-            <p className="mt-1 text-[11px] text-ink-faint">Generated {istNow} (IST) · {istTimeOnly} IST</p>
+            <p className="mt-1 text-[11px] text-gray-900-faint">Generated {istNow} (IST) · {istTimeOnly} IST</p>
 
             {/* Formatted text block — exactly the requested template + per-store Inventory Movement (Exchange/Return hidden when 0) */}
-            <pre className="mt-4 whitespace-pre-wrap rounded-xl border border-line bg-page p-4 font-mono text-[13px] leading-5 text-ink">
+            <pre className="mt-4 whitespace-pre-wrap rounded-xl border border-gray-200 bg-gray-50 p-4 font-mono text-[13px] leading-5 text-gray-900">
 {dailyShareText}
             </pre>
 
             <div className="mt-4 flex flex-wrap gap-2">
-              <button onClick={copyDailyShare} className="btn-accent">Copy</button>
-              <button onClick={shareDaily} className="btn-ghost">Share</button>
+              <button onClick={copyDailyShare} className="rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700">Copy</button>
+              <button onClick={shareDaily} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100">Share</button>
               <button onClick={() => {
                 const blob = new Blob([dailyShareText], { type: 'text/plain;charset=utf-8' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a'); a.href = url; a.download = `daily-stock-report-${reportDate}.txt`; a.click(); URL.revokeObjectURL(url);
-              }} className="btn-ghost">Download .txt</button>
-              <button onClick={() => setDailyViewOpen(false)} className="btn-ghost">Close</button>
+              }} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100">Download .txt</button>
+              <button onClick={() => setDailyViewOpen(false)} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100">Close</button>
             </div>
-            <p className="mt-3 text-[10px] text-ink-faint">Date / Day are IST (Asia/Kolkata). Yesterday vs Today uses in_store count for the same store filter. Stock in = Transferred In, Stock Out = Sold + Transferred Out. Exchange = In + Out movements, Return = In.</p>
+            <p className="mt-3 text-[10px] text-gray-900-faint">Date / Day are IST (Asia/Kolkata). Yesterday vs Today uses in_store count for the same store filter. Stock in = Transferred In, Stock Out = Sold + Transferred Out. Exchange = In + Out movements, Return = In.</p>
           </div>
         </div>
       )}

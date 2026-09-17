@@ -65,12 +65,12 @@ export default function BrandsManager({ onNotify }) {
     }
   };
 
-  if (loading) return <p className="text-sm text-ink-faint">Loading brands…</p>;
+  if (loading) return <p className="text-sm text-gray-500">Loading brands…</p>;
 
   return (
     <div className="space-y-4">
-      <form onSubmit={submit} className="rounded-xl border border-line bg-surface-2/40 p-4 space-y-3">
-        <h3 className="text-sm font-semibold text-ink">
+      <form onSubmit={submit} className="rounded-xl border border-gray-200 bg-gray-50/40 p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-gray-900">
           {editingId ? `Edit brand: ${form.name}` : 'Add a new brand'}
         </h3>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -91,7 +91,7 @@ export default function BrandsManager({ onNotify }) {
               placeholder="e.g. LN010"
               className="field mt-1.5 font-mono"
             />
-            <p className="mt-1 text-[11px] text-ink-faint">Used when bulk-adding units with auto serials.</p>
+            <p className="mt-1 text-[11px] text-gray-500">Used when bulk-adding units with auto serials.</p>
           </div>
         </div>
         <div className="flex justify-end gap-2">
@@ -99,7 +99,7 @@ export default function BrandsManager({ onNotify }) {
             <button
               type="button"
               onClick={() => { setEditingId(null); setForm(EMPTY); }}
-              className="btn-ghost"
+              className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100"
             >
               Cancel
             </button>
@@ -107,16 +107,16 @@ export default function BrandsManager({ onNotify }) {
           <button
             type="submit"
             disabled={busy}
-            className="btn-accent disabled:opacity-50"
+            className="rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
           >
             {busy ? 'Saving…' : editingId ? 'Save Changes' : 'Add Brand'}
           </button>
         </div>
       </form>
 
-      <div className="overflow-hidden rounded-xl border border-line">
+      <div className="overflow-hidden rounded-xl border border-gray-200">
         <table className="w-full text-left text-sm">
-          <thead className="bg-surface-2/50 text-[10px] uppercase tracking-wider text-ink-faint">
+          <thead className="bg-gray-50/50 text-[10px] uppercase tracking-wider text-gray-500">
             <tr>
               <th className="px-4 py-2.5 font-semibold">Brand</th>
               <th className="px-4 py-2.5 font-semibold">Serial Prefix</th>
@@ -125,18 +125,18 @@ export default function BrandsManager({ onNotify }) {
           </thead>
           <tbody className="divide-y divide-[var(--hairline)]">
             {brands.length === 0 && (
-              <tr><td colSpan={3} className="px-4 py-8 text-center text-ink-faint">No brands yet.</td></tr>
+              <tr><td colSpan={3} className="px-4 py-8 text-center text-gray-500">No brands yet.</td></tr>
             )}
             {brands.map((b) => (
-              <tr key={b.id} className="transition-colors duration-150 hover:bg-surface-2/60">
-                <td className="px-4 py-2.5 font-medium text-ink">{b.name}</td>
+              <tr key={b.id} className="transition-colors duration-150 hover:bg-gray-50/60">
+                <td className="px-4 py-2.5 font-medium text-gray-900">{b.name}</td>
                 <td className="px-4 py-2.5">
-                  <span className="mono-chip">{b.serial_prefix || '—'}</span>
+                  <span className="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[11px] text-gray-600">{b.serial_prefix || '—'}</span>
                 </td>
                 <td className="px-4 py-2.5">
                   <div className="flex items-center justify-end gap-2">
-                    <button onClick={() => startEdit(b)} className="btn-ghost">Edit</button>
-                    <button onClick={() => setDanger(b)} className="btn-danger">Delete</button>
+                    <button onClick={() => startEdit(b)} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100">Edit</button>
+                    <button onClick={() => setDanger(b)} className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100">Delete</button>
                   </div>
                 </td>
               </tr>

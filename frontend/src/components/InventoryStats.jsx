@@ -4,9 +4,9 @@ import { inr } from '../utils';
 
 function Card({ label, value }) {
   return (
-    <div className="panel p-5">
-      <p className="text-xs uppercase tracking-wide text-ink-faint">{label}</p>
-      <p className="mt-2 font-mono text-2xl font-medium tracking-tight text-ink">{value}</p>
+    <div className="rounded-xl border border-gray-100 bg-white p-5">
+      <p className="text-xs uppercase tracking-wide text-gray-500">{label}</p>
+      <p className="mt-2 font-mono text-2xl font-medium tracking-tight text-gray-900">{value}</p>
     </div>
   );
 }
@@ -25,17 +25,17 @@ export default function InventoryStats({ stores, search = '', storeId = null }) 
       .finally(() => setLoading(false));
   }, [storeId]);
 
-  if (loading) return <p className="text-sm text-ink-faint">Loading stock insights…</p>;
-  if (error) return <p className="text-sm text-stock-risk">{error}</p>;
+  if (loading) return <p className="text-sm text-gray-500">Loading stock insights…</p>;
+  if (error) return <p className="text-sm text-red-600">{error}</p>;
 
-  const t = 'px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-faint';
+  const t = 'px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500';
   const td = 'px-4 py-3 align-middle font-mono text-xs';
 
   const bar = (n, max) => {
     const pct = max ? (n / max) * 100 : 0;
     return (
-      <div className="mt-1 h-2 w-full rounded bg-surface-2">
-        <div className="h-2 rounded bg-accent" style={{ width: `${pct}%` }} />
+      <div className="mt-1 h-2 w-full rounded bg-gray-50">
+        <div className="h-2 rounded bg-blue-600" style={{ width: `${pct}%` }} />
       </div>
     );
   };
@@ -57,17 +57,17 @@ export default function InventoryStats({ stores, search = '', storeId = null }) 
         <Card label="Sold" value={stats.totals?.sold ?? 0} />
       </div>
 
-      <div className="panel p-5">
-        <h3 className="font-display text-sm font-semibold tracking-tight text-ink mb-3">Systems by Brand</h3>
+      <div className="rounded-xl border border-gray-100 bg-white p-5">
+        <h3 className="  text-sm font-semibold tracking-tight text-gray-900 mb-3">Systems by Brand</h3>
         <div className="space-y-3">
           {brands.map((b) => (
             <div key={b.brand}>
               <div className="flex items-center justify-between">
-                <span className="font-medium text-ink">{b.brand}</span>
-                <span className="font-mono text-xs text-ink-dim">{b.total} total</span>
+                <span className="font-medium text-gray-900">{b.brand}</span>
+                <span className="font-mono text-xs text-gray-900-dim">{b.total} total</span>
               </div>
               {bar(b.total, brandMax)}
-              <div className="mt-1 flex gap-3 text-[11px] text-ink-faint">
+              <div className="mt-1 flex gap-3 text-[11px] text-gray-500">
                 <span>Stock {b.in_stock}</span>
                 <span>Transit {b.in_transit}</span>
                 <span>Sold {b.sold}</span>
@@ -78,9 +78,9 @@ export default function InventoryStats({ stores, search = '', storeId = null }) 
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="panel overflow-hidden">
+        <div className="rounded-xl border border-gray-100 bg-white overflow-hidden">
           <div className="overflow-x-auto">
-            <h3 className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-faint">
+            <h3 className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
               By Generation
             </h3>
             <table className="w-full text-left text-sm">
@@ -92,7 +92,7 @@ export default function InventoryStats({ stores, search = '', storeId = null }) 
               </thead>
               <tbody className="divide-y divide-[var(--hairline)]">
                 {generations.map((g, i) => (
-                  <tr key={i} className="hover:bg-surface-2/60">
+                  <tr key={i} className="hover:bg-gray-50/60">
                     <td className={td}>{g.generation}</td>
                     <td className={`${td} text-right font-mono`}>{g.total}</td>
                   </tr>
@@ -102,9 +102,9 @@ export default function InventoryStats({ stores, search = '', storeId = null }) 
           </div>
         </div>
 
-        <div className="panel overflow-hidden">
+        <div className="rounded-xl border border-gray-100 bg-white overflow-hidden">
           <div className="overflow-x-auto">
-            <h3 className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-ink-faint">
+            <h3 className="px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500">
               By Configuration
             </h3>
             <table className="w-full text-left text-sm">
@@ -116,7 +116,7 @@ export default function InventoryStats({ stores, search = '', storeId = null }) 
               </thead>
               <tbody className="divide-y divide-[var(--hairline)]">
                 {configs.map((c, i) => (
-                  <tr key={i} className="hover:bg-surface-2/60">
+                  <tr key={i} className="hover:bg-gray-50/60">
                     <td className={td}>{c.config}</td>
                     <td className={`${td} text-right font-mono`}>{c.total}</td>
                   </tr>

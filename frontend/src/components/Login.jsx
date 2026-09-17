@@ -63,11 +63,11 @@ export default function Login({ onSuccess }) {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-page px-4">
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-sm">
-        <div className="panel p-8">
+        <div className="rounded-xl border border-gray-100 bg-white p-8 shadow-sm">
           <div className="text-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-accent-soft text-accent">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
               <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                 <path
                   strokeLinecap="round"
@@ -76,13 +76,13 @@ export default function Login({ onSuccess }) {
                 />
               </svg>
             </div>
-            <h1 className="mt-4 font-display text-xl font-semibold tracking-tight">Laptop Inventory</h1>
-            <p className="mt-1 text-sm text-ink-dim">Sign in to your account</p>
+            <h1 className="mt-4 text-xl font-semibold tracking-tight text-gray-900">Laptop Inventory</h1>
+            <p className="mt-1 text-sm text-gray-500">Sign in to your account</p>
           </div>
 
           <form onSubmit={submit} className="mt-6 space-y-4">
             <div>
-              <label className="flabel">Username</label>
+              <label className="block text-xs font-medium text-gray-500">Username</label>
               <select
                 value={customUser ? '__custom__' : form.username}
                 onChange={(e) => {
@@ -95,15 +95,15 @@ export default function Login({ onSuccess }) {
                 }}
                 autoComplete="username"
                 required
-                className="field mt-1.5"
+                className="mt-1.5 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               >
-                <option value="">Select username…</option>
+                <option value="">Select username...</option>
                 {usernames.map((u) => (
                   <option key={u.username} value={u.username}>
                     {u.display_name ? `${u.display_name} (${u.username})` : u.username}
                   </option>
                 ))}
-                <option value="__custom__">Type username…</option>
+                <option value="__custom__">Type username...</option>
               </select>
               {customUser && (
                 <input
@@ -112,13 +112,13 @@ export default function Login({ onSuccess }) {
                   autoComplete="username"
                   placeholder="type username"
                   required
-                  className="field mt-1.5"
+                  className="mt-1.5 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               )}
             </div>
 
             <div>
-              <label className="flabel">Password</label>
+              <label className="block text-xs font-medium text-gray-500">Password</label>
               <input
                 type="password"
                 value={form.password}
@@ -127,18 +127,18 @@ export default function Login({ onSuccess }) {
                 placeholder="••••••••"
                 required
                 minLength={6}
-                className="field mt-1.5"
+                className="mt-1.5 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
 
             <div>
-              <label className="flabel">Which store are you at?</label>
+              <label className="block text-xs font-medium text-gray-500">Which store are you at?</label>
               <select
                 value={form.storeId}
                 onChange={set('storeId')}
-                className="field mt-1.5"
+                className="mt-1.5 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               >
-                <option value="">Select store…</option>
+                <option value="">Select store...</option>
                 {stores.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.store_name}
@@ -146,12 +146,12 @@ export default function Login({ onSuccess }) {
                 ))}
               </select>
               {storeError && (
-                <p className="mt-1.5 text-sm text-stock-risk">{storeError}</p>
+                <p className="mt-1.5 text-sm text-red-600">{storeError}</p>
               )}
             </div>
 
             {error && (
-              <p className="rounded-lg border border-stock-risk/25 bg-stock-risk/10 px-3 py-2 text-sm text-stock-risk">
+              <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
                 {error}
               </p>
             )}
@@ -159,13 +159,13 @@ export default function Login({ onSuccess }) {
             <button
               type="submit"
               disabled={busy}
-              className="w-full btn-accent py-2.5 text-sm"
+              className="w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
             >
-              {busy ? 'Please wait…' : 'Sign in'}
+              {busy ? 'Please wait...' : 'Sign in'}
             </button>
           </form>
 
-          <p className="mt-5 text-center text-sm text-ink-faint">
+          <p className="mt-5 text-center text-sm text-gray-400">
             Accounts are created by an administrator or manager. Contact them if you need access.
           </p>
         </div>

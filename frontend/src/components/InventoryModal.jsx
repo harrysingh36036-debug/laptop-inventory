@@ -133,12 +133,12 @@ export default function InventoryModal({ stores, brands = [], vendors = [], prod
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/60 sm:p-4 backdrop-blur-sm">
-      <div className="max-h-[92vh] sm:max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-t-2xl sm:rounded-2xl border border-line bg-surface shadow-pop">
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-line bg-surface/95 px-4 sm:px-6 py-3 sm:py-4 backdrop-blur">
-          <h2 className="font-display text-base font-semibold tracking-tight text-ink">
+      <div className="max-h-[92vh] sm:max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-t-2xl sm:rounded-2xl border border-gray-200 bg-white shadow-lg">
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-gray-200 bg-white/95 px-4 sm:px-6 py-3 sm:py-4 backdrop-blur">
+          <h2 className="  text-base font-semibold tracking-tight text-gray-900">
             {title || (editing ? t.editLaptopTitle : t.addLaptopTitle)}
           </h2>
-          <button onClick={onClose} className="text-ink-faint hover:text-ink transition-colors" aria-label="Close">
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-900 transition-colors" aria-label="Close">
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -160,8 +160,8 @@ export default function InventoryModal({ stores, brands = [], vendors = [], prod
                 ))}
               </select>
               {brandPrefix && !editing && (
-                <p className="mt-1 text-xs text-stock-ok">
-                  Serials will start with <code className="mono-chip">{brandPrefix}</code> (auto-generated).
+                <p className="mt-1 text-xs text-green-600">
+                  Serials will start with <code className="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[11px] text-gray-600">{brandPrefix}</code> (auto-generated).
                 </p>
               )}
             </div>
@@ -182,7 +182,7 @@ export default function InventoryModal({ stores, brands = [], vendors = [], prod
                       setAddingLine(false);
                       setForm((f) => ({ ...f, product_line: '' }));
                     }}
-                    className="mt-1.5 shrink-0 text-xs font-medium text-ink-dim hover:text-ink"
+                    className="mt-1.5 shrink-0 text-xs font-medium text-gray-600 hover:text-gray-900"
                   >
                     Cancel
                   </button>
@@ -207,7 +207,7 @@ export default function InventoryModal({ stores, brands = [], vendors = [], prod
                   <option value="__new__">+ Add new product line…</option>
                 </select>
               )}
-              <p className="mt-1 text-xs text-ink-faint">Series / family, e.g. Inspiron, ThinkPad, Pavilion.</p>
+              <p className="mt-1 text-xs text-gray-500">Series / family, e.g. Inspiron, ThinkPad, Pavilion.</p>
             </div>
             <div>
               <label className={label}>Model</label>
@@ -295,7 +295,7 @@ export default function InventoryModal({ stores, brands = [], vendors = [], prod
           </div>
 
           {/* Graphics */}
-          <div className="rounded-xl border border-line bg-surface-2/40 p-4">
+          <div className="rounded-xl border border-gray-200 bg-white-2/40 p-4">
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div>
                 <label className={label}>Graphics?</label>
@@ -342,7 +342,7 @@ export default function InventoryModal({ stores, brands = [], vendors = [], prod
           <div>
             <label className={label}>Purchase Date *</label>
             <input type="date" value={form.purchase_date} onChange={set('purchase_date')} required className={input()} />
-            <p className="mt-1 text-xs text-ink-faint">Manually select the purchase / entry date (IST).</p>
+            <p className="mt-1 text-xs text-gray-500">Manually select the purchase / entry date (IST).</p>
           </div>
 
           {/* Location, status, quantity */}
@@ -359,7 +359,7 @@ export default function InventoryModal({ stores, brands = [], vendors = [], prod
             <div>
               <label className={label}>Status</label>
               {form.status === 'Sold' ? (
-                <p className="px-1 pt-1.5 text-sm text-stock-sold">Sold — final. Use the Sell action for new sales.</p>
+                <p className="px-1 pt-1.5 text-sm text-gray-500">Sold — final. Use the Sell action for new sales.</p>
               ) : (
                 <select value={form.status} onChange={set('status')} className={input()}>
                   {STATUSES.map((s) => (
@@ -381,7 +381,7 @@ export default function InventoryModal({ stores, brands = [], vendors = [], prod
                 <label className={label}>{t.quantityLabel || 'Quantity'}</label>
                 <input value={form.quantity} onChange={setN('quantity')} type="number" min="1" max="1000"
                   className={input()} />
-                <p className="mt-1 text-xs text-ink-faint">Bulk-add same spec with auto serials.</p>
+                <p className="mt-1 text-xs text-gray-500">Bulk-add same spec with auto serials.</p>
               </div>
             )}
           </div>
@@ -392,7 +392,7 @@ export default function InventoryModal({ stores, brands = [], vendors = [], prod
               <input value={form.serial_number} onChange={set('serial_number')}
                 placeholder={brandPrefix ? `e.g. ${brandPrefix}001` : 'e.g. SN-000001'}
                 className={input()} />
-              <p className="mt-1 text-xs text-ink-faint">
+              <p className="mt-1 text-xs text-gray-500">
                 {brandPrefix ? 'Leave blank to auto-generate the next serial.' : 'Required unless the brand has a serial prefix.'}
               </p>
             </div>
@@ -407,20 +407,20 @@ export default function InventoryModal({ stores, brands = [], vendors = [], prod
               placeholder="e.g. Purchased from dealer at CST Road with 1-year warranty…"
               className={`${input()} resize-y`}
             />
-            <p className="mt-1 text-xs text-ink-faint">Required for every purchase / inventory edit.</p>
+            <p className="mt-1 text-xs text-gray-500">Required for every purchase / inventory edit.</p>
           </div>
 
           {error && (
-            <p className="rounded-lg border border-stock-risk/25 bg-stock-risk/10 px-3 py-2 text-sm text-stock-risk">
+            <p className="rounded-lg border border-red-600/25 bg-red-600/10 px-3 py-2 text-sm text-red-600">
               {error}
             </p>
           )}
 
-          <div className="flex justify-end gap-2 border-t border-line pt-4">
-            <button type="button" onClick={onClose} className="btn-ghost">
+          <div className="flex justify-end gap-2 border-t border-gray-200 pt-4">
+            <button type="button" onClick={onClose} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100">
               Cancel
             </button>
-            <button type="submit" className="btn-accent">
+            <button type="submit" className="rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700">
               {editing ? 'Save Changes' : form.quantity > 1 ? `Add ${form.quantity} Units` : 'Add Laptop'}
             </button>
           </div>
