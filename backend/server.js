@@ -532,9 +532,13 @@ app.delete('/api/repairs/:id', authenticate, async (req, res) => {
   res.json(result);
 });
 
-// SPA fallback: any GET that isn't an API route gets index.html, so the React
-// app handles routing and a direct hit on the root URL works.
+// SPA fallback: only serve index.html for navigation requests, not for
+// static asset paths (files with extensions like .js, .css, .svg, etc.)
 const fs = require('fs');
+app.get(/^\/(?!api|socket\.io|assets\/).*\.\w+$/, (_req, res) => {
+  // Let express.static handle file requests — if we got here, file doesn't exist
+  res.status(404).end();
+});
 app.get(/^\/(?!api|socket\.io).*/, (_req, res) => {
   const index = path.join(FRONTEND_DIST, 'index.html');
   if (fs.existsSync(index)) return res.sendFile(index);
