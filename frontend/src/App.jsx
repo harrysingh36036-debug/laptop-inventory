@@ -975,17 +975,6 @@ export default function App() {
               className="flex items-center gap-3 min-w-0 text-left transition-opacity duration-150 hover:opacity-80"
               title="Go to dashboard"
             >
-              <span className="h-6 w-6 rounded-md bg-blue-50 flex items-center justify-center">
-                <svg className="h-3.5 w-3.5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                </svg>
-              </span>
-              <div className="min-w-0">
-                <h1 className="truncate text-sm font-semibold tracking-tight">{labels.appTitle || 'Laptop Inventory Tracker'}</h1>
-                <p className="hidden sm:block text-[12px] text-gray-500">
-                  {labels.appSubtitle || 'Real-time location tracking across 7 retail stores'}
-                </p>
-              </div>
             </button>
           </div>
           <div className="flex items-center justify-end gap-2 text-xs min-w-0">
