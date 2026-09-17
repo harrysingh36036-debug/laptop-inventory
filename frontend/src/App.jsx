@@ -1068,7 +1068,7 @@ export default function App() {
 
       <main className="mx-auto max-w-[1440px] px-4 py-8 sm:pl-16 sm:pr-4 space-y-6">
         {tab === 'dashboard' ? (
-<DashboardTab
+        <DashboardTab
               laptops={laptops}
               logs={logs}
               customers={customers}
@@ -1076,6 +1076,8 @@ export default function App() {
               repairs={repairs}
               onNavigate={setTab}
               onFocusLaptop={handleFocusLaptop}
+              user={user}
+              pendingTransfers={pendingTransfers}
             />
         ) : tab === 'inventory' ? (
           <InventoryView

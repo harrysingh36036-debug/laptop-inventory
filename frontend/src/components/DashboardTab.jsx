@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import StatusChip from './StatusChip';
 import { getSalesSummary } from '../api';
 import { inr } from '../utils';
@@ -80,9 +80,22 @@ const CARDS = [
 
 import { useLabels } from '../labels.jsx';
 
-export default function DashboardTab({ laptops = [], logs = [], customers = [], purchases = [], repairs = [], onNavigate, onFocusLaptop }) {
+export default function DashboardTab({ laptops = [], logs = [], customers = [], purchases = [], repairs = [], onNavigate, onFocusLaptop, user, pendingTransfers = [] }) {
   const t = useLabels();
   const [soldCount, setSoldCount] = useState(0);
+  const [showTransfers, setShowTransfers] = useState(false);
+  const transfersRef = useRef(null);
+
+  useEffect(() => {
+    if (!showTransfers) return;
+    const handleClick = (e) => {
+      if (transfersRef.current && !transfersRef.current.contains(e.target)) {
+        setShowTransfers(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showTransfers]);
   const all = laptops;
 
   useEffect(() => {
@@ -213,14 +226,67 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
             <p className="text-sm text-blue-100">Manage · Track · Grow</p>
           </div>
           <div className="flex items-center gap-3">
-            <button className="relative p-2">
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-              </svg>
-              <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-red-400"></span>
-            </button>
+            <div className="relative" ref={transfersRef}>
+              <button
+                onClick={() => setShowTransfers(!showTransfers)}
+                className="relative p-2"
+              >
+                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                {pendingTransfers.length > 0 && (
+                  <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold">
+                    {pendingTransfers.length}
+                  </span>
+                )}
+              </button>
+              {showTransfers && (
+                <div className="absolute right-0 top-full z-50 mt-2 w-72 rounded-xl border border-gray-200 bg-white shadow-lg">
+                  <div className="border-b border-gray-100 px-4 py-3">
+                    <h3 className="text-sm font-semibold text-gray-900">Transfer Requests</h3>
+                    <p className="text-xs text-gray-500">{pendingTransfers.length} pending</p>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto">
+                    {pendingTransfers.length === 0 ? (
+                      <div className="px-4 py-6 text-center text-sm text-gray-400">
+                        No pending transfers
+                      </div>
+                    ) : (
+                      pendingTransfers.map((pt) => (
+                        <div key={pt.id} className="border-b border-gray-50 px-4 py-3">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">
+                                {pt.brand} {pt.brand_model || ''}
+                              </p>
+                              <p className="text-xs text-gray-500">{pt.serial_number}</p>
+                              <p className="mt-1 text-xs text-gray-400">
+                                {pt.from_store_name} → {pt.to_store_name}
+                              </p>
+                            </div>
+                            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+                              Pending
+                            </span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  {pendingTransfers.length > 0 && (
+                    <div className="border-t border-gray-100 px-4 py-2">
+                      <button
+                        onClick={() => { onNavigate('transfers'); setShowTransfers(false); }}
+                        className="w-full text-center text-xs font-medium text-blue-600 hover:text-blue-700"
+                      >
+                        View all transfers
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-700 font-semibold">
-              A
+              {(user?.display_name || user?.username || 'U').charAt(0).toUpperCase()}
             </div>
           </div>
         </div>
@@ -231,7 +297,7 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm text-blue-100">Welcome back,</p>
-            <h2 className="text-2xl font-bold">Dashboard</h2>
+            <h2 className="text-2xl font-bold">{user?.display_name || user?.username || 'User'}</h2>
             <p className="mt-1 text-sm text-blue-100">Here's what's happening today.</p>
           </div>
           <div className="flex items-center gap-2 rounded-lg bg-white/20 px-3 py-2">
