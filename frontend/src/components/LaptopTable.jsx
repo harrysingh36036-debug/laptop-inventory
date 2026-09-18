@@ -35,13 +35,13 @@ export default function LaptopTable({
     await onSell?.(laptop);
   };
 
-  const th = 'px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500';
-  const td = 'px-4 py-3 align-middle';
+  const th = 'px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500 whitespace-nowrap';
+  const td = 'px-4 py-3 align-middle whitespace-nowrap';
 
   return (
     <div className="rounded-xl border border-gray-100 bg-white overflow-hidden">
       <div className="hidden md:block overflow-x-auto">
-        <table className="w-full min-w-[960px] border-collapse text-left text-sm">
+        <table className="w-full min-w-[1200px] border-collapse text-left text-sm">
           <thead>
             <tr className="border-b border-gray-200">
               <th className={th}>{t.tableBrand}</th>
@@ -111,14 +111,14 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                         : '—'}
                     </td>
                     <td className={`${td} font-mono text-[11px] text-gray-500 whitespace-nowrap`}>{l.created_at ? formatIstDateTime(l.created_at) : '—'}</td>
-                   {canTransfer && !isSold ? (
-                     <td className={td}>
-                       <div className="flex flex-wrap items-center gap-2">
-                         <select
-                           value={sel}
-                           onChange={(e) => setPending({ ...pending, [l.id]: e.target.value })}
-                           className="rounded-lg border border-gray-200 bg-gray-50 px-2 py-1.5 font-mono text-xs text-gray-600 focus:border-blue-200 focus:outline-none"
-                         >
+                    {canTransfer && !isSold ? (
+                      <td className={td}>
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={sel}
+                            onChange={(e) => setPending({ ...pending, [l.id]: e.target.value })}
+                            className="w-[130px] rounded-lg border border-gray-200 bg-gray-50 px-2 py-1.5 text-xs text-gray-600 focus:border-blue-200 focus:outline-none"
+                          >
                            <option value="">{t.selectStore}</option>
                            {stores
                              .filter((s) => s.id !== l.current_store_id)
@@ -142,16 +142,16 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                         {isSold ? (t.soldRow || 'Sold') : t.viewOnly}
                       </td>
                    )}
-                   <td className={`${td} text-right`}>
-                     <div className="flex flex-wrap items-center justify-end gap-2">
+                    <td className={`${td} text-right`}>
+                      <div className="flex items-center justify-end gap-1.5">
                        {canEdit && (
                          <>
-                           <button onClick={() => onEdit?.(l)} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100">
+                           <button onClick={() => onEdit?.(l)} className="rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100">
                              {t.editButton}
                            </button>
                            <button
                              onClick={() => onDelete?.(l.id, l.brand_model)}
-                             className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100"
+                             className="rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100"
                            >
                              {t.deleteButton}
                            </button>
@@ -160,7 +160,7 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
 {canSellRow && (
                            <button
                              onClick={() => handleSell(l)}
-                             className="rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
+                             className="rounded-lg bg-blue-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
                            >
                              {t.sellButton || 'Sell'}
                            </button>
@@ -168,7 +168,7 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                         {isSold && (
                           <button
                             onClick={() => toggleDetail(l.id)}
-                            className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 text-blue-600"
+                            className="rounded-lg border border-gray-200 bg-gray-50 p-1.5 text-gray-600 hover:bg-gray-100 text-blue-600"
                             title="View customer details"
                           >
                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -179,7 +179,7 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                         {showSensitive && (
                           <button
                             onClick={() => toggleAdminDetail(l.id)}
-                            className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 text-blue-600"
+                            className="rounded-lg border border-gray-200 bg-gray-50 p-1.5 text-gray-600 hover:bg-gray-100 text-blue-600"
                             title="View purchase / inventory details"
                           >
                             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">

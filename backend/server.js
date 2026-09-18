@@ -75,8 +75,14 @@ app.use(express.json());
 // Serve the built React frontend (frontend/dist) in production so the whole
 // app runs as a single process. Dev mode uses Vite on :5173 instead.
 const path = require('path');
+const fs = require('fs');
 const FRONTEND_DIST = path.join(__dirname, '..', 'frontend', 'dist');
-app.use(express.static(FRONTEND_DIST));
+app.use(express.static(FRONTEND_DIST, {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.js')) res.setHeader('Content-Type', 'application/javascript');
+    if (filePath.endsWith('.css')) res.setHeader('Content-Type', 'text/css');
+  }
+}));
 
 const io = new Server(server, {
   cors: { origin: CLIENT_ORIGIN, methods: ['GET', 'POST'] }
@@ -532,17 +538,24 @@ app.delete('/api/repairs/:id', authenticate, async (req, res) => {
   res.json(result);
 });
 
-// SPA fallback: only serve index.html for navigation requests, not for
-// static asset paths (files with extensions like .js, .css, .svg, etc.)
-const fs = require('fs');
+// SPA fallback: only serve index.html for navigation requests
 app.get(/^\/(?!api|socket\.io|assets\/).*\.\w+$/, (_req, res) => {
-  // Let express.static handle file requests — if we got here, file doesn't exist
   res.status(404).end();
 });
-app.get(/^\/(?!api|socket\.io).*/, (_req, res) => {
+app.get(/^\/(?!api|socket\.io|__debug).*/, (_req, res) => {
   const index = path.join(FRONTEND_DIST, 'index.html');
   if (fs.existsSync(index)) return res.sendFile(index);
   return res.status(404).json({ error: 'Frontend not built. Run: cd frontend && npm run build' });
+});
+
+// Debug: check what's in the dist folder
+app.get('/__debug', (_req, res) => {
+  const exists = fs.existsSync(FRONTEND_DIST);
+  const files = exists ? fs.readdirSync(FRONTEND_DIST) : [];
+  const assets = exists && fs.existsSync(path.join(FRONTEND_DIST, 'assets'))
+    ? fs.readdirSync(path.join(FRONTEND_DIST, 'assets'))
+    : [];
+  res.json({ FRONTEND_DIST, exists, files, assets });
 });
 
 // -------------------------------- Socket.io --------------------------------
