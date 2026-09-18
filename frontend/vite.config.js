@@ -15,11 +15,11 @@ export default defineConfig({
     }
   },
   server: {
-    port: 3695,
+    port: 5173,
     proxy: {
       // Proxy REST + Socket.io to the backend during development.
-      '/api': { target: 'http://localhost:4000', changeOrigin: true },
-      '/socket.io': { target: 'http://localhost:4000', ws: true }
+      '/api': { target: 'http://localhost:9634', changeOrigin: true },
+      '/socket.io': { target: 'http://localhost:9634', ws: true }
     }
   }
 });

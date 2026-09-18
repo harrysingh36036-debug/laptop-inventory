@@ -80,9 +80,10 @@ const CARDS = [
 
 import { useLabels } from '../labels.jsx';
 
-export default function DashboardTab({ laptops = [], logs = [], customers = [], purchases = [], repairs = [], onNavigate, onFocusLaptop, user }) {
+export default function DashboardTab({ laptops = [], logs = [], customers = [], purchases = [], repairs = [], onNavigate, onFocusLaptop, user, stores = [], onTransfer, canTransfer = false }) {
   const t = useLabels();
   const [soldCount, setSoldCount] = useState(0);
+  const [transferModal, setTransferModal] = useState(null); // { laptop, toStoreId }
   const all = laptops;
 
   useEffect(() => {
@@ -106,6 +107,8 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
   const [maxPrice, setMaxPrice] = useState('');
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState('desc');
+  const [showSort, setShowSort] = useState(false);
+  const [showQuickBall, setShowQuickBall] = useState(false);
 
   const brands = useMemo(() => {
     const s = new Set((all || []).map((l) => l?.brand).filter(Boolean));
@@ -258,12 +261,51 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
               placeholder="Search brand, model, serial number..."
               className="w-full bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400"
             />
-            <button className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100">
+            <button
+              onClick={() => setShowSort(!showSort)}
+              className={`rounded-lg p-1.5 ${showSort ? 'bg-teal-50 text-teal-600' : 'text-gray-400 hover:bg-gray-100'}`}
+            >
               <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
               </svg>
             </button>
           </div>
+
+          {/* Sort Dropdown */}
+          {showSort && (
+            <div className="mb-3 rounded-lg border border-gray-200 bg-gray-50 p-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-medium text-gray-600">Sort by</span>
+                <button onClick={() => setShowSort(false)} className="text-gray-400 hover:text-gray-600">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                >
+                  <option value="created_at">Date Added</option>
+                  <option value="brand">Brand</option>
+                  <option value="model">Model</option>
+                  <option value="price">Price</option>
+                  <option value="serial">Serial No</option>
+                  <option value="status">Status</option>
+                </select>
+                <select
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(e.target.value)}
+                  className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                >
+                  <option value="desc">Newest First</option>
+                  <option value="asc">Oldest First</option>
+                </select>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-2">
             <select
@@ -434,22 +476,17 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
                   }) : ''}
                 </p>
                 <div className="flex gap-2">
-                  <button
-                    onClick={() => onFocusLaptop?.(laptop)}
-                    className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-blue-600"
-                  >
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => {}}
-                    className="rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600"
-                  >
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </button>
+                  {canTransfer && (
+                    <button
+                      onClick={() => setTransferModal({ laptop, toStoreId: '' })}
+                      className="rounded-lg p-1.5 text-gray-400 hover:bg-teal-50 hover:text-teal-600"
+                      title="Transfer"
+                    >
+                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4" />
+                      </svg>
+                    </button>
+                  )}
                   <button
                     onClick={() => onFocusLaptop?.(laptop)}
                     className="rounded-lg p-1.5 text-gray-400 hover:bg-blue-50 hover:text-blue-600"
@@ -465,6 +502,60 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
           ))}
         </div>
       </div>
+
+      {/* Transfer Modal */}
+      {transferModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">Transfer Laptop</h3>
+              <button onClick={() => setTransferModal(null)} className="text-gray-400 hover:text-gray-600">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="mb-4 rounded-lg bg-gray-50 p-3">
+              <p className="text-sm font-medium text-gray-900">{transferModal.laptop.brand} {transferModal.laptop.model}</p>
+              <p className="text-xs text-gray-500">Serial: {transferModal.laptop.serial_number}</p>
+              <p className="text-xs text-gray-500">Current Store: {transferModal.laptop.store_name || 'N/A'}</p>
+            </div>
+            <div className="mb-4">
+              <label className="mb-1 block text-sm font-medium text-gray-700">Transfer to Store</label>
+              <select
+                value={transferModal.toStoreId}
+                onChange={(e) => setTransferModal({ ...transferModal, toStoreId: e.target.value })}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+              >
+                <option value="">Select destination store</option>
+                {stores.filter((s) => s.id !== transferModal.laptop.current_store_id).map((s) => (
+                  <option key={s.id} value={s.id}>{s.store_name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setTransferModal(null)}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (transferModal.toStoreId) {
+                    onTransfer?.(transferModal.laptop.id, Number(transferModal.toStoreId));
+                    setTransferModal(null);
+                  }
+                }}
+                disabled={!transferModal.toStoreId}
+                className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Confirm Transfer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

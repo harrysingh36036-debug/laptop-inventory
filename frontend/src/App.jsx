@@ -980,6 +980,9 @@ export default function App() {
               onFocusLaptop={handleFocusLaptop}
               user={user}
               pendingTransfers={pendingTransfers}
+              stores={stores}
+              onTransfer={handleTransfer}
+              canTransfer={canTransfer}
             />
         ) : tab === 'inventory' ? (
           <InventoryView
@@ -1264,6 +1267,10 @@ export default function App() {
         canManage={isAdmin || isSuperAdmin}
         isAdmin={isAdmin}
         onOpenData={() => setTab('data-audit')}
+        onLogout={handleLogout}
+        onOpenSettings={() => setSettingsOpen(true)}
+        perms={rolePerms}
+        userRole={user?.role}
       />
       </div>
     </LabelsProvider>

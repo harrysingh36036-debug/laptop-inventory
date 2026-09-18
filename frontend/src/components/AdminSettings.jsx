@@ -46,6 +46,17 @@ const PERMISSION_FIELDS = [
   ['viewPII', 'View PII (customer name / phone / Aadhar)']
 ];
 
+const QUICKBALL_FIELDS = [
+  ['qbDashboard', 'Dashboard'],
+  ['qbInventory', 'Inventory'],
+  ['qbTransfers', 'Transfers'],
+  ['qbPurchases', 'Purchases'],
+  ['qbRepairs', 'Repairs'],
+  ['qbSold', 'Sold'],
+  ['qbCustomers', 'Customers'],
+  ['qbReports', 'Reports']
+];
+
 const DEFAULT_PERMISSIONS = {
   admin: {
     editInventory: true,
@@ -55,7 +66,15 @@ const DEFAULT_PERMISSIONS = {
     editLabels: true,
     manageVendors: false,
     manageCustomers: false,
-    viewPII: true
+    viewPII: true,
+    qbDashboard: true,
+    qbInventory: true,
+    qbTransfers: true,
+    qbPurchases: true,
+    qbRepairs: true,
+    qbSold: true,
+    qbCustomers: true,
+    qbReports: true
   },
   manager: {
     editInventory: true,
@@ -65,7 +84,15 @@ const DEFAULT_PERMISSIONS = {
     editLabels: false,
     manageVendors: false,
     manageCustomers: false,
-    viewPII: false
+    viewPII: false,
+    qbDashboard: true,
+    qbInventory: true,
+    qbTransfers: true,
+    qbPurchases: true,
+    qbRepairs: true,
+    qbSold: true,
+    qbCustomers: true,
+    qbReports: true
   },
   staff: {
     editInventory: false,
@@ -75,7 +102,15 @@ const DEFAULT_PERMISSIONS = {
     editLabels: false,
     manageVendors: false,
     manageCustomers: false,
-    viewPII: false
+    viewPII: false,
+    qbDashboard: true,
+    qbInventory: true,
+    qbTransfers: true,
+    qbPurchases: true,
+    qbRepairs: true,
+    qbSold: true,
+    qbCustomers: true,
+    qbReports: true
   }
 };
 
@@ -299,50 +334,54 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3 sm:p-4 backdrop-blur-sm">
-      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden rounded-2xl border border-gray-200 bg-white p-4 sm:p-6 shadow-lg">
-        <div className="flex items-center justify-between">
-          <h2 className="  text-base font-semibold tracking-tight text-gray-900">
-            {isAdmin ? 'Admin Settings' : 'Store Management'}
-          </h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-900 transition-colors" aria-label="Close">
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        {message && (
-          <p className="mt-3 rounded-lg border border-green-600/25 bg-green-600/10 px-3 py-2 text-sm text-green-600">
-            {message}
-          </p>
-        )}
-
-        {/* Tabs - scrollable on phone so labels don't spill outside rounded box */}
-        <div className="mt-4 flex gap-1 overflow-x-auto rounded-xl border border-gray-200 bg-gray-50 p-1 no-scrollbar">
-          {TABS.map(([k, n]) => (
-            <button
-              key={k}
-              onClick={() => selectTab(k)}
-              className={`shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition-colors duration-150 sm:flex-1 sm:whitespace-normal sm:text-sm ${
-                tab === k ? 'bg-gray-100 text-gray-900' : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              {n}
+      <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto overflow-x-hidden rounded-2xl border border-gray-200 bg-white shadow-xl">
+        <div className="sticky top-0 z-10 border-b border-gray-100 bg-white px-6 py-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold tracking-tight text-gray-900">
+              {isAdmin ? 'Admin Settings' : 'Store Management'}
+            </h2>
+            <button onClick={onClose} className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors" aria-label="Close">
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
             </button>
-          ))}
+          </div>
+
+          {message && (
+            <p className="mt-3 rounded-lg border border-green-600/25 bg-green-600/10 px-3 py-2 text-sm text-green-600">
+              {message}
+            </p>
+          )}
+
+          {/* Tabs */}
+          <div className="mt-4 flex flex-wrap gap-1 rounded-xl border border-gray-200 bg-gray-50 p-1">
+            {TABS.map(([k, n]) => (
+              <button
+                key={k}
+                onClick={() => selectTab(k)}
+                className={`flex-1 min-w-[80px] whitespace-nowrap rounded-lg px-3 py-2 text-xs font-medium transition-colors duration-150 sm:text-sm ${
+                  tab === k ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
         </div>
+
+        <div className="px-6 py-4">
 
         {tab === 'stores' && (
-          <div className="mt-4 space-y-4">
+          <div className="space-y-4">
             {isAdmin && (
-              <form onSubmit={addStore} className="flex gap-2">
+              <form onSubmit={addStore} className="flex gap-3">
                 <input
                   value={storeName}
                   onChange={(e) => setStoreName(e.target.value)}
-                  placeholder="New store name…"
-                  className="field flex-1"
+                  placeholder="New store name..."
+                  className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                 />
-                <button type="submit" className="rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700">
+                <button type="submit" className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 shadow-sm transition-all">
                   Add Store
                 </button>
               </form>
@@ -352,23 +391,26 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
               {stores.map((s) => {
                 const draft = edits[s.id] ?? s.store_name;
                 return (
-                  <div key={s.id} className="flex items-center gap-2">
+                  <div key={s.id} className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50/50 p-3 hover:bg-gray-50 transition-colors">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-sm font-bold text-white shadow-sm">
+                      {s.store_name?.charAt(0)?.toUpperCase() || 'S'}
+                    </div>
                     <input
                       value={draft}
                       onChange={setEdit(s.id)}
-                      className="field flex-1"
+                      className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                     />
                     <button
                       onClick={() => renameOne(s.id, draft)}
                       disabled={draft.trim() === s.store_name}
-                      className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40"
+                      className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:opacity-40 transition-all"
                     >
                       Rename
                     </button>
                     {isAdmin && (
                       <button
                         onClick={() => removeOne(s.id, s.store_name)}
-                        className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100"
+                        className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-100 transition-all"
                       >
                         Remove
                       </button>
@@ -386,58 +428,98 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
         )}
 
         {tab === 'labels' && (
-          <div className="mt-4 space-y-3">
-            {LABEL_FIELDS.map(([key, hint]) => (
-              <div key={key}>
-                <label className="flabel">{hint}</label>
-                <input
-                  value={labels[key]}
-                  onChange={setLabel(key)}
-                  className="field mt-1.5"
-                />
-              </div>
-            ))}
+          <div className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              {LABEL_FIELDS.map(([key, hint]) => (
+                <div key={key}>
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5">{hint}</label>
+                  <input
+                    value={labels[key]}
+                    onChange={setLabel(key)}
+                    className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                  />
+                </div>
+              ))}
+            </div>
             <div className="flex justify-end pt-2">
-              <button onClick={saveLabels} disabled={saving} className="rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
-                {saving ? 'Saving…' : 'Save Labels'}
+              <button onClick={saveLabels} disabled={saving} className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50 shadow-sm transition-all">
+                {saving ? 'Saving...' : 'Save Labels'}
               </button>
             </div>
           </div>
         )}
 
         {tab === 'permissions' && (
-          <div className="mt-4 space-y-4">
+          <div className="space-y-6">
             <p className="text-sm text-gray-500">
               Grant or revoke each permission for admins, managers and staff. The super admin always has access to everything.
             </p>
             {!perms ? (
-              <p className="text-sm text-gray-500">Loading permissions…</p>
+              <p className="text-sm text-gray-500">Loading permissions...</p>
             ) : (
               <>
-                {['admin', 'manager', 'staff'].map((role) => (
-                  <div key={role} className="rounded-xl border border-gray-200 bg-gray-50/40 p-4">
-                    <h3 className="text-sm font-semibold capitalize text-gray-900">{role}</h3>
-                    <div className="mt-2 space-y-2">
-                      {PERMISSION_FIELDS.map(([key, hint]) => (
-                        <label
-                          key={key}
-                          className="flex cursor-pointer items-center justify-between rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600 transition-colors duration-150 hover:bg-gray-100 hover:text-gray-900"
-                        >
-                          <span>{hint}</span>
-                          <input
-                            type="checkbox"
-                            checked={!!perms[role][key]}
-                            onChange={() => togglePerm(role, key)}
-                            className="h-4 w-4 rounded accent-accent"
-                          />
-                        </label>
-                      ))}
-                    </div>
+                <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-3">Feature Permissions</h3>
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    {['admin', 'manager', 'staff'].map((role) => (
+                      <div key={role} className="rounded-xl border border-gray-100 bg-gray-50/50 p-3">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className={`h-2.5 w-2.5 rounded-full ${role === 'admin' ? 'bg-blue-500' : role === 'manager' ? 'bg-amber-500' : 'bg-gray-400'}`}></div>
+                          <h4 className="text-xs font-semibold capitalize text-gray-700">{role}</h4>
+                        </div>
+                        <div className="space-y-1.5">
+                          {PERMISSION_FIELDS.map(([key, hint]) => (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => togglePerm(role, key)}
+                              className="flex w-full cursor-pointer items-center justify-between rounded-lg border border-gray-100 bg-white px-3 py-2 text-xs text-gray-600 transition-colors duration-150 hover:bg-gray-100 hover:text-gray-900"
+                            >
+                              <span>{hint}</span>
+                              <div className={`relative h-4 w-7 rounded-full transition-colors ${perms[role][key] ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                                <div className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform ${perms[role][key] ? 'translate-x-3.5' : 'translate-x-0.5'}`}></div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-                <div className="flex justify-end pt-1">
-                  <button onClick={savePerms} disabled={permsSaving} className="rounded-lg bg-blue-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
-                    {permsSaving ? 'Saving…' : 'Save Permissions'}
+                </div>
+
+                <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                  <h3 className="text-sm font-semibold text-gray-900 mb-1">Quick Ball Menu Visibility</h3>
+                  <p className="text-xs text-gray-500 mb-3">Control which menu items appear in the Quick Ball (bottom-right floating button) for each role.</p>
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    {['admin', 'manager', 'staff'].map((role) => (
+                      <div key={role} className="rounded-xl border border-gray-100 bg-gray-50/50 p-3">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className={`h-2.5 w-2.5 rounded-full ${role === 'admin' ? 'bg-blue-500' : role === 'manager' ? 'bg-amber-500' : 'bg-gray-400'}`}></div>
+                          <h4 className="text-xs font-semibold capitalize text-gray-700">{role}</h4>
+                        </div>
+                        <div className="space-y-1.5">
+                          {QUICKBALL_FIELDS.map(([key, hint]) => (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => togglePerm(role, key)}
+                              className="flex w-full cursor-pointer items-center justify-between rounded-lg border border-gray-100 bg-white px-3 py-2 text-xs text-gray-600 transition-colors duration-150 hover:bg-gray-100 hover:text-gray-900"
+                            >
+                              <span>{hint}</span>
+                              <div className={`relative h-4 w-7 rounded-full transition-colors ${perms[role][key] !== false ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                                <div className={`absolute top-0.5 h-3 w-3 rounded-full bg-white shadow-sm transition-transform ${perms[role][key] !== false ? 'translate-x-3.5' : 'translate-x-0.5'}`}></div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button onClick={savePerms} disabled={permsSaving} className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50 shadow-sm transition-all">
+                    {permsSaving ? 'Saving...' : 'Save Permissions'}
                   </button>
                 </div>
               </>
@@ -602,6 +684,7 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
         {tab === 'accounts' && (
           <ActiveAccountsTab stores={stores} isSuperAdmin={isSuperAdmin} />
         )}
+        </div>
       </div>
 
       {delStore && (
