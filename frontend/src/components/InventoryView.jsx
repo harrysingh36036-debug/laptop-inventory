@@ -17,6 +17,7 @@ export default function InventoryView({
   sellStoreId = null,
   canManageCustomers = false,
   showSensitive = false,
+  defaultSidebarOpen = true,
   focusSerial,
   allLaptops,
   onTransfer,
@@ -26,6 +27,7 @@ export default function InventoryView({
 }) {
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState('desc');
+  const [sidebarOpen, setSidebarOpen] = useState(defaultSidebarOpen);
   const t = useLabels();
   const [brand, setBrand] = useState('');
   const [ramF, setRamF] = useState('');
@@ -117,11 +119,46 @@ export default function InventoryView({
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="flex">
-        {/* Left Sidebar - Store Filter */}
-        <div className="w-64 shrink-0 border-r border-gray-200 bg-white p-4 hidden lg:block">
-          <h3 className="mb-4 text-xs font-bold uppercase tracking-wider text-gray-500">
-            Filter by Store
-          </h3>
+        {/* Left Sidebar - Store Filter (collapsible) */}
+        <div
+          className={`hidden shrink-0 overflow-hidden border-r border-gray-200 bg-white transition-all duration-200 lg:block ${
+            sidebarOpen ? 'w-64 p-4' : 'w-14 p-3'
+          }`}
+        >
+          <div className={sidebarOpen ? 'mb-4 flex items-center justify-between' : 'mb-3 flex justify-center'}>
+            {sidebarOpen && (
+              <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500">
+                Filter by Store
+              </h3>
+            )}
+            {sidebarOpen ? (
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="rounded-lg border border-gray-200 bg-white p-1.5 text-gray-500 hover:bg-gray-50"
+                title="Collapse sidebar"
+                aria-label="Collapse store filter sidebar"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+                </svg>
+              </button>
+            ) : (
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className={`relative rounded-lg p-2 transition-colors ${
+                  storeId ? 'bg-blue-50 text-blue-600' : 'text-gray-500 hover:bg-gray-50'
+                }`}
+                title="Show store filter"
+                aria-label="Expand store filter sidebar"
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 9l1-5h16l1 5M4 9v11a1 1 0 001 1h14a1 1 0 001-1V9M9 21v-6h6v6" />
+                </svg>
+                {storeId && <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-blue-600" />}
+              </button>
+            )}
+          </div>
+          {sidebarOpen && (
           <div className="space-y-1">
             <button
               onClick={() => setStoreId('')}
@@ -149,12 +186,13 @@ export default function InventoryView({
               </button>
             ))}
           </div>
+          )}
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 p-4 lg:p-6">
+        <div className="min-w-0 flex-1 p-4 lg:p-6">
           {/* Status Filter Tabs */}
-          <div className="mb-4 flex items-center gap-2">
+          <div className="mb-4 flex flex-wrap items-center gap-2">
             <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
               Status:
             </span>
@@ -185,7 +223,7 @@ export default function InventoryView({
 
           {/* Search and Controls */}
           <div className="mb-4 flex flex-wrap items-center gap-3">
-            <div className="flex flex-1 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2">
+            <div className="flex min-w-[180px] flex-1 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2">
               <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
               </svg>
@@ -239,7 +277,7 @@ export default function InventoryView({
           </div>
 
           {/* Breadcrumb */}
-          <div className="mb-4 flex items-center gap-2 text-xs">
+          <div className="mb-4 flex flex-wrap items-center gap-2 text-xs">
             <button
               onClick={() => { setStoreId(''); setBrand(''); }}
               className={`rounded-full px-3 py-1 font-medium transition-colors ${

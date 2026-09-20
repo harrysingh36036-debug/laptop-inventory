@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { formatTime, formatIstDateTime, inr } from '../utils';
 import { useLabels } from '../labels.jsx';
 import StatusChip from './StatusChip';
@@ -20,6 +20,23 @@ export default function LaptopTable({
   const maskAadhar = (hash) => (hash && hash.length > 6 ? `••••••${hash.slice(-6)}` : hash || '—');
   const t = useLabels();
   const [pending, setPending] = useState({}); // { laptopId: toStoreId }
+  const scrollRef = useRef(null);
+  const [scrolled, setScrolled] = useState(false);
+
+  // Shadow the sticky Actions column while content is hidden beneath it.
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const hasOverflow = el.scrollWidth > el.clientWidth + 1;
+    const hasHidden = el.scrollLeft < el.scrollWidth - el.clientWidth - 1;
+    setScrolled(hasOverflow && hasHidden);
+  }, []);
+
+  useEffect(() => {
+    checkScroll();
+    window.addEventListener('resize', checkScroll);
+    return () => window.removeEventListener('resize', checkScroll);
+  }, [checkScroll, laptops]);
 
   const handleConfirm = (laptop) => {
     const to = pending[laptop.id];
@@ -35,12 +52,12 @@ export default function LaptopTable({
     await onSell?.(laptop);
   };
 
-  const th = 'px-2.5 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500 whitespace-nowrap';
-  const td = 'px-2.5 py-2.5 align-middle whitespace-nowrap';
+  const th = 'px-2 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500 whitespace-nowrap';
+  const td = 'px-2 py-2.5 align-middle whitespace-nowrap';
 
   return (
     <div className="rounded-xl border border-gray-100 bg-white overflow-hidden">
-      <div className="hidden lg:block overflow-x-auto">
+      <div ref={scrollRef} onScroll={checkScroll} className="hidden lg:block overflow-x-auto">
         <table className="w-full min-w-[1050px] border-collapse text-left text-[13px]">
           <thead>
             <tr className="border-b border-gray-200">
@@ -49,17 +66,20 @@ export default function LaptopTable({
               <th className={th}>{t.tableSerial}</th>
               <th className={th}>{t.tableStore}</th>
               <th className={th}>{t.tableStatus}</th>
-              <th className={th}>Condition</th>
               <th className={th}>{t.colPurchase || 'Purchase'}</th>
               <th className={th}>{t.colPurchaseDate || 'Purchase Date · IST'}</th>
               <th className={th}>{t.tableChangeLocation}</th>
-              <th className={`${th} text-right`}>{t.tableActions}</th>
+              <th className={`${th} sticky right-0 z-10 border-l bg-white text-right transition-shadow duration-200 ${
+                scrolled
+                  ? 'border-gray-200 shadow-[-10px_0_14px_-10px_rgba(15,23,42,0.3)]'
+                  : 'border-gray-100'
+              }`}>{t.tableActions}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {laptops.length === 0 && (
               <tr>
-                <td colSpan={10} className="px-4 py-12 text-center text-sm text-gray-500">
+                <td colSpan={9} className="px-4 py-12 text-center text-sm text-gray-500">
                   {t.noLaptops}
                 </td>
               </tr>
@@ -84,7 +104,7 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                     </td>
                    <td className={`${td} text-xs text-gray-600`}>
                      <p>{spec || '—'}</p>
-{gfx && <p className="mt-0.5 text-[11px] text-gray-500 truncate max-w-[180px]">{gfx}</p>}
+{gfx && <p className="mt-0.5 text-[11px] text-gray-500 truncate max-w-[220px]">{gfx}</p>}
                      {l.purchase_comment && (
                        <p className="mt-0.5 max-w-[260px] truncate text-[11px] text-gray-500" title={l.purchase_comment}>
                          {l.purchase_comment}
@@ -100,24 +120,26 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                      )}
                    </td>
                     <td className={td}>
-                      <StatusChip status={l.status} />
-                    </td>
-                    <td className={`${td} text-xs text-gray-600`}>
-                      {l.condition || 'Good'}
+                      <div className="flex flex-col items-start gap-0.5">
+                        <StatusChip status={l.status} />
+                        {l.condition && l.condition !== 'Good' && (
+                          <span className="text-[10px] text-gray-400">{l.condition}</span>
+                        )}
+                      </div>
                     </td>
                     <td className={`${td} font-mono text-xs text-gray-600`}>
                       {l.purchase_rate != null
                         ? `${inr(l.purchase_rate)}${l.extra_charges ? `+${inr(l.extra_charges)}` : ''}`
                         : '—'}
                     </td>
-                    <td className={`${td} font-mono text-[10px] text-gray-500 whitespace-nowrap`}>{l.created_at ? formatIstDateTime(l.created_at) : '—'}</td>
+                    <td className={`${td} font-mono text-[10px] text-gray-500 whitespace-nowrap`} title={l.created_at ? formatIstDateTime(l.created_at) : undefined}>{l.created_at ? new Date(String(l.created_at).replace(' ', 'T')).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short' }) : '—'}</td>
                     {canTransfer && !isSold ? (
                       <td className={td}>
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex flex-col items-start gap-1">
                           <select
                             value={sel}
                             onChange={(e) => setPending({ ...pending, [l.id]: e.target.value })}
-                            className="w-[110px] rounded-lg border border-gray-200 bg-gray-50 px-1.5 py-1 text-[11px] text-gray-600 focus:border-blue-200 focus:outline-none"
+                            className="w-[130px] rounded-lg border border-gray-200 bg-gray-50 px-1.5 py-1 text-[11px] text-gray-600 focus:border-blue-200 focus:outline-none"
                           >
                            <option value="">{t.selectStore}</option>
                            {stores
@@ -131,7 +153,7 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                          <button
                            onClick={() => handleConfirm(l)}
                            disabled={!sel}
-                           className="rounded-lg border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-medium text-gray-600 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+                           className="rounded-lg border border-gray-200 bg-gray-50 px-2 py-1 text-[10px] font-medium text-gray-600 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
                          >
                            {t.transferButton}
                          </button>
@@ -142,7 +164,11 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                         {isSold ? (t.soldRow || 'Sold') : t.viewOnly}
                       </td>
                    )}
-                    <td className={`${td} text-right`}>
+                    <td className={`${td} sticky right-0 z-10 border-l bg-white text-right transition-shadow duration-200 group-hover:bg-gray-50 ${
+                      scrolled
+                        ? 'border-gray-200 shadow-[-10px_0_14px_-10px_rgba(15,23,42,0.3)]'
+                        : 'border-gray-100'
+                    }`}>
                       <div className="flex items-center justify-end gap-1">
                        {canEdit && (
                          <>
@@ -193,7 +219,7 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                  </tr>
                   {adminDetailId === l.id && (
                     <tr className="bg-gray-50">
-                      <td colSpan={10} className="px-4 py-2 text-sm text-gray-600">
+                      <td colSpan={9} className="px-4 py-2 text-sm text-gray-600">
                        <div className="p-3 rounded-lg border border-blue-200 bg-blue-50">
                           <p className="font-semibold text-gray-900 mb-2">{t.purchTitle || 'Purchase / Inventory Details'}</p>
                          <div className="grid gap-x-6 gap-y-1 text-[11px] sm:grid-cols-2 lg:grid-cols-3">
@@ -233,7 +259,7 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                  )}
                   {detailLaptopId === l.id && (
                     <tr className="bg-gray-50">
-                      <td colSpan={10} className="px-4 py-2 text-sm text-gray-600">
+                      <td colSpan={9} className="px-4 py-2 text-sm text-gray-600">
                        <div className="p-3 rounded-lg border border-blue-200 bg-blue-50">
                           <p className="font-semibold text-gray-900 mb-2">{t.custTitle || 'Customer Details'}</p>
                           <p className="text-[10px] text-gray-500 mb-1">
@@ -261,7 +287,7 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                  )}
                   {isSold && (
                     <tr className="bg-gray-50">
-                      <td colSpan={10} className="px-4 py-1.5 text-xs text-gray-600">
+                      <td colSpan={9} className="px-4 py-1.5 text-xs text-gray-600">
                        <span className="inline-flex items-center gap-1.5">
                           <span className="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[11px] text-gray-600 text-[10px]">{l.serial_number}</span>
                           <span>{t.soldFor || 'Sold for'} </span>
@@ -314,9 +340,9 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                     <p className="mt-0.5 text-[11px] text-gray-500 truncate max-w-[150px]">From {l.purchased_from}</p>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center justify-end gap-1">
                   <StatusChip status={l.status} />
-                  {l.condition && <span className="text-[10px] text-gray-500">· {l.condition}</span>}
+                  {l.condition && l.condition !== 'Good' && <span className="text-[10px] text-gray-500">· {l.condition}</span>}
                 </div>
               </div>
               {spec && <p className="mt-1.5 text-xs text-gray-600 truncate max-w-[200px]">{spec}</p>}
@@ -324,7 +350,7 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
               {l.purchase_comment && (
                 <p className="mt-0.5 text-[11px] text-gray-500 truncate max-w-[260px]">{l.purchase_comment}</p>
               )}
-              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+              <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
                 <span className="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[11px] text-gray-600">{l.serial_number}</span>
                 <span className="text-gray-600">
                   {l.current_store_name ?? <span className="text-gray-500">{t.unassigned}</span>}
