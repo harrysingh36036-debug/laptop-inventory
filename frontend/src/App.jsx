@@ -3,7 +3,6 @@ import {
   getStores,
   getLaptops,
   getTransferLogs,
-  transferLaptop,
   initiateTransfer,
   acceptTransfer,
   rejectTransfer,

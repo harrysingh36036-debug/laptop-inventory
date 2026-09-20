@@ -142,7 +142,9 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
       if (min != null && rate < min) return false;
       if (max != null && rate > max) return false;
       if (selectedDate) {
-        const laptopDate = new Date(l?.created_at).toISOString().split('T')[0];
+        const d = new Date(l?.created_at);
+        d.setMinutes(d.getMinutes() + 330);
+        const laptopDate = d.toISOString().split('T')[0];
         if (laptopDate !== selectedDate) return false;
       }
       return true;

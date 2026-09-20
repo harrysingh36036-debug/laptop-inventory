@@ -5,8 +5,6 @@
 const CONSOLE_URL = (import.meta.env.VITE_CONSOLE_API_URL || '').replace(/\/$/, '');
 const CONSOLE_SECRET = import.meta.env.VITE_CONSOLE_AUDIT_SECRET || '';
 
-export const auditEnabled = () => !!CONSOLE_URL;
-
 export function emitAudit(event) {
   if (!CONSOLE_URL || !event || !event.action) return;
   try {

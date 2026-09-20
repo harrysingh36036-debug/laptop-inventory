@@ -35,13 +35,13 @@ export default function LaptopTable({
     await onSell?.(laptop);
   };
 
-  const th = 'px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500 whitespace-nowrap';
-  const td = 'px-4 py-3 align-middle whitespace-nowrap';
+  const th = 'px-2.5 py-2 text-left text-[10px] font-semibold uppercase tracking-wider text-gray-500 whitespace-nowrap';
+  const td = 'px-2.5 py-2.5 align-middle whitespace-nowrap';
 
   return (
     <div className="rounded-xl border border-gray-100 bg-white overflow-hidden">
       <div className="hidden md:block overflow-x-auto">
-        <table className="w-full min-w-[1200px] border-collapse text-left text-sm">
+        <table className="w-full min-w-[1050px] border-collapse text-left text-[13px]">
           <thead>
             <tr className="border-b border-gray-200">
               <th className={th}>{t.tableBrand}</th>
@@ -59,7 +59,7 @@ export default function LaptopTable({
           <tbody className="divide-y divide-gray-100">
             {laptops.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-4 py-12 text-center text-sm text-gray-500">
+                <td colSpan={10} className="px-4 py-12 text-center text-sm text-gray-500">
                   {t.noLaptops}
                 </td>
               </tr>
@@ -91,9 +91,9 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                        </p>
                      )}
                    </td>
-                   <td className={td}>
-                     <span className="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[11px] text-gray-600">{l.serial_number}</span>
-                   </td>
+                    <td className={td}>
+                      <span className="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-1 py-0.5 font-mono text-[10px] text-gray-600">{l.serial_number}</span>
+                    </td>
                    <td className={td}>
                      {l.current_store_name ?? (
                        <span className="text-gray-500">{t.unassigned}</span>
@@ -110,14 +110,14 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                         ? `${inr(l.purchase_rate)}${l.extra_charges ? `+${inr(l.extra_charges)}` : ''}`
                         : '—'}
                     </td>
-                    <td className={`${td} font-mono text-[11px] text-gray-500 whitespace-nowrap`}>{l.created_at ? formatIstDateTime(l.created_at) : '—'}</td>
+                    <td className={`${td} font-mono text-[10px] text-gray-500 whitespace-nowrap`}>{l.created_at ? formatIstDateTime(l.created_at) : '—'}</td>
                     {canTransfer && !isSold ? (
                       <td className={td}>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5">
                           <select
                             value={sel}
                             onChange={(e) => setPending({ ...pending, [l.id]: e.target.value })}
-                            className="w-[130px] rounded-lg border border-gray-200 bg-gray-50 px-2 py-1.5 text-xs text-gray-600 focus:border-blue-200 focus:outline-none"
+                            className="w-[110px] rounded-lg border border-gray-200 bg-gray-50 px-1.5 py-1 text-[11px] text-gray-600 focus:border-blue-200 focus:outline-none"
                           >
                            <option value="">{t.selectStore}</option>
                            {stores
@@ -131,7 +131,7 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                          <button
                            onClick={() => handleConfirm(l)}
                            disabled={!sel}
-                           className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+                           className="rounded-lg border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-medium text-gray-600 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
                          >
                            {t.transferButton}
                          </button>
@@ -143,15 +143,15 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                       </td>
                    )}
                     <td className={`${td} text-right`}>
-                      <div className="flex items-center justify-end gap-1.5">
+                      <div className="flex items-center justify-end gap-1">
                        {canEdit && (
                          <>
-                           <button onClick={() => onEdit?.(l)} className="rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100">
+                           <button onClick={() => onEdit?.(l)} className="rounded-lg border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-medium text-gray-600 hover:bg-gray-100">
                              {t.editButton}
                            </button>
                            <button
                              onClick={() => onDelete?.(l.id, l.brand_model)}
-                             className="rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100"
+                             className="rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-[11px] font-medium text-red-600 hover:bg-red-100"
                            >
                              {t.deleteButton}
                            </button>
@@ -160,7 +160,7 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
 {canSellRow && (
                            <button
                              onClick={() => handleSell(l)}
-                             className="rounded-lg bg-blue-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
+                             className="rounded-lg bg-blue-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-blue-700"
                            >
                              {t.sellButton || 'Sell'}
                            </button>
@@ -193,7 +193,7 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                  </tr>
                   {adminDetailId === l.id && (
                     <tr className="bg-gray-50">
-                      <td colSpan={9} className="px-4 py-2 text-sm text-gray-600">
+                      <td colSpan={10} className="px-4 py-2 text-sm text-gray-600">
                        <div className="p-3 rounded-lg border border-blue-200 bg-blue-50">
                           <p className="font-semibold text-gray-900 mb-2">{t.purchTitle || 'Purchase / Inventory Details'}</p>
                          <div className="grid gap-x-6 gap-y-1 text-[11px] sm:grid-cols-2 lg:grid-cols-3">
@@ -233,7 +233,7 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                  )}
                   {detailLaptopId === l.id && (
                     <tr className="bg-gray-50">
-                      <td colSpan={9} className="px-4 py-2 text-sm text-gray-600">
+                      <td colSpan={10} className="px-4 py-2 text-sm text-gray-600">
                        <div className="p-3 rounded-lg border border-blue-200 bg-blue-50">
                           <p className="font-semibold text-gray-900 mb-2">{t.custTitle || 'Customer Details'}</p>
                           <p className="text-[10px] text-gray-500 mb-1">
@@ -261,7 +261,7 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                  )}
                   {isSold && (
                     <tr className="bg-gray-50">
-                      <td colSpan={9} className="px-4 py-1.5 text-xs text-gray-600">
+                      <td colSpan={10} className="px-4 py-1.5 text-xs text-gray-600">
                        <span className="inline-flex items-center gap-1.5">
                           <span className="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[11px] text-gray-600 text-[10px]">{l.serial_number}</span>
                           <span>{t.soldFor || 'Sold for'} </span>

@@ -1,4 +1,4 @@
-export const IST_TZ = 'Asia/Kolkata';
+const IST_TZ = 'Asia/Kolkata';
 
 export const inr = (n) => {
   const v = Number(n) || 0;
