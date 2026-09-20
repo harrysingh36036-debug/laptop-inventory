@@ -93,13 +93,14 @@ CREATE TABLE IF NOT EXISTS Sales (
   CONSTRAINT fk_sale_store  FOREIGN KEY (store_id) REFERENCES Stores(id)
 );
 CREATE TABLE IF NOT EXISTS Users (
-  id            BIGSERIAL PRIMARY KEY,
-  username      TEXT NOT NULL UNIQUE,
-  password_hash TEXT NOT NULL,
-  display_name  TEXT,
-  role          TEXT NOT NULL DEFAULT 'staff'
-                CHECK (role IN ('superadmin','admin','manager','staff')),
-  created_at    TEXT NOT NULL DEFAULT ${NOW}
+  id                    BIGSERIAL PRIMARY KEY,
+  username              TEXT NOT NULL UNIQUE,
+  password_hash         TEXT NOT NULL,
+  display_name          TEXT,
+  role                  TEXT NOT NULL DEFAULT 'staff'
+                        CHECK (role IN ('superadmin','admin','manager','staff')),
+  force_password_change INTEGER NOT NULL DEFAULT 0,
+  created_at            TEXT NOT NULL DEFAULT ${NOW}
 );
 CREATE TABLE IF NOT EXISTS Settings (
   key   TEXT PRIMARY KEY,
@@ -157,7 +158,15 @@ async function init() {
   await pool.query(SCHEMA);
   // Migration: add condition column if missing
   try { await pool.query("ALTER TABLE Laptops ADD COLUMN IF NOT EXISTS condition TEXT DEFAULT 'Good'"); } catch (_) {}
+  // Migration: add force_password_change column if missing
+  try { await pool.query("ALTER TABLE Users ADD COLUMN IF NOT EXISTS force_password_change INTEGER NOT NULL DEFAULT 0"); } catch (_) {}
   await seed();
+}
+
+const crypto = require('crypto');
+
+function generatePassword(len = 20) {
+  return crypto.randomBytes(len).toString('base64url').slice(0, len);
 }
 
 async function seed() {
@@ -188,17 +197,24 @@ async function seed() {
     );
   }
 
-  // Users (superadmin + admin)
+  // Users (superadmin + admin) — strong random passwords, must change on first login
   const userCount = (await q('SELECT COUNT(*)::int AS n FROM Users'))[0].n;
   if (userCount === 0) {
+    const superadminPw = generatePassword();
+    const adminPw = generatePassword();
     await inTx(async (c) => {
-      await c.query('INSERT INTO Users (username, password_hash, display_name, role) VALUES ($1,$2,$3,$4)', [
-        'superadmin', bcrypt.hashSync('superadmin123', 10), 'Super Administrator', 'superadmin'
+      await c.query('INSERT INTO Users (username, password_hash, display_name, role, force_password_change) VALUES ($1,$2,$3,$4,$5)', [
+        'superadmin', bcrypt.hashSync(superadminPw, 10), 'Super Administrator', 'superadmin', 1
       ]);
-      await c.query('INSERT INTO Users (username, password_hash, display_name, role) VALUES ($1,$2,$3,$4)', [
-        'admin', bcrypt.hashSync('admin123', 10), 'System Administrator', 'admin'
+      await c.query('INSERT INTO Users (username, password_hash, display_name, role, force_password_change) VALUES ($1,$2,$3,$4,$5)', [
+        'admin', bcrypt.hashSync(adminPw, 10), 'System Administrator', 'admin', 1
       ]);
     });
+    console.log('------------------------------------------------------------');
+    console.log('  DEFAULT ACCOUNTS CREATED (change password on first login)');
+    console.log(`  superadmin / ${superadminPw}`);
+    console.log(`  admin      / ${adminPw}`);
+    console.log('------------------------------------------------------------');
   }
 }
 
@@ -687,7 +703,7 @@ async function getPurchasesSummary() {
 // ---------------------------------------------------------------------------
 function publicUser(u) {
   if (!u) return null;
-  return { id: u.id, username: u.username, display_name: u.display_name, role: u.role, created_at: u.created_at };
+  return { id: u.id, username: u.username, display_name: u.display_name, role: u.role, force_password_change: !!u.force_password_change, created_at: u.created_at };
 }
 
 async function createUser({ username, password, display_name, role = 'staff' }) {
@@ -743,7 +759,8 @@ async function updateUser(userId, { username, password, display_name, role } = {
   const display = display_name != null ? String(display_name).trim() : user.display_name;
   const finalRole = role != null ? role : user.role;
   const hash = password && String(password) !== '' ? bcrypt.hashSync(String(password), 10) : user.password_hash;
-  await q('UPDATE Users SET username = $1, password_hash = $2, display_name = $3, role = $4 WHERE id = $5', [name, hash, display || name, finalRole, userId]);
+  const clearForce = password && String(password) !== '' ? 0 : user.force_password_change;
+  await q('UPDATE Users SET username = $1, password_hash = $2, display_name = $3, role = $4, force_password_change = $5 WHERE id = $6', [name, hash, display || name, finalRole, clearForce, userId]);
   return { user: publicUser(await getUserById(userId)) };
 }
 

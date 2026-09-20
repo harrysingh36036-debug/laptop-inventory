@@ -904,10 +904,19 @@ async function seedIfEmpty() {
   }
   const userValues = await readTab('Users');
   if (userValues.length === 1) {
+    const crypto = require('crypto');
+    const genPw = (len = 20) => crypto.randomBytes(len).toString('base64url').slice(0, len);
+    const superadminPw = genPw();
+    const adminPw = genPw();
     await bulkRows('Users', 2, [
-      [1, 'superadmin', bcrypt.hashSync('superadmin123', 10), 'Super Administrator', 'superadmin', now()],
-      [2, 'admin', bcrypt.hashSync('admin123', 10), 'System Administrator', 'admin', now()]
+      [1, 'superadmin', bcrypt.hashSync(superadminPw, 10), 'Super Administrator', 'superadmin', now()],
+      [2, 'admin', bcrypt.hashSync(adminPw, 10), 'System Administrator', 'admin', now()]
     ]);
+    console.log('------------------------------------------------------------');
+    console.log('  DEFAULT ACCOUNTS CREATED (change password on first login)');
+    console.log(`  superadmin / ${superadminPw}`);
+    console.log(`  admin      / ${adminPw}`);
+    console.log('------------------------------------------------------------');
   }
 }
 

@@ -109,6 +109,8 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
   const [sortOrder, setSortOrder] = useState('desc');
   const [showSort, setShowSort] = useState(false);
   const [showQuickBall, setShowQuickBall] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState('');
 
   const brands = useMemo(() => {
     const s = new Set((all || []).map((l) => l?.brand).filter(Boolean));
@@ -139,6 +141,10 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
       const rate = Number(l?.purchase_rate) || 0;
       if (min != null && rate < min) return false;
       if (max != null && rate > max) return false;
+      if (selectedDate) {
+        const laptopDate = new Date(l?.created_at).toISOString().split('T')[0];
+        if (laptopDate !== selectedDate) return false;
+      }
       return true;
     }).sort((a, b) => {
       const sortFns = {
@@ -152,7 +158,7 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
       const fn = sortFns[sortBy] || sortFns.created_at;
       return sortOrder === 'asc' ? fn(a, b) : fn(b, a);
     });
-  }, [all, q, brandF, ramF, storageF, statusF, minPrice, maxPrice, sortBy, sortOrder]);
+  }, [all, q, brandF, ramF, storageF, statusF, minPrice, maxPrice, sortBy, sortOrder, selectedDate]);
 
   const filtersActive =
     q.trim() !== '' || brandF !== '' || ramF !== '' || storageF !== '' || statusF !== '' || minPrice !== '' || maxPrice !== '';
@@ -165,6 +171,7 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
     setStatusF('');
     setMinPrice('');
     setMaxPrice('');
+    setSelectedDate('');
   };
 
   const inventoryLaptops = laptops.filter((l) => l?.current_store_id != null);
@@ -216,11 +223,48 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
             <h2 className="text-2xl font-bold">{user?.display_name || user?.username || 'User'}</h2>
             <p className="mt-1 text-sm text-blue-100">Here's what's happening today.</p>
           </div>
-          <div className="flex items-center gap-2 rounded-lg bg-white/20 px-3 py-2">
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <span className="text-sm font-medium">{today}</span>
+          <div className="relative">
+            <button
+              onClick={() => setShowDatePicker(!showDatePicker)}
+              className="flex items-center gap-2 rounded-lg bg-white/20 px-3 py-2 hover:bg-white/30 transition-colors"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span className="text-sm font-medium">{selectedDate ? new Date(selectedDate).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) : today}</span>
+            </button>
+            {showDatePicker && (
+              <div className="absolute right-0 top-full z-50 mt-2 w-72 rounded-xl border border-gray-200 bg-white p-4 shadow-xl">
+                <div className="mb-3 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-gray-900">Select Date</h3>
+                  <button onClick={() => setShowDatePicker(false)} className="text-gray-400 hover:text-gray-600">
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+                <div className="mt-3 flex gap-2">
+                  <button
+                    onClick={() => { setSelectedDate(''); setShowDatePicker(false); }}
+                    className="flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-medium text-gray-600 hover:bg-gray-100"
+                  >
+                    Clear
+                  </button>
+                  <button
+                    onClick={() => setShowDatePicker(false)}
+                    className="flex-1 rounded-lg bg-blue-600 px-3 py-2 text-xs font-semibold text-white hover:bg-blue-700"
+                  >
+                    Apply
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -441,7 +485,8 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
           {results.slice(0, 20).map((laptop) => (
             <div
               key={laptop.id}
-              className="rounded-xl border border-gray-100 bg-white p-4 shadow-sm"
+              onClick={() => onFocusLaptop?.(laptop)}
+              className="cursor-pointer rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition-all duration-200 hover:shadow-md hover:border-blue-200"
             >
               <div className="mb-2 flex items-start justify-between">
                 <div>
@@ -475,7 +520,7 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
                     minute: '2-digit'
                   }) : ''}
                 </p>
-                <div className="flex gap-2">
+                <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                   {canTransfer && (
                     <button
                       onClick={() => setTransferModal({ laptop, toStoreId: '' })}

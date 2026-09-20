@@ -13,6 +13,8 @@ const express = require('express');
 const http = require('http');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const { Server } = require('socket.io');
 // Load backend/.env no matter which directory the server is started from.
 require('dotenv').config({ path: require('path').join(__dirname, '.env') });
@@ -67,6 +69,30 @@ const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 
 const app = express();
 const server = http.createServer(app);
+
+// Security headers
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false
+}));
+
+// Rate limit: max 5 login attempts per minute per IP
+const loginLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  message: { error: 'Too many login attempts. Try again in 1 minute.' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// Rate limit: max 100 requests per minute per IP for general API
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 100,
+  message: { error: 'Too many requests. Slow down.' },
+  standardHeaders: true,
+  legacyHeaders: false
+});
 
 // Allow the Vite dev server origin for both REST + WebSocket handshake.
 app.use(cors({ origin: CLIENT_ORIGIN }));
@@ -187,6 +213,12 @@ app.get('/api/health', async (_req, res) => {
   res.json({ status: 'ok', stores: stores.length });
 });
 
+// Apply general rate limit to all /api routes (except health and login)
+app.use('/api', (req, res, next) => {
+  if (req.path === '/health' || req.path === '/auth/login') return next();
+  return apiLimiter(req, res, next);
+});
+
 // -------------------------------- Auth routes ------------------------------
 // Public self-registration is disabled. Accounts are created by an admin or a
 // manager (staff accounts only) through the Account Manager.
@@ -194,18 +226,18 @@ app.post('/api/auth/register', (_req, res) => {
   res.status(403).json({ error: 'Self-registration is disabled. Ask an admin or manager to create your account.' });
 });
 
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', loginLimiter, async (req, res) => {
   const user = await getUserByUsername(req.body?.username);
   if (!user || !verifyPassword(user, req.body?.password)) {
     return res.status(401).json({ error: 'Invalid username or password' });
   }
   await recordLogin(user.id, user.username, req.ip, req.headers['user-agent']);
-  const safe = { id: user.id, username: user.username, display_name: user.display_name, role: user.role, created_at: user.created_at };
-  res.json({ token: signToken(user), user: safe });
+  const safe = { id: user.id, username: user.username, display_name: user.display_name, role: user.role, force_password_change: !!user.force_password_change, created_at: user.created_at };
+  res.json({ token: signToken(user), user: safe, force_password_change: !!user.force_password_change });
 });
 
 app.get('/api/auth/me', authenticate, (req, res) => {
-  res.json({ user: { id: req.user.id, username: req.user.username, display_name: req.user.display_name, role: req.user.role, created_at: req.user.created_at } });
+  res.json({ user: { id: req.user.id, username: req.user.username, display_name: req.user.display_name, role: req.user.role, force_password_change: !!req.user.force_password_change, created_at: req.user.created_at } });
 });
 
 // ------------------------------ Account management -------------------------

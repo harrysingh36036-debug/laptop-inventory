@@ -108,13 +108,14 @@ CREATE TABLE IF NOT EXISTS Sales (
 );
 
 CREATE TABLE IF NOT EXISTS Users (
-  id            INTEGER PRIMARY KEY AUTOINCREMENT,
-  username      TEXT NOT NULL UNIQUE,
-  password_hash TEXT NOT NULL,
-  display_name  TEXT,
-  role          TEXT NOT NULL DEFAULT 'staff'
-                CHECK (role IN ('superadmin','admin','manager','staff')),
-  created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+  id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+  username              TEXT NOT NULL UNIQUE,
+  password_hash         TEXT NOT NULL,
+  display_name          TEXT,
+  role                  TEXT NOT NULL DEFAULT 'staff'
+                        CHECK (role IN ('superadmin','admin','manager','staff')),
+  force_password_change INTEGER NOT NULL DEFAULT 0,
+  created_at            TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE TABLE IF NOT EXISTS Settings (
@@ -156,6 +157,7 @@ CREATE TABLE IF NOT EXISTS Repairs (
 // Migration: add condition column if missing (for existing DBs)
 // ---------------------------------------------------------------------------
 try { db.prepare("ALTER TABLE Laptops ADD COLUMN condition TEXT DEFAULT 'Good'").run(); } catch (_) {}
+try { db.prepare("ALTER TABLE Users ADD COLUMN force_password_change INTEGER NOT NULL DEFAULT 0").run(); } catch (_) {}
 
 // ---------------------------------------------------------------------------
 const seedStores = () => {
@@ -694,19 +696,32 @@ function getPurchasesSummary() {
 // ---------------------------------------------------------------------------
 function publicUser(u) {
   if (!u) return null;
-  return { id: u.id, username: u.username, display_name: u.display_name, role: u.role, created_at: u.created_at };
+  return { id: u.id, username: u.username, display_name: u.display_name, role: u.role, force_password_change: !!u.force_password_change, created_at: u.created_at };
+}
+
+const crypto = require('crypto');
+
+function generatePassword(len = 20) {
+  return crypto.randomBytes(len).toString('base64url').slice(0, len);
 }
 
 const seedUsers = () => {
   const count = db.prepare('SELECT COUNT(*) AS n FROM Users').get().n;
   if (count > 0) return;
+  const superadminPw = generatePassword();
+  const adminPw = generatePassword();
   const tx = transaction(() => {
-    db.prepare("INSERT INTO Users (username, password_hash, display_name, role) VALUES (?, ?, ?, ?)")
-      .run('superadmin', bcrypt.hashSync('superadmin123', 10), 'Super Administrator', 'superadmin');
-    db.prepare("INSERT INTO Users (username, password_hash, display_name, role) VALUES (?, ?, ?, ?)")
-      .run('admin', bcrypt.hashSync('admin123', 10), 'System Administrator', 'admin');
+    db.prepare("INSERT INTO Users (username, password_hash, display_name, role, force_password_change) VALUES (?, ?, ?, ?, ?)")
+      .run('superadmin', bcrypt.hashSync(superadminPw, 10), 'Super Administrator', 'superadmin', 1);
+    db.prepare("INSERT INTO Users (username, password_hash, display_name, role, force_password_change) VALUES (?, ?, ?, ?, ?)")
+      .run('admin', bcrypt.hashSync(adminPw, 10), 'System Administrator', 'admin', 1);
   });
   tx();
+  console.log('------------------------------------------------------------');
+  console.log('  DEFAULT ACCOUNTS CREATED (change password on first login)');
+  console.log(`  superadmin / ${superadminPw}`);
+  console.log(`  admin      / ${adminPw}`);
+  console.log('------------------------------------------------------------');
 };
 
 function createUser({ username, password, display_name, role = 'staff' }) {
@@ -759,7 +774,8 @@ function updateUser(userId, { username, password, display_name, role } = {}) {
   const display = display_name != null ? String(display_name).trim() : user.display_name;
   const finalRole = role != null ? role : user.role;
   const hash = password && String(password) !== '' ? bcrypt.hashSync(String(password), 10) : user.password_hash;
-  db.prepare('UPDATE Users SET username = ?, password_hash = ?, display_name = ?, role = ? WHERE id = ?').run(name, hash, display || name, finalRole, userId);
+  const clearForce = password && String(password) !== '' ? 0 : user.force_password_change;
+  db.prepare('UPDATE Users SET username = ?, password_hash = ?, display_name = ?, role = ?, force_password_change = ? WHERE id = ?').run(name, hash, display || name, finalRole, clearForce, userId);
   return { user: publicUser(getUserById(userId)) };
 }
 
