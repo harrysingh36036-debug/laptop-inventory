@@ -82,7 +82,7 @@ export default function PurchasesTab({
           <h2 className="text-sm font-semibold tracking-tight text-gray-900">Purchase Ledger</h2>
           <p className="text-xs text-gray-500">Money spent buying systems — separate from inventory.</p>
         </div>
-        <div className="hidden md:block overflow-x-auto">
+        <div className="hidden lg:block overflow-x-auto">
           <table className="w-full min-w-[960px] text-left text-sm">
             <thead>
               <tr className="border-b border-gray-200">
@@ -209,7 +209,7 @@ export default function PurchasesTab({
       </div>
 
       {/* Mobile: card list instead of wide table */}
-      <div className="md:hidden divide-y divide-gray-100">
+      <div className="lg:hidden divide-y divide-gray-100">
         {filtered.length === 0 && (
           <div className="px-4 py-12 text-center text-sm text-gray-500">
             {q ? 'No purchases match your search.' : 'No purchases recorded yet. Use "+ Record Purchase" to log money spent.'}

@@ -603,7 +603,7 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
                             <select
                               value={d.role ?? u.role}
                               onChange={setDraft(u.id, 'role')}
-                              className="field w-full min-w-0"
+                              className="field w-full min-w-0 text-xs sm:text-sm"
                               disabled={u.role === 'superadmin' && !isSuperAdmin}
                             >
                               <option value="staff">staff</option>
@@ -617,7 +617,7 @@ export default function AdminSettings({ stores, settings, onSaveSettings, onSave
                             <select
                               value={d.store_id ?? u.home_store_id ?? 0}
                               onChange={setDraft(u.id, 'store_id')}
-                              className="field w-full min-w-0"
+                              className="field w-full min-w-0 text-xs sm:text-sm"
                             >
                               <option value={0}>— No store —</option>
                               {stores.map((s) => (

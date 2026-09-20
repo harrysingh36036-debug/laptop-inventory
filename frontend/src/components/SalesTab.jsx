@@ -264,7 +264,7 @@ export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false
             </button>
           )}
         </div>
-        <div className="hidden md:block overflow-x-auto">
+        <div className="hidden lg:block overflow-x-auto">
           <table className="w-full min-w-[980px] text-left text-sm">
             <thead>
               <tr className="border-b border-gray-200">
@@ -370,7 +370,7 @@ export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false
       </div>
 
       {/* Mobile: card list instead of wide table */}
-      <div className="md:hidden divide-y divide-gray-100">
+      <div className="lg:hidden divide-y divide-gray-100">
         {filtered.length === 0 && (
           <div className="px-4 py-12 text-center text-sm text-gray-500">
             {q ? 'No sales match your search.' : 'No sales recorded yet.'}

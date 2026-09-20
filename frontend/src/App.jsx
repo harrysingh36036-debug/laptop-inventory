@@ -964,10 +964,10 @@ export default function App() {
 
   return (
     <LabelsProvider labels={labels}>
-      <div className="min-h-screen bg-page text-gray-900 overflow-y-auto">
+      <div className="min-h-screen bg-page text-gray-900 overflow-x-hidden overflow-y-auto">
 
 
-      <main className="mx-auto max-w-[1440px] px-4 py-8 sm:pl-16 sm:pr-4 space-y-6">
+      <main className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8 space-y-6">
         {tab === 'dashboard' ? (
         <DashboardTab
               laptops={laptops}

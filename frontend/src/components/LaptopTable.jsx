@@ -40,7 +40,7 @@ export default function LaptopTable({
 
   return (
     <div className="rounded-xl border border-gray-100 bg-white overflow-hidden">
-      <div className="hidden md:block overflow-x-auto">
+      <div className="hidden lg:block overflow-x-auto">
         <table className="w-full min-w-[1050px] border-collapse text-left text-[13px]">
           <thead>
             <tr className="border-b border-gray-200">
@@ -292,7 +292,7 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
       </div>
 
       {/* Mobile: card boxes instead of a scrolling table */}
-      <div className="md:hidden divide-y divide-gray-100">
+      <div className="lg:hidden divide-y divide-gray-100">
         {laptops.length === 0 && (
           <div className="px-4 py-12 text-center text-sm text-gray-500">{t.noLaptops}</div>
         )}

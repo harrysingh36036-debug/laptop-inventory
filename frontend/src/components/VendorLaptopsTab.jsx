@@ -121,7 +121,7 @@ const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, isSuperAdmin 
 
   return (
     <div className="space-y-4 md:space-y-6 pb-20 md:pb-6">
-      <section className="px-4 md:px-0 pt-4 md:pt-0">
+      <section className="px-4 lg:px-0 pt-4 lg:pt-0">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
             <h2 className="text-base font-semibold tracking-tight text-gray-900">
@@ -159,7 +159,7 @@ const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, isSuperAdmin 
       <div className="px-4 md:px-0">
         <button
           onClick={() => setFiltersOpen(!filtersOpen)}
-          className="flex items-center gap-2 text-xs font-medium text-gray-600 md:hidden"
+          className="flex items-center gap-2 text-xs font-medium text-gray-600 lg:hidden"
         >
           <svg className={`h-4 w-4 transition-transform ${filtersOpen ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
@@ -169,7 +169,7 @@ const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, isSuperAdmin 
             <span className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white">{activeFilterCount}</span>
           )}
         </button>
-        <div className={`${filtersOpen ? 'mt-3 space-y-3' : 'hidden'} md:block md:space-y-0 md:grid md:grid-cols-2 lg:grid-cols-4 md:gap-4`}>
+        <div className={`${filtersOpen ? 'mt-3 space-y-3' : 'hidden'} lg:block lg:space-y-0 lg:grid lg:grid-cols-2 xl:grid-cols-4 lg:gap-4`}>
           <div>
             <h3 className="font-semibold text-[10px] uppercase tracking-wider text-gray-500">Vendor</h3>
             <select
@@ -219,7 +219,7 @@ const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, isSuperAdmin 
         </div>
       </div>
 
-      <div className="px-4 md:px-0 hidden md:block">
+      <div className="px-4 lg:px-0 hidden lg:block">
         <div className="rounded-xl border border-gray-100 bg-white p-5">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[960px] border-collapse text-left text-sm">
@@ -287,7 +287,7 @@ const VendorLaptopsTab = ({ stores, vendors, brands = [], isAdmin, isSuperAdmin 
         </div>
       </div>
 
-      <div className="px-4 md:hidden space-y-2">
+      <div className="px-4 lg:hidden space-y-2">
         {filtered.length === 0 && (
           <p className="text-center text-sm text-gray-500 py-6">{t?.noLaptops || 'No laptops found'}</p>
         )}

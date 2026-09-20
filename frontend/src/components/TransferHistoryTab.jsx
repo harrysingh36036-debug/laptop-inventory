@@ -340,7 +340,7 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [], pend
           </div>
 
           {/* Desktop */}
-          <div className="hidden md:block overflow-x-auto">
+          <div className="hidden lg:block overflow-x-auto">
             <table className="w-full min-w-[780px] text-left text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
@@ -426,7 +426,7 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [], pend
           </div>
 
           {/* Mobile cards */}
-          <div className="md:hidden divide-y divide-[var(--hairline)]">
+          <div className="lg:hidden divide-y divide-[var(--hairline)]">
             {pendingTransfers.map((pt) => {
               const isDestinationManager = userRole === 'manager' && Number(userHomeStoreId) === Number(pt.to_store_id);
               const isInitiator = userRole === 'manager' && Number(userHomeStoreId) === Number(pt.from_store_id);
@@ -509,7 +509,7 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [], pend
           <h2 className="  text-sm font-semibold tracking-tight text-gray-900">Transfer History</h2>
           <span className="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[11px] text-gray-600 text-[10px]">{filtered.length} moves</span>
         </div>
-        <div className="hidden md:block overflow-x-auto">
+        <div className="hidden lg:block overflow-x-auto">
           <table className="w-full min-w-[880px] text-left text-sm">
             <thead>
               <tr className="border-b border-gray-200">
@@ -564,7 +564,7 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [], pend
         </div>
 
         {/* Mobile: stackable vertical cards — no horizontal scroll */}
-        <div className="md:hidden divide-y divide-[var(--hairline)]">
+        <div className="lg:hidden divide-y divide-[var(--hairline)]">
           {filtered.length === 0 && (
             <div className="px-4 py-10 text-center text-sm text-gray-500">
               {q ? 'No transfers match your search.' : 'No transfers recorded yet. Move a laptop to a different store to see it here.'}

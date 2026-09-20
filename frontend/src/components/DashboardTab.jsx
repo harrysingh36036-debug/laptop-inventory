@@ -219,21 +219,22 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
     <div className="min-h-screen bg-gray-50">
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-blue-500 to-blue-400 px-4 py-6 text-white">
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="min-w-0">
             <p className="text-sm text-blue-100">Welcome back,</p>
-            <h2 className="text-2xl font-bold">{user?.display_name || user?.username || 'User'}</h2>
+            <h2 className="text-2xl font-bold truncate">{user?.display_name || user?.username || 'User'}</h2>
             <p className="mt-1 text-sm text-blue-100">Here's what's happening today.</p>
           </div>
-          <div className="relative">
+          <div className="relative shrink-0">
             <button
               onClick={() => setShowDatePicker(!showDatePicker)}
               className="flex items-center gap-2 rounded-lg bg-white/20 px-3 py-2 hover:bg-white/30 transition-colors"
             >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
+              <svg className="h-5 w-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              <span className="text-sm font-medium">{selectedDate ? new Date(selectedDate).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) : today}</span>
+              <span className="hidden sm:inline text-sm font-medium">{selectedDate ? new Date(selectedDate).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }) : today}</span>
+              <span className="sm:hidden text-sm font-medium">{selectedDate ? new Date(selectedDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : today}</span>
             </button>
             {showDatePicker && (
               <div className="absolute right-0 top-full z-50 mt-2 w-72 rounded-xl border border-gray-200 bg-white p-4 shadow-xl">
@@ -273,7 +274,7 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
 
       <div className="px-4 py-4">
         {/* Stats Cards */}
-        <div className="mb-6 grid grid-cols-3 gap-3">
+        <div className="mb-6 grid grid-cols-2 sm:grid-cols-3 gap-3">
           {CARDS.map((c) => (
             <button
               key={c.key}
