@@ -66,33 +66,46 @@ const ReportsTab = lazy(() => import('./components/ReportsTab'));
 let _audioCtx = null;
 function getAudioCtx() {
   if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  if (_audioCtx.state === 'suspended') _audioCtx.resume();
+  if (_audioCtx.state === 'suspended') _audioCtx.resume().catch(() => {});
   return _audioCtx;
 }
-function initAudioOnInteraction() {
-  const unlock = () => { getAudioCtx(); window.removeEventListener('click', unlock); window.removeEventListener('keydown', unlock); };
-  window.addEventListener('click', unlock);
-  window.addEventListener('keydown', unlock);
-}
-initAudioOnInteraction();
 
 function playTransferSound() {
   try {
     const ctx = getAudioCtx();
+    if (ctx.state !== 'running') {
+      ctx.resume().then(() => _playBeep(ctx)).catch(() => {});
+    } else {
+      _playBeep(ctx);
+    }
+  } catch { /* audio not available */ }
+}
+
+function _playBeep(ctx) {
+  const t = ctx.currentTime;
+  [0, 0.15, 0.3].forEach((offset, i) => {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain);
     gain.connect(ctx.destination);
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(880, ctx.currentTime);
-    osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.1);
-    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.2);
-    gain.gain.setValueAtTime(0.3, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.5);
-  } catch { /* audio not available */ }
+    osc.frequency.value = i === 1 ? 1200 : 880;
+    gain.gain.setValueAtTime(0.4, t + offset);
+    gain.gain.exponentialRampToValueAtTime(0.01, t + offset + 0.12);
+    osc.start(t + offset);
+    osc.stop(t + offset + 0.12);
+  });
+  if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    new Notification('Transfer Request', { body: 'A laptop transfer has been requested to your store!', icon: '/icon.svg' });
+  }
 }
+
+function requestNotificationPermission() {
+  if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+}
+requestNotificationPermission();
 
 const MENU_ICONS = {
   dashboard: (
