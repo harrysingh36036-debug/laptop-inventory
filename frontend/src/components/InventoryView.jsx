@@ -28,6 +28,17 @@ export default function InventoryView({
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState('desc');
   const [transferModal, setTransferModal] = useState(null);
+  const [transferring, setTransferring] = useState(false);
+
+  // Close the transfer modal on Escape (unless a transfer is in flight).
+  useEffect(() => {
+    if (!transferModal) return;
+    const onKey = (e) => {
+      if (e.key === 'Escape' && !transferring) setTransferModal(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [transferModal, transferring]);
   // Remember collapsed/expanded across sessions (falls back to the prop default).
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     try {
@@ -405,6 +416,20 @@ export default function InventoryView({
                 </svg>
               </button>
             </div>
+            {transferModal.laptopId && transferModal.toStoreId && (() => {
+              const from = (brandRows || []).find((l) => String(l.id) === String(transferModal.laptopId));
+              const to = stores.find((s) => String(s.id) === String(transferModal.toStoreId));
+              if (!from || !to) return null;
+              return (
+                <div className="mb-4 flex items-center gap-2 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2.5 text-sm">
+                  <span className="font-medium text-gray-900">{from.current_store_name || 'Unassigned'}</span>
+                  <svg className="h-4 w-4 shrink-0 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                  <span className="font-medium text-emerald-700">{to.store_name}</span>
+                </div>
+              );
+            })()}
             <div className="mb-4">
               <label className="mb-1 block text-sm font-medium text-gray-700">Select Laptop</label>
               <select
@@ -449,21 +474,26 @@ export default function InventoryView({
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setTransferModal(null)}
-                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                disabled={transferring}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
-                onClick={() => {
-                  if (transferModal.laptopId && transferModal.toStoreId) {
-                    onTransfer?.(Number(transferModal.laptopId), Number(transferModal.toStoreId));
+                onClick={async () => {
+                  if (!transferModal.laptopId || !transferModal.toStoreId || transferring) return;
+                  setTransferring(true);
+                  try {
+                    await onTransfer?.(Number(transferModal.laptopId), Number(transferModal.toStoreId));
+                  } finally {
+                    setTransferring(false);
                     setTransferModal(null);
                   }
                 }}
-                disabled={!transferModal.laptopId || !transferModal.toStoreId}
-                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={!transferModal.laptopId || !transferModal.toStoreId || transferring}
+                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Confirm Transfer
+                {transferring ? 'Transferring…' : 'Confirm Transfer'}
               </button>
             </div>
           </div>
