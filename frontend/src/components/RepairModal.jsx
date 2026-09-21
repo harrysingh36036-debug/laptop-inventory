@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { inr } from '../utils';
+import AutocompleteInput from './AutocompleteInput';
 
 const STATUSES = ['Pending', 'In Progress', 'Repaired'];
 
@@ -16,7 +17,7 @@ const empty = {
   notes: ''
 };
 
-export default function RepairModal({ editing = null, laptops = [], stores = [], homeStoreId = null, onSave, onClose }) {
+export default function RepairModal({ editing = null, laptops = [], repairs = [], stores = [], homeStoreId = null, onSave, onClose }) {
   const [form, setForm] = useState(
     editing
       ? {
@@ -35,6 +36,16 @@ export default function RepairModal({ editing = null, laptops = [], stores = [],
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+
+  // Text-prediction pools from past records.
+  const modelSuggestions = useMemo(
+    () => [...new Set(laptops.map((l) => l.brand_model).filter(Boolean))].sort(),
+    [laptops]
+  );
+  const vendorSuggestions = useMemo(
+    () => [...new Set(repairs.map((r) => r.vendor).filter(Boolean))].sort(),
+    [repairs]
+  );
 
   const set = (key) => (e) => {
     const value = e.target.value;
@@ -113,7 +124,14 @@ export default function RepairModal({ editing = null, laptops = [], stores = [],
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className={label} htmlFor="repair-model">Brand / Model</label>
-              <input id="repair-model" value={form.brand_model} onChange={set('brand_model')} className={input} placeholder="e.g. HP Spectre x360" />
+              <AutocompleteInput
+                id="repair-model-suggestions"
+                value={form.brand_model}
+                onChange={set('brand_model')}
+                suggestions={modelSuggestions}
+                placeholder="e.g. HP Spectre x360"
+                className={input}
+              />
             </div>
           </div>
 
@@ -125,7 +143,14 @@ export default function RepairModal({ editing = null, laptops = [], stores = [],
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className={label} htmlFor="repair-vendor">Repair Shop / Vendor</label>
-              <input id="repair-vendor" value={form.vendor} onChange={set('vendor')} className={input} placeholder="e.g. City Tech Services" />
+              <AutocompleteInput
+                id="repair-vendor-suggestions"
+                value={form.vendor}
+                onChange={set('vendor')}
+                suggestions={vendorSuggestions}
+                placeholder="e.g. City Tech Services"
+                className={input}
+              />
             </div>
             <div>
               <label className={label} htmlFor="repair-cost">Item Cost (₹)</label>

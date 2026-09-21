@@ -3,11 +3,13 @@ import { getTransferLogs } from '../api';
 import { formatTime } from '../utils';
 import { useLabels } from '../labels.jsx';
 import SearchBox from './SearchBox';
+import useStickyShadow, { stickyCol } from '../useStickyShadow';
 
 export default function TransferHistoryTab({ stores = [], initialLogs = [], pendingTransfers = [], userRole, userHomeStoreId, onAcceptTransfer, onRejectTransfer, onCancelTransfer }) {
   const t = useLabels();
   const [logs, setLogs] = useState(Array.isArray(initialLogs) ? initialLogs : []);
   const [search, setSearch] = useState('');
+  const { scrollRef, scrolled, onScroll } = useStickyShadow();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const limit = 100;
@@ -340,7 +342,7 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [], pend
           </div>
 
           {/* Desktop */}
-          <div className="hidden lg:block overflow-x-auto">
+          <div ref={scrollRef} onScroll={onScroll} className="hidden lg:block overflow-x-auto">
             <table className="w-full min-w-[780px] text-left text-sm">
               <thead>
                 <tr className="border-b border-gray-200">
@@ -350,7 +352,7 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [], pend
                   <th className={th}>From Store</th>
                   <th className={th}>To Store</th>
                   <th className={th}>Requested By</th>
-                  <th className={`${th} text-right`}>Actions</th>
+                  <th className={stickyCol(th, scrolled)}>Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--hairline)]">
@@ -382,7 +384,7 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [], pend
                       <td className={td}>
                         <span className="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[11px] text-gray-600">{pt.initiated_by}</span>
                       </td>
-                      <td className={`${td} text-right`}>
+                      <td className={stickyCol(td, scrolled)}>
                         <div className="flex items-center justify-end gap-2">
                           {isDestinationManager && (
                             <>
@@ -509,7 +511,7 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [], pend
           <h2 className="  text-sm font-semibold tracking-tight text-gray-900">Transfer History</h2>
           <span className="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[11px] text-gray-600 text-[10px]">{filtered.length} moves</span>
         </div>
-        <div className="hidden lg:block overflow-x-auto">
+        <div ref={scrollRef} onScroll={onScroll} className="hidden lg:block overflow-x-auto">
           <table className="w-full min-w-[880px] text-left text-sm">
             <thead>
               <tr className="border-b border-gray-200">
@@ -518,7 +520,7 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [], pend
                 <th className={th}>{t.tableSerial}</th>
                 <th className={th}>From Store</th>
                 <th className={th}>To Store</th>
-                <th className={th}>Transferred By</th>
+                <th className={stickyCol(th, scrolled)}>Transferred By</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--hairline)]">
@@ -550,7 +552,7 @@ export default function TransferHistoryTab({ stores = [], initialLogs = [], pend
                       <span className="text-gray-500">—</span>
                     )}
                   </td>
-                  <td className={td}>
+                  <td className={stickyCol(td, scrolled)}>
                     {l.transferred_by ? (
                       <span className="inline-flex items-center rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-mono text-[11px] text-gray-600">{l.transferred_by}</span>
                     ) : (

@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { hashAadhar } from '../utils';
+import AutocompleteInput from './AutocompleteInput';
 
 const STATUSES = ['In Stock', 'In Transit'];
 const CONDITIONS = ['Good', 'OK', 'Bad'];
@@ -35,10 +36,37 @@ const EMPTY = {
   purchaser_phone: ''
 };
 
-export default function PurchaseModal({ stores, vendors = [], brands = [], editing, onSave, onClose }) {
+export default function PurchaseModal({ stores, vendors = [], brands = [], laptops = [], purchases = [], customers = [], editing, onSave, onClose }) {
   const [form, setForm] = useState(EMPTY);
   const [error, setError] = useState('');
   const [customBrand, setCustomBrand] = useState(false);
+
+  // Text-prediction pools: model names from past purchases + inventory,
+  // vendor names from the registered vendor list, customers from CRM.
+  // Model names from past purchases + inventory. Adapts to the selected
+  // brand when one is chosen; falls back to all models if that brand
+  // has no recorded models yet.
+  const modelSuggestions = useMemo(() => {
+    const brand = String(form.brand || '').trim().toLowerCase();
+    const pairs = [
+      ...purchases.map((p) => [p.brand, p.brand_model]),
+      ...laptops.map((l) => [l.brand, l.brand_model])
+    ];
+    const withModel = pairs.filter(([, m]) => Boolean(m));
+    const scoped = brand
+      ? withModel.filter(([b]) => String(b || '').trim().toLowerCase() === brand).map(([, m]) => m)
+      : [];
+    const models = scoped.length > 0 ? scoped : withModel.map(([, m]) => m);
+    return [...new Set(models)].sort();
+  }, [purchases, laptops, form.brand]);
+  const vendorSuggestions = useMemo(
+    () => [...new Set(vendors.map((v) => v.name).filter(Boolean))].sort(),
+    [vendors]
+  );
+  const customerSuggestions = useMemo(
+    () => [...new Set(customers.map((c) => c.name).filter(Boolean))].sort(),
+    [customers]
+  );
 
   useEffect(() => {
     setForm(
@@ -194,7 +222,15 @@ aadhar_no: editing.purchaser_aadhar || editing.aadhar_no || '',
             <div>
               <label className="flabel">{form.source_type === 'vendor' ? 'Vendor' : form.source_type === 'customer' ? 'Customer Name' : 'Dealer / Shop / Other'}</label>
               {form.source_type === 'customer' && (
-                <input value={form.purchased_from} onChange={set('purchased_from')} placeholder="Name of the customer…" className="field mt-1.5" />
+                <AutocompleteInput
+                  id="purchase-customer-name"
+                  value={form.purchased_from}
+                  onChange={set('purchased_from')}
+                  suggestions={customerSuggestions}
+                  placeholder="Name of the customer…"
+                  className="field mt-1.5"
+                  emptyText="No match — will be recorded as typed"
+                />
               )}
               {form.source_type === 'vendor' && (
                 <select
@@ -209,7 +245,15 @@ aadhar_no: editing.purchaser_aadhar || editing.aadhar_no || '',
                 </select>
               )}
               {form.source_type === 'others' && (
-                <input value={form.purchased_from} onChange={set('purchased_from')} placeholder="Dealer, shop or person…" className="field mt-1.5" />
+                <AutocompleteInput
+                  id="purchase-dealer-name"
+                  value={form.purchased_from}
+                  onChange={set('purchased_from')}
+                  suggestions={vendorSuggestions}
+                  placeholder="Dealer, shop or person…"
+                  className="field mt-1.5"
+                  emptyText="No match — will be recorded as typed"
+                />
               )}
             </div>
             <div>
@@ -278,7 +322,14 @@ aadhar_no: editing.purchaser_aadhar || editing.aadhar_no || '',
             </div>
             <div>
               <label className="flabel">Model</label>
-              <input value={form.brand_model} onChange={set('brand_model')} placeholder="e.g. Pavilion 15" className="field mt-1.5" />
+              <AutocompleteInput
+                id="purchase-model-suggestions"
+                value={form.brand_model}
+                onChange={set('brand_model')}
+                suggestions={modelSuggestions}
+                placeholder="e.g. Pavilion 15"
+                className="field mt-1.5"
+              />
             </div>
             <div>
               <label className="flabel">Serial Number</label>

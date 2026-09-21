@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { inr, formatTime } from '../utils';
+import useStickyShadow, { stickyCol } from '../useStickyShadow';
 const STATUS_STYLES = {
   Pending: 'border-red-200 bg-red-50 text-red-600',
   'In Progress': 'border-blue-200 bg-blue-50 text-blue-600',
@@ -24,6 +25,7 @@ export default function RepairsTab({
   onDelete
 }) {
   const [search, setSearch] = useState('');
+  const { scrollRef, scrolled, onScroll } = useStickyShadow();
 
   const q = search.trim().toLowerCase();
   const filtered = q
@@ -93,7 +95,7 @@ export default function RepairsTab({
         <div className="flex items-center justify-between border-b border-gray-200 px-5 py-3">
           <h2 className="text-sm font-semibold tracking-tight text-gray-900">Repairs</h2>
         </div>
-        <div className="hidden lg:block overflow-x-auto">
+        <div ref={scrollRef} onScroll={onScroll} className="hidden lg:block overflow-x-auto">
           <table className="w-full min-w-[1280px] text-left text-sm">
             <thead>
               <tr className="border-b border-gray-200">
@@ -108,7 +110,7 @@ export default function RepairsTab({
                 <th className={th}>Status</th>
                 <th className={th}>Updated</th>
                 <th className={th}>Recorded By</th>
-                {canEditInventory && <th className={`${th} text-right`}>Actions</th>}
+                {canEditInventory && <th className={stickyCol(th, scrolled)}>Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -138,7 +140,7 @@ export default function RepairsTab({
                   <td className={`${td} font-mono text-[11px] text-gray-500`}>{formatTime(r.updated_at || r.created_at)}</td>
                   <td className={`${td} text-xs text-gray-600`}>{r.created_by || '—'}</td>
                   {canEditInventory && (
-                    <td className={`${td} text-right`}>
+                    <td className={stickyCol(td, scrolled)}>
                       <div className="flex flex-wrap items-center justify-end gap-2">
                         <button onClick={() => onEdit(r)} className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100">Edit</button>
                         <button onClick={() => onDelete(r)} className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100">Delete</button>

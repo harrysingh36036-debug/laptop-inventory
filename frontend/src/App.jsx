@@ -1084,6 +1084,7 @@ export default function App() {
           stores={stores}
           brands={brands}
           vendors={vendors}
+          laptops={laptops}
           productLines={[...new Set(laptops.map((l) => l.product_line).filter(Boolean))].sort()}
           editing={invModal.laptop}
           onSave={handleSave}
@@ -1096,6 +1097,9 @@ export default function App() {
           stores={stores}
           vendors={vendors}
           brands={brands}
+          laptops={laptops}
+          purchases={purchases}
+          customers={customers}
           editing={purchaseModal.purchase}
           onSave={handlePurchaseSave}
           onClose={() => setPurchaseModal(null)}
@@ -1136,6 +1140,7 @@ export default function App() {
         <RepairModal
           editing={repairModal.repair}
           laptops={repairLaptopOptions}
+          repairs={repairs}
           stores={stores}
           homeStoreId={user?.home_store_id ?? null}
           onSave={handleRepairSave}

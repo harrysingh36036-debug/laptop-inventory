@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import AutocompleteInput from './AutocompleteInput';
 
 const EMPTY_NEW = { name: '', phone: '', email: '', address: '', notes: '' };
 
@@ -75,6 +76,16 @@ export default function SellModal({ open, laptop, customers, onSave, onAddCustom
 
   const cost = Number(laptop?.purchase_rate || 0) + Number(laptop?.extra_charges || 0);
 
+  // Known names/phones to predict against when adding a new customer.
+  const knownNames = useMemo(
+    () => [...new Set((customers || []).map((c) => c.name).filter(Boolean))].sort(),
+    [customers]
+  );
+  const knownPhones = useMemo(
+    () => [...new Set((customers || []).map((c) => c.phone).filter(Boolean))].sort(),
+    [customers]
+  );
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
       <div className="w-full max-w-lg rounded-2xl border border-gray-200 bg-white p-6 shadow-lg">
@@ -128,8 +139,37 @@ export default function SellModal({ open, laptop, customers, onSave, onAddCustom
             </div>
           ) : (
             <div className="space-y-3">
-              <FormRow label="Name *" value={newForm.name} onChange={(name) => setNewForm({ ...newForm, name })} placeholder="e.g. Priya Sharma" />
-              <FormRow label="Phone *" value={newForm.phone} onChange={(phone) => setNewForm({ ...newForm, phone })} placeholder="e.g. 98xxxxxxxx" maxLength={12} />
+              <div>
+                <label className="flabel">Name *</label>
+                <AutocompleteInput
+                  id="new-customer-name-suggestions"
+                  value={newForm.name}
+                  onChange={(e) => {
+                    const name = e.target.value;
+                    setNewForm((f) => {
+                      // Picking/typing a known name autofills that customer's phone.
+                      const match = (customers || []).find((c) => c.name === name);
+                      return { ...f, name, phone: match?.phone ? match.phone : f.phone };
+                    });
+                  }}
+                  suggestions={knownNames}
+                  placeholder="e.g. Priya Sharma"
+                  className="field mt-1 w-full"
+                  emptyText="No match — will be saved as a new customer"
+                />
+              </div>
+              <div>
+                <label className="flabel">Phone *</label>
+                <AutocompleteInput
+                  id="new-customer-phone-suggestions"
+                  value={newForm.phone}
+                  onChange={(e) => setNewForm({ ...newForm, phone: e.target.value })}
+                  suggestions={knownPhones}
+                  placeholder="e.g. 98xxxxxxxx"
+                  maxLength={12}
+                  className="field mt-1 w-full"
+                />
+              </div>
               <FormRow label="Email" value={newForm.email} onChange={(email) => setNewForm({ ...newForm, email })} placeholder="e.g. name@example.com" />
               <FormRow label="Address" value={newForm.address} onChange={(address) => setNewForm({ ...newForm, address })} placeholder="Shipping / billing address" />
             </div>

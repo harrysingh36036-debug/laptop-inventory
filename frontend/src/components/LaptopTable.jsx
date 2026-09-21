@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { formatTime, formatIstDateTime, inr } from '../utils';
 import { useLabels } from '../labels.jsx';
 import StatusChip from './StatusChip';
+import useStickyShadow, { stickyCol } from '../useStickyShadow';
 
 export default function LaptopTable({
   laptops, stores, onTransfer, onEdit, onDelete, onSell,
@@ -20,23 +21,7 @@ export default function LaptopTable({
   const maskAadhar = (hash) => (hash && hash.length > 6 ? `••••••${hash.slice(-6)}` : hash || '—');
   const t = useLabels();
   const [pending, setPending] = useState({}); // { laptopId: toStoreId }
-  const scrollRef = useRef(null);
-  const [scrolled, setScrolled] = useState(false);
-
-  // Shadow the sticky Actions column while content is hidden beneath it.
-  const checkScroll = useCallback(() => {
-    const el = scrollRef.current;
-    if (!el) return;
-    const hasOverflow = el.scrollWidth > el.clientWidth + 1;
-    const hasHidden = el.scrollLeft < el.scrollWidth - el.clientWidth - 1;
-    setScrolled(hasOverflow && hasHidden);
-  }, []);
-
-  useEffect(() => {
-    checkScroll();
-    window.addEventListener('resize', checkScroll);
-    return () => window.removeEventListener('resize', checkScroll);
-  }, [checkScroll, laptops]);
+  const { scrollRef, scrolled, onScroll: checkScroll } = useStickyShadow();
 
   const handleConfirm = (laptop) => {
     const to = pending[laptop.id];
@@ -69,11 +54,7 @@ export default function LaptopTable({
               <th className={th}>{t.colPurchase || 'Purchase'}</th>
               <th className={th}>{t.colPurchaseDate || 'Purchase Date · IST'}</th>
               <th className={th}>{t.tableChangeLocation}</th>
-              <th className={`${th} sticky right-0 z-10 border-l bg-white text-right transition-shadow duration-200 ${
-                scrolled
-                  ? 'border-gray-200 shadow-[-10px_0_14px_-10px_rgba(15,23,42,0.3)]'
-                  : 'border-gray-100'
-              }`}>{t.tableActions}</th>
+              <th className={stickyCol(th, scrolled)}>{t.tableActions}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -164,11 +145,7 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                         {isSold ? (t.soldRow || 'Sold') : t.viewOnly}
                       </td>
                    )}
-                    <td className={`${td} sticky right-0 z-10 border-l bg-white text-right transition-shadow duration-200 group-hover:bg-gray-50 ${
-                      scrolled
-                        ? 'border-gray-200 shadow-[-10px_0_14px_-10px_rgba(15,23,42,0.3)]'
-                        : 'border-gray-100'
-                    }`}>
+                    <td className={stickyCol(td, scrolled, 'group-hover:bg-gray-50')}>
                       <div className="flex items-center justify-end gap-1">
                        {canEdit && (
                          <>

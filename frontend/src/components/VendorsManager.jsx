@@ -411,7 +411,7 @@ export default function VendorsManager({ onNotify }) {
       )}
 
       {/* Desktop table */}
-      <div className="hidden md:block overflow-hidden rounded-xl border border-gray-200">
+      <div className="hidden md:block overflow-x-auto rounded-xl border border-gray-200">
         <table className="w-full text-left text-sm">
           <thead className="bg-gray-50/50 text-[10px] uppercase tracking-wider text-gray-500">
             <tr>

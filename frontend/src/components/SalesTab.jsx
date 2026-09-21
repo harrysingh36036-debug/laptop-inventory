@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { getSales, getSalesSummary, deleteSale } from '../api';
 import { formatTime, inr, getIstToday } from '../utils';
 import { socket } from '../socket';
+import useStickyShadow, { stickyCol } from '../useStickyShadow';
 
 import DangerConfirmModal from './DangerConfirmModal';
 import ReturnSaleModal from './ReturnSaleModal';
@@ -86,6 +87,7 @@ export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false
   const [danger, setDanger] = useState(null); // { sale }
   const [returnModal, setReturnModal] = useState(null); // { sale }
   const [revealedPhones, setRevealedPhones] = useState(new Set());
+  const { scrollRef, scrolled, onScroll } = useStickyShadow();
 
   const storeName = (id) => stores.find((s) => s.id === id)?.store_name;
 
@@ -178,6 +180,10 @@ export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false
     isAdmin || isSuperAdmin ||
     (isManager && homeStoreId != null && String(s.store_id) === String(homeStoreId));
   const emptyCols = 10 + (canReturnCol ? 1 : 0) + (isSuperAdmin ? 1 : 0);
+  // The trailing action-ish column is sticky: Delete for super admins,
+  // otherwise Return (admins/managers), otherwise Receipt.
+  const receiptSticky = !canReturnCol && !isSuperAdmin;
+  const returnSticky = canReturnCol && !isSuperAdmin;
 
   return (
     <div className="space-y-6">
@@ -264,7 +270,7 @@ export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false
             </button>
           )}
         </div>
-        <div className="hidden lg:block overflow-x-auto">
+        <div ref={scrollRef} onScroll={onScroll} className="hidden lg:block overflow-x-auto">
           <table className="w-full min-w-[980px] text-left text-sm">
             <thead>
               <tr className="border-b border-gray-200">
@@ -277,9 +283,9 @@ export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false
                 <th className={th}>Payment</th>
                 <th className={th}>Sold By</th>
                 <th className={th}>Sold At</th>
-                <th className={th}>Receipt</th>
-                {canReturnCol && <th className={th}>Return</th>}
-                {isSuperAdmin && <th className={th}>Actions</th>}
+                <th className={receiptSticky ? stickyCol(th, scrolled) : th}>Receipt</th>
+                {canReturnCol && <th className={returnSticky ? stickyCol(th, scrolled) : th}>Return</th>}
+                {isSuperAdmin && <th className={stickyCol(th, scrolled)}>Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -331,7 +337,7 @@ export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false
                   </td>
                   <td className={`${td} text-gray-600`}>{s.sold_by || '—'}</td>
                   <td className={`${td} font-mono text-[11px] text-gray-500`}>{formatTime(s.sold_at)}</td>
-                  <td className={td}>
+                  <td className={receiptSticky ? stickyCol(td, scrolled) : td}>
                     <button
                       onClick={() => printSaleReceipt(s, storeName(s.store_id), null, revealedPhones.has(s.id) ? s.customer_phone : null)}
                       className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100"
@@ -341,7 +347,7 @@ export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false
                     </button>
                   </td>
                   {canReturnRow(s) && (
-                    <td className={td}>
+                    <td className={returnSticky ? stickyCol(td, scrolled) : td}>
                       <button
                         onClick={() => setReturnModal({ sale: s })}
                         className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100"
@@ -352,7 +358,7 @@ export default function SalesTab({ stores, isSuperAdmin = false, isAdmin = false
                     </td>
                   )}
                   {isSuperAdmin && (
-                    <td className={td}>
+                    <td className={stickyCol(td, scrolled)}>
                       <button
                         onClick={() => setDanger({ sale: s })}
                         className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100"

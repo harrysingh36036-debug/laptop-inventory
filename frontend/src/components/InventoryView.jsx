@@ -27,7 +27,21 @@ export default function InventoryView({
 }) {
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState('desc');
-  const [sidebarOpen, setSidebarOpen] = useState(defaultSidebarOpen);
+  // Remember collapsed/expanded across sessions (falls back to the prop default).
+  const [sidebarOpen, setSidebarOpen] = useState(() => {
+    try {
+      const saved = localStorage.getItem('laptop-inv.sidebar');
+      if (saved === 'open') return true;
+      if (saved === 'collapsed') return false;
+    } catch { /* storage unavailable */ }
+    return defaultSidebarOpen;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('laptop-inv.sidebar', sidebarOpen ? 'open' : 'collapsed');
+    } catch { /* storage unavailable */ }
+  }, [sidebarOpen]);
   const t = useLabels();
   const [brand, setBrand] = useState('');
   const [ramF, setRamF] = useState('');

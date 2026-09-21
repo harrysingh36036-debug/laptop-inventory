@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useLabels } from '../labels.jsx';
 import { getIstToday } from '../utils';
+import AutocompleteInput from './AutocompleteInput';
 
 const STATUSES = ['In Stock', 'In Transit'];
 const CONDITIONS = ['Good', 'OK', 'Bad'];
@@ -31,12 +32,37 @@ const EMPTY = {
   purchase_date: getIstToday()
 };
 
-export default function InventoryModal({ stores, brands = [], vendors = [], productLines = [], editing, onSave, onClose, title, vendorSelect = false }) {
+export default function InventoryModal({ stores, brands = [], vendors = [], productLines = [], laptops = [], editing, onSave, onClose, title, vendorSelect = false }) {
   const t = useLabels();
   const [form, setForm] = useState(EMPTY);
   const [error, setError] = useState('');
   const [addingLine, setAddingLine] = useState(false);
   const [customVendor, setCustomVendor] = useState(false);
+
+  // Text-prediction pools derived from past inventory entries. Model
+  // suggestions adapt to the selected brand; falls back to all models
+  // if that brand has no recorded models yet.
+  const modelSuggestions = useMemo(() => {
+    const brand = String(form.brand || '').trim().toLowerCase();
+    const withModel = laptops.filter((l) => l.brand_model);
+    const scoped = brand
+      ? withModel.filter((l) => String(l.brand || '').trim().toLowerCase() === brand).map((l) => l.brand_model)
+      : [];
+    const models = scoped.length > 0 ? scoped : withModel.map((l) => l.brand_model);
+    return [...new Set(models)].sort();
+  }, [laptops, form.brand]);
+  const processorSuggestions = useMemo(
+    () => [...new Set(laptops.map((l) => l.processor_type).filter(Boolean))].sort(),
+    [laptops]
+  );
+  const generationSuggestions = useMemo(
+    () => [...new Set(laptops.map((l) => l.generation).filter(Boolean))].sort(),
+    [laptops]
+  );
+  const graphicsModelSuggestions = useMemo(
+    () => [...new Set(laptops.map((l) => l.graphics_model).filter(Boolean))].sort(),
+    [laptops]
+  );
 
   useEffect(() => {
     setForm(
@@ -211,33 +237,47 @@ export default function InventoryModal({ stores, brands = [], vendors = [], prod
             </div>
             <div>
               <label className={label}>Model</label>
-              <input value={form.brand_model} onChange={set('brand_model')} placeholder="e.g. 15 3520"
-                className={input()} />
+              <AutocompleteInput
+                id="model-suggestions"
+                value={form.brand_model}
+                onChange={set('brand_model')}
+                suggestions={modelSuggestions}
+                placeholder="e.g. 15 3520"
+                className={input()}
+              />
             </div>
             <div>
               <label className={label}>Core Variant</label>
-              <input value={form.processor_type} onChange={set('processor_type')} placeholder="e.g. Core i5-1345U"
-                className={input()} />
+              <AutocompleteInput
+                id="processor-suggestions"
+                value={form.processor_type}
+                onChange={set('processor_type')}
+                suggestions={processorSuggestions}
+                placeholder="e.g. Core i5-1345U"
+                className={input()}
+              />
             </div>
             <div>
               <label className={label}>Generation</label>
-              <input value={form.generation} onChange={set('generation')} placeholder="e.g. 13th Gen"
-                className={input()} />
+              <AutocompleteInput
+                id="generation-suggestions"
+                value={form.generation}
+                onChange={set('generation')}
+                suggestions={generationSuggestions}
+                placeholder="e.g. 13th Gen"
+                className={input()}
+              />
             </div>
             <div>
               <label className={label}>RAM</label>
-              <input
+              <AutocompleteInput
+                id="ram-suggestions"
                 value={form.ram}
                 onChange={set('ram')}
-                list="ram-sizes"
+                suggestions={RAMS}
                 placeholder="e.g. 16 GB"
                 className={input()}
               />
-              <datalist id="ram-sizes">
-                {RAMS.map((r) => (
-                  <option key={r} value={r} />
-                ))}
-              </datalist>
             </div>
             <div>
               <label className={label}>SSD / Storage Type</label>
@@ -249,18 +289,14 @@ export default function InventoryModal({ stores, brands = [], vendors = [], prod
             </div>
             <div>
               <label className={label}>Storage Size</label>
-              <input
+              <AutocompleteInput
+                id="storage-suggestions"
                 value={form.storage_size}
                 onChange={set('storage_size')}
-                list="storage-sizes"
+                suggestions={SIZES}
                 placeholder="e.g. 512 GB"
                 className={input()}
               />
-              <datalist id="storage-sizes">
-                {SIZES.map((s) => (
-                  <option key={s} value={s} />
-                ))}
-              </datalist>
             </div>
             <div>
               <label className={label}>Purchased From (Customer / Dealer)</label>
@@ -276,20 +312,14 @@ export default function InventoryModal({ stores, brands = [], vendors = [], prod
                   ))}
                 </select>
               ) : (
-                <>
-                  <input
-                    value={form.purchased_from}
-                    onChange={set('purchased_from')}
-                    list="vendor-list"
-                    placeholder="e.g. HP Direct"
-                    className={input()}
-                  />
-                  <datalist id="vendor-list">
-                    {vendors.map((v) => (
-                      <option key={v.id} value={v.name} />
-                    ))}
-                  </datalist>
-                </>
+                <AutocompleteInput
+                  id="vendor-suggestions"
+                  value={form.purchased_from}
+                  onChange={set('purchased_from')}
+                  suggestions={vendorNames}
+                  placeholder="e.g. HP Direct"
+                  className={input()}
+                />
               )}
             </div>
           </div>
@@ -316,8 +346,14 @@ export default function InventoryModal({ stores, brands = [], vendors = [], prod
                   </div>
                   <div>
                     <label className={label}>Graphics Model</label>
-                    <input value={form.graphics_model} onChange={set('graphics_model')} placeholder="e.g. RTX 4060"
-                      className={input()} />
+                    <AutocompleteInput
+                      id="graphics-model-suggestions"
+                      value={form.graphics_model}
+                      onChange={set('graphics_model')}
+                      suggestions={graphicsModelSuggestions}
+                      placeholder="e.g. RTX 4060"
+                      className={input()}
+                    />
                   </div>
                 </>
               )}

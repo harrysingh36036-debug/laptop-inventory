@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { inr, formatTime } from '../utils';
+import useStickyShadow, { stickyCol } from '../useStickyShadow';
 
 function maskAadhar(hash) {
   if (!hash || hash.length <= 6) return hash || '—';
@@ -18,6 +19,7 @@ export default function PurchasesTab({
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState(null);
   const [revealedAadhars, setRevealedAadhars] = useState(new Set());
+  const { scrollRef, scrolled, onScroll } = useStickyShadow();
 
   const q = search.trim().toLowerCase();
   const filtered = q
@@ -82,7 +84,7 @@ export default function PurchasesTab({
           <h2 className="text-sm font-semibold tracking-tight text-gray-900">Purchase Ledger</h2>
           <p className="text-xs text-gray-500">Money spent buying systems — separate from inventory.</p>
         </div>
-        <div className="hidden lg:block overflow-x-auto">
+        <div ref={scrollRef} onScroll={onScroll} className="hidden lg:block overflow-x-auto">
           <table className="w-full min-w-[960px] text-left text-sm">
             <thead>
               <tr className="border-b border-gray-200">
@@ -95,7 +97,7 @@ export default function PurchasesTab({
                 <th className={th}>Extra</th>
                 <th className={th}>Qty</th>
                 <th className={th}>Total Cost</th>
-                {canEditInventory && <th className={`${th} text-right`}>Actions</th>}
+                {canEditInventory && <th className={stickyCol(th, scrolled)}>Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -134,7 +136,7 @@ export default function PurchasesTab({
                     <td className={`${td} font-mono text-xs text-gray-600`}>×{p.quantity || 1}</td>
                     <td className={`${td} font-mono text-xs font-medium text-gray-900`}>{inr(total)}</td>
                     {canEditInventory && (
-                      <td className={`${td} text-right`}>
+                      <td className={stickyCol(td, scrolled)}>
                           <button
                             onClick={() => setExpandedId(expandedId === p.id ? null : p.id)}
                             className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-gray-100"
