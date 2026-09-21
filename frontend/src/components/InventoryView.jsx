@@ -27,6 +27,7 @@ export default function InventoryView({
 }) {
   const [sortBy, setSortBy] = useState('created_at');
   const [sortOrder, setSortOrder] = useState('desc');
+  const [transferModal, setTransferModal] = useState(null);
   // Remember collapsed/expanded across sessions (falls back to the prop default).
   const [sidebarOpen, setSidebarOpen] = useState(() => {
     try {
@@ -288,6 +289,11 @@ export default function InventoryView({
                 + Update Inventory
               </button>
             )}
+            {canTransfer && (
+              <button onClick={() => setTransferModal({ laptopId: '', toStoreId: '' })} className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
+                Transfer
+              </button>
+            )}
           </div>
 
           {/* Breadcrumb */}
@@ -387,6 +393,82 @@ export default function InventoryView({
           )}
         </div>
       </div>
+
+      {transferModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">Transfer Laptop</h3>
+              <button onClick={() => setTransferModal(null)} className="text-gray-400 hover:text-gray-600">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="mb-4">
+              <label className="mb-1 block text-sm font-medium text-gray-700">Select Laptop</label>
+              <select
+                value={transferModal.laptopId}
+                onChange={(e) => setTransferModal({ ...transferModal, laptopId: e.target.value, toStoreId: '' })}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              >
+                <option value="">Select a laptop...</option>
+                {(brandRows || []).filter(l => l.status !== 'Sold').map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.brand} {l.brand_model || ''} — {l.serial_number}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {transferModal.laptopId && (() => {
+              const sel = (brandRows || []).find(l => String(l.id) === String(transferModal.laptopId));
+              if (!sel) return null;
+              return (
+                <>
+                  <div className="mb-3 rounded-lg bg-gray-50 p-3">
+                    <p className="text-sm font-medium text-gray-900">{sel.brand} {sel.brand_model || ''}</p>
+                    <p className="text-xs text-gray-500">Serial: {sel.serial_number}</p>
+                    <p className="text-xs text-gray-500">Current Store: {sel.current_store_name || 'N/A'}</p>
+                  </div>
+                  <div className="mb-4">
+                    <label className="mb-1 block text-sm font-medium text-gray-700">Transfer to Store</label>
+                    <select
+                      value={transferModal.toStoreId}
+                      onChange={(e) => setTransferModal({ ...transferModal, toStoreId: e.target.value })}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                    >
+                      <option value="">Select destination store</option>
+                      {stores.filter((s) => s.id !== sel.current_store_id).map((s) => (
+                        <option key={s.id} value={s.id}>{s.store_name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              );
+            })()}
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setTransferModal(null)}
+                className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (transferModal.laptopId && transferModal.toStoreId) {
+                    onTransfer?.(Number(transferModal.laptopId), Number(transferModal.toStoreId));
+                    setTransferModal(null);
+                  }
+                }}
+                disabled={!transferModal.laptopId || !transferModal.toStoreId}
+                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Confirm Transfer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
