@@ -63,9 +63,22 @@ import QuickBall from './components/QuickBall';
 
 const ReportsTab = lazy(() => import('./components/ReportsTab'));
 
+let _audioCtx = null;
+function getAudioCtx() {
+  if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (_audioCtx.state === 'suspended') _audioCtx.resume();
+  return _audioCtx;
+}
+function initAudioOnInteraction() {
+  const unlock = () => { getAudioCtx(); window.removeEventListener('click', unlock); window.removeEventListener('keydown', unlock); };
+  window.addEventListener('click', unlock);
+  window.addEventListener('keydown', unlock);
+}
+initAudioOnInteraction();
+
 function playTransferSound() {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = getAudioCtx();
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.connect(gain);
