@@ -1338,6 +1338,7 @@ export default function App() {
         onOpenSettings={() => setSettingsOpen(true)}
         perms={rolePerms}
         userRole={user?.role}
+        user={user}
       />
       </div>
     </LabelsProvider>

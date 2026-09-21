@@ -43,7 +43,14 @@ const NAV_ITEMS = [
   )},
 ];
 
-export default function QuickBall({ currentTab, onNavigate, canManage = false, isAdmin = false, onOpenData, onLogout, onOpenSettings, perms, userRole }) {
+const ROLE_COLORS = {
+  superadmin: 'bg-red-600',
+  admin: 'bg-blue-600',
+  manager: 'bg-emerald-600',
+  staff: 'bg-gray-600'
+};
+
+export default function QuickBall({ currentTab, onNavigate, canManage = false, isAdmin = false, onOpenData, onLogout, onOpenSettings, perms, userRole, user }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -75,6 +82,16 @@ export default function QuickBall({ currentTab, onNavigate, canManage = false, i
       <div ref={ref} className="quick-ball-container fixed z-50" style={{ bottom: 'max(1.25rem, env(safe-area-inset-bottom, 1.25rem))', right: 'max(1.25rem, env(safe-area-inset-right, 1.25rem))' }}>
       {open && (
         <div className="absolute bottom-16 right-0 max-h-[65vh] overflow-y-auto rounded-2xl bg-white shadow-xl border border-gray-200 p-2 w-52 animate-[slideUp_0.15s_ease-out]">
+          <div className="flex items-center gap-3 px-3 py-2.5 mb-1">
+            <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white ${ROLE_COLORS[userRole] || 'bg-blue-600'}`}>
+              {(user?.display_name || user?.username || '?').slice(0, 1).toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-gray-900">{user?.display_name || user?.username || 'User'}</p>
+              <p className="truncate text-[11px] text-gray-500 capitalize">{userRole || 'staff'}</p>
+            </div>
+          </div>
+          <div className="my-1 border-t border-gray-100"></div>
           {visibleItems.map((it) => (
             <button
               key={it.key}
@@ -134,11 +151,11 @@ export default function QuickBall({ currentTab, onNavigate, canManage = false, i
       )}
       <button
         onClick={() => setOpen((o) => !o)}
-        className={`flex h-14 w-14 items-center justify-center rounded-full bg-blue-600 shadow-lg shadow-accent/30 transition-all duration-200 ${open ? 'rotate-45 scale-95' : 'hover:scale-105'}`}
+        className={`flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-all duration-200 ${open ? 'rotate-45 scale-95' : 'hover:scale-105'} ${ROLE_COLORS[userRole] || 'bg-blue-600'}`}
       >
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" className="h-6 w-6 text-white transition-transform duration-200">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
+        <span className="text-lg font-bold text-white select-none">
+          {(user?.display_name || user?.username || '?').slice(0, 1).toUpperCase()}
+        </span>
       </button>
     </div>
   );
