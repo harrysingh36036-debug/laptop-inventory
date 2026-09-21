@@ -63,6 +63,24 @@ import QuickBall from './components/QuickBall';
 
 const ReportsTab = lazy(() => import('./components/ReportsTab'));
 
+function playTransferSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.1);
+    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.2);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.5);
+  } catch { /* audio not available */ }
+}
+
 const MENU_ICONS = {
   dashboard: (
     <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8">
@@ -449,6 +467,7 @@ export default function App() {
       (pt) => Number(pt.to_store_id) === Number(user.home_store_id) && !shownTransferIds.has(pt.id)
     );
     if (incoming && !activeTransferPopup) {
+      playTransferSound();
       setActiveTransferPopup(incoming);
       setShownTransferIds((prev) => new Set([...prev, incoming.id]));
     }
@@ -543,7 +562,9 @@ export default function App() {
     const onRepairsChanged = () => reloadRepairs();
     socket.on('repairs:updated', onRepairsChanged);
 
-    const onPendingTransfersChanged = () => reloadPendingTransfers();
+    const onPendingTransfersChanged = () => {
+      reloadPendingTransfers();
+    };
     socket.on('pending_transfers:updated', onPendingTransfersChanged);
 
     const reloadBrands = async () => {
