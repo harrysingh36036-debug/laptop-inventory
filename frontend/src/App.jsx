@@ -474,15 +474,24 @@ export default function App() {
   }, []);
 
   // Show popup when a new pending transfer arrives for this user's store
+  const pendingQueueRef = useRef([]);
   useEffect(() => {
     if (!pendingTransfers.length || !user?.home_store_id) return;
-    const incoming = pendingTransfers.find(
+    const newIncoming = pendingTransfers.filter(
       (pt) => Number(pt.to_store_id) === Number(user.home_store_id) && !shownTransferIds.has(pt.id)
     );
-    if (incoming && !activeTransferPopup) {
-      playTransferSound();
-      setActiveTransferPopup(incoming);
-      setShownTransferIds((prev) => new Set([...prev, incoming.id]));
+    if (newIncoming.length === 0) return;
+    setShownTransferIds((prev) => {
+      const next = new Set(prev);
+      newIncoming.forEach((pt) => next.add(pt.id));
+      return next;
+    });
+    playTransferSound();
+    if (!activeTransferPopup) {
+      setActiveTransferPopup(newIncoming[0]);
+      pendingQueueRef.current = newIncoming.slice(1);
+    } else {
+      pendingQueueRef.current.push(...newIncoming);
     }
   }, [pendingTransfers, user, shownTransferIds, activeTransferPopup]);
 
@@ -1249,7 +1258,14 @@ export default function App() {
                 </svg>
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-gray-900">{t.trPopT || 'Incoming Transfer Request'}</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-semibold text-gray-900">{t.trPopT || 'Incoming Transfer Request'}</h3>
+                  {pendingQueueRef.current.length > 0 && (
+                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700">
+                      +{pendingQueueRef.current.length} more
+                    </span>
+                  )}
+                </div>
                 <p className="text-[11px] text-gray-500">{t.trPopBy || 'Requested by'} {activeTransferPopup.initiated_by}</p>
               </div>
             </div>
@@ -1275,20 +1291,20 @@ export default function App() {
             </div>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => { handleAcceptTransfer(activeTransferPopup.id); setActiveTransferPopup(null); }}
+                onClick={() => { handleAcceptTransfer(activeTransferPopup.id); const next = pendingQueueRef.current.shift(); setActiveTransferPopup(next || null); if (next) playTransferSound(); }}
                 className="flex-1 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 transition-colors"
               >
                 {t.trAccept || 'Accept'}
               </button>
               <button
-                onClick={() => { handleRejectTransfer(activeTransferPopup.id); setActiveTransferPopup(null); }}
+                onClick={() => { handleRejectTransfer(activeTransferPopup.id); const next = pendingQueueRef.current.shift(); setActiveTransferPopup(next || null); if (next) playTransferSound(); }}
                 className="flex-1 rounded-lg bg-red-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-600 transition-colors"
               >
                 {t.trReject || 'Reject'}
               </button>
             </div>
             <button
-              onClick={() => setActiveTransferPopup(null)}
+              onClick={() => { const next = pendingQueueRef.current.shift(); setActiveTransferPopup(next || null); if (next) playTransferSound(); }}
               className="w-full text-center text-[11px] text-gray-500 hover:text-gray-600 transition-colors"
             >
               {t.trDismiss || 'Dismiss (decide later)'}
