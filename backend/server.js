@@ -421,6 +421,43 @@ app.post('/api/push/test', authenticate, isAdmin, async (req, res) => {
   res.json({ ok: true, ...result });
 });
 
+// Supabase Database Webhook → push fan-out. Supabase calls this when rows
+// change, so phones get notified even with the app fully closed. Guarded by a
+// shared secret (NOT the login JWT) — set PUSH_WEBHOOK_SECRET in backend/.env
+// and paste the same value into each Supabase webhook's HTTP header.
+app.post('/api/push/hook', async (req, res) => {
+  const secret = process.env.PUSH_WEBHOOK_SECRET || '';
+  const got = req.headers['x-webhook-secret'] || req.body?.secret;
+  if (!secret || got !== secret) return res.status(401).json({ error: 'Bad webhook secret' });
+  const b = req.body || {};
+  // Supabase sends { type:'INSERT', table, record }; also accept { table, event, row }.
+  const table = String(b.table || '').toLowerCase();
+  const event = String(b.type || b.event || 'INSERT').toUpperCase();
+  const row = b.record || b.row || b.new || {};
+  if (event !== 'INSERT' && event !== 'UPDATE') return res.json({ ok: true, skipped: 'not-insert-update' });
+  let payload = null;
+  if (table === 'transferlogs' || table === 'pending_transfers') {
+    payload = {
+      title: table === 'pending_transfers' ? 'New transfer request' : 'Laptop transferred',
+      body: `Serial ${row.serial_number || row.laptop_id || ''} needs attention`.trim(),
+      tag: 'transfer'
+    };
+  } else if (table === 'sales') {
+    payload = {
+      title: 'Laptop sold',
+      body: `${row.brand_model || 'A laptop'} sold for ₹${Number(row.sale_price || 0).toLocaleString('en-IN')}`,
+      tag: 'sale'
+    };
+  } else if (table === 'repairs') {
+    payload = { title: 'Repair update', body: `Repair #${row.id || ''} updated`.trim(), tag: 'repair' };
+  } else if (table === 'laptops') {
+    payload = { title: 'Inventory update', body: `${row.brand_model || row.serial_number || 'A laptop'} changed`, tag: 'inventory' };
+  }
+  if (!payload) return res.json({ ok: true, skipped: 'unknown-table' });
+  const result = await push.sendPush(payload).catch(() => ({ sent: 0 }));
+  res.json({ ok: true, ...result });
+});
+
 // -------------------------------- Settings --------------------------------
 // UI labels / app text (public for authenticated users, editable by admin).
 app.get('/api/settings', authenticate, async (_req, res) => {

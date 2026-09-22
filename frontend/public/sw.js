@@ -4,6 +4,12 @@
  * default notification sound. The in-app transfer-sound.mp3 plays while open.
  */
 
+// Activate new versions immediately so devices don't sit on a stale app.
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
 self.addEventListener('push', (event) => {
   let data = {};
   try {
