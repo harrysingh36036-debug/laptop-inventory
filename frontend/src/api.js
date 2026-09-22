@@ -1,16 +1,11 @@
-import supabase from './supabaseClient';
 import { emitAudit } from './audit';
 
-// Thin Supabase client wrapper that exposes the same function signatures the
-// React components already use, so the UI code needed no rewriting.
-//
-// Read fallback: when the Supabase free tier has exceeded 90% and the
-// automation workflow migrated old history to MongoDB, Supabase reads return
-// empty.  If the Mongo read API is configured, we merge its results in so the
-// transferred data stays visible.  Supabase rows always win (live data).
+// REST client for the self-hosted Node.js + SQLite backend (no Supabase).
+// Same function signatures the React components already use, so UI code
+// needed no rewriting. Same-origin `/api` works in dev (Vite proxy) and in
+// production (Nginx proxies /api to the Node backend).
 
 const TOKEN_KEY = 'laptop_inventory_token';
-
 
 export const getToken = () => {
   try {
@@ -20,7 +15,7 @@ export const getToken = () => {
   }
 };
 
-let signingOut = false;
+let cachedUser = null;
 
 export const setToken = (token) => {
   try {
@@ -29,175 +24,139 @@ export const setToken = (token) => {
   } catch {
     /* ignore */
   }
-  // "Sign out" also ends the real Supabase session, not just our mirror.
-  if (!token && !signingOut) {
-    signingOut = true;
-    supabase.auth.signOut().finally(() => {
-      signingOut = false;
-    });
-  }
+  if (!token) cachedUser = null;
 };
 
-// Keep the token cache in sync with the real Supabase session (including the
-// "already signed in" restored session on reload).
-supabase.auth.onAuthStateChange((event, session) => {
-  if (session && ['INITIAL_SESSION', 'SIGNED_IN', 'TOKEN_REFRESHED'].includes(event)) {
-    setToken(session.access_token);
+function qs(params = {}) {
+  const q = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== null && v !== '') q.append(k, String(v));
   }
-  if (event === 'SIGNED_OUT') setToken(null);
-});
-
-
-// Throw a plain Error with the server/realtime message, matching the old REST
-// client's behaviour so components keep rendering `e.message`.
-function unwrap(error) {
-  if (!error) return new Error('Request failed');
-  const msg = error.message || error.error_description || 'Request failed';
-  return new Error(msg);
+  const s = q.toString();
+  return s ? `?${s}` : '';
 }
 
-// ------------------------------ Primitives --------------------------------
-async function rpc(name, params = {}) {
-  const { data, error } = await supabase.rpc(name, params);
-  if (error) throw unwrap(error);
+async function req(path, { method = 'GET', body, auth = true } = {}) {
+  const headers = {};
+  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  if (auth) {
+    const token = getToken();
+    if (token) headers.Authorization = `Bearer ${token}`;
+  }
+  let res;
+  try {
+    res = await fetch(path, {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined
+    });
+  } catch {
+    throw new Error('Cannot reach the server. Check your connection.');
+  }
+  if (res.status === 401) {
+    setToken(null);
+    throw new Error('Session expired. Please sign in again.');
+  }
+  let data = null;
+  try {
+    data = await res.json();
+  } catch {
+    data = null;
+  }
+  if (!res.ok) throw new Error((data && data.error) || `Request failed (${res.status})`);
   return data;
 }
 
-async function table(name) {
-  const { data, error } = await supabase.from(name).select('*');
-  if (error) throw unwrap(error);
-  return data || [];
-}
-
-// Username -> email. Users sign in with a username in the UI, but Supabase
-// authenticates against the derived address (always "@laptop.inventory").
-function toEmail(username) {
-  const value = String(username || '').trim();
-  if (value.includes('@')) return value;
-  return `${value}@laptop.inventory`;
-}
-
-function safeUser(profile) {
-  if (!profile) return null;
-  return {
-    id: profile.id,
-    username: profile.username,
-    display_name: profile.display_name || '',
-    role: profile.role,
-    home_store_id: profile.home_store_id ?? null,
-    allowed_store_ids: profile.allowed_store_ids ?? null,
-    created_at: profile.created_at
-  };
-}
-
-async function profileForUserId(id) {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('id, username, display_name, role, home_store_id, allowed_store_ids, created_at')
-    .eq('id', id)
-    .maybeSingle();
-  if (error) throw unwrap(error);
-  return data;
-}
-
-// NULL/empty = account may sign in from any store; otherwise only listed stores.
-function allowedStores(profile) {
-  const ids = profile?.allowed_store_ids;
-  return Array.isArray(ids) && ids.length > 0 ? ids.map(Number) : null;
+// Current user's username, used as the audit value. Cached from login/me to
+// avoid an extra request on every mutation.
+async function currentUsername() {
+  try {
+    if (cachedUser?.username) return cachedUser.username;
+    const me = await getMe();
+    return me.user?.username || '';
+  } catch {
+    return '';
+  }
 }
 
 // ---------------------------------- Auth -----------------------------------
 export const login = async ({ username, password, storeId }) => {
-  const store = storeId ? Number(storeId) : null;
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: toEmail(username),
-    password
+  const res = await req('/api/auth/login', {
+    method: 'POST',
+    auth: false,
+    body: { username, password, storeId: storeId === '' ? null : storeId }
   });
-  if (error) throw new Error(error.message || 'Invalid username or password');
-  const user = await profileForUserId(data.user.id);
-  const profile = safeUser(user);
-  // Enforce "which locations this account may sign in from" — admin-configured.
-const allowed = allowedStores(user);
-  if (allowed && (!store || !allowed.includes(store))) {
-    await supabase.auth.signOut().catch(() => {});
-    throw new Error('This account is not allowed to sign in from this store.');
-  }
-  setToken(data.session.access_token);
-  return { token: data.session.access_token, user: profile };
+  setToken(res.token);
+  cachedUser = res.user || null;
+  return { token: res.token, user: res.user };
 };
 
 export const getMe = async () => {
-  const {
-    data: { session },
-    error
-  } = await supabase.auth.getSession();
-  if (error) throw unwrap(error);
-  if (!session) throw new Error('Authentication required');
-  const profile = safeUser(await profileForUserId(session.user.id));
-  return { user: profile };
+  const res = await req('/api/auth/me');
+  cachedUser = res.user || null;
+  return { user: res.user };
 };
 
 // ------------------------------- Inventory -------------------------------
-
-// --------------------------------- Inventory -------------------------------
-export const getStores = () => table('stores');
+export const getStores = async () => {
+  // Login screen calls this before signing in — use the public endpoint then.
+  if (!getToken()) return req('/api/public/stores', { auth: false });
+  return req('/api/stores');
+};
 
 // ------------------------------- Login (public) -------------------------------
 // Returns [{ username, display_name }] for the login-page username dropdown.
-export const getLoginUsernames = () => rpc('app_list_usernames');
+export const getLoginUsernames = () => req('/api/public/usernames', { auth: false });
 
 // ------------------------------- Users (admin) -------------------------------
-export const getUsers = () => rpc('app_get_users');
+export const getUsers = () => req('/api/users');
 export const createUser = (data = {}) =>
-  rpc('app_create_user', {
-    p_username: data.username || '',
-    p_password: data.password || '',
-    p_display_name: data.display_name || '',
-    p_role: data.role || 'staff',
-    p_store_id: data.store_id === null || data.store_id === undefined || data.store_id === '' ? null : Number(data.store_id),
-    p_allowed_store_ids: null
-  });
+  req('/api/users', {
+    method: 'POST',
+    body: {
+      username: data.username || '',
+      password: data.password || '',
+      display_name: data.display_name || '',
+      role: data.role || 'staff',
+      home_store_id: data.store_id === null || data.store_id === undefined || data.store_id === '' || Number(data.store_id) === 0 ? null : Number(data.store_id),
+      allowed_store_ids: data.allowed_store_ids ?? null
+    }
+  }).then((r) => r.user || r);
 export const updateUser = (id, data = {}) =>
-  rpc('app_update_user', {
-    p_id: id,
-    p_username: data.username || null,
-    p_password: data.password || null,
-    p_display_name: data.display_name || null,
-    p_role: data.role || null,
-    p_store_id: data.store_id === null || data.store_id === undefined ? null : Number(data.store_id),
-    p_allowed_store_ids: data.allowed_store_ids ?? null
-  });
+  req(`/api/users/${id}`, {
+    method: 'PUT',
+    body: {
+      ...(data.username !== undefined ? { username: data.username } : {}),
+      ...(data.password ? { password: data.password } : {}),
+      ...(data.display_name !== undefined ? { display_name: data.display_name } : {}),
+      ...(data.role !== undefined ? { role: data.role } : {}),
+      ...(data.store_id !== undefined ? { home_store_id: data.store_id === null || data.store_id === '' || Number(data.store_id) === 0 ? null : Number(data.store_id) } : {}),
+      ...(data.allowed_store_ids !== undefined ? { allowed_store_ids: data.allowed_store_ids } : {})
+    }
+  }).then((r) => r.user || r);
 export const deleteUser = (id, password = '', remarks = '') =>
-  rpc('app_delete_user', { p_id: id, p_password: password, p_remarks: remarks });
+  req(`/api/users/${id}`, { method: 'DELETE', body: { password, remarks } });
 
-export const getLaptops = async (params = {}) => {
-  const rows = await rpc('app_get_laptops', {
-    p_store_id: params.storeId ? Number(params.storeId) : null,
-    p_status: params.status || null,
-    p_search: params.search || null
-  });
-  return rows || [];
-};
+export const getLaptops = (params = {}) =>
+  req(`/api/laptops${qs({ storeId: params.storeId || undefined, status: params.status || undefined, search: params.search || undefined })}`);
 
-export const getTransferLogs = (limit = 100) =>
-  rpc('app_get_transfer_logs', { p_limit: limit });
+export const getTransferLogs = () => req('/api/logs');
 
 // ---- Transfer approval workflow ----
 export const initiateTransfer = (laptopId, toStoreId) =>
-  rpc('app_initiate_transfer', { p_laptop_id: laptopId, p_to_store: toStoreId });
+  req('/api/transfers/initiate', { method: 'POST', body: { laptopId, toStoreId } });
 export const acceptTransfer = (transferId) =>
-  rpc('app_accept_transfer', { p_transfer_id: transferId });
+  req(`/api/transfers/${transferId}/accept`, { method: 'POST' });
 export const rejectTransfer = (transferId) =>
-  rpc('app_reject_transfer', { p_transfer_id: transferId });
+  req(`/api/transfers/${transferId}/reject`, { method: 'POST' });
 export const cancelTransfer = (transferId) =>
-  rpc('app_cancel_transfer', { p_transfer_id: transferId });
-export const getPendingTransfers = () =>
-  rpc('app_get_pending_transfers');
+  req(`/api/transfers/${transferId}/cancel`, { method: 'POST' });
+export const getPendingTransfers = () => req('/api/transfers/pending');
 
 export const createLaptop = async (data) => {
   const quantity = data.quantity != null ? Number(data.quantity) : 1;
   if (quantity > 1) return createLaptopsBulk(data, quantity);
-  const res = await rpc('app_create_laptop', { p_data: data });
+  const res = await req('/api/laptops', { method: 'POST', body: data });
   emitAudit({
     action: 'created',
     entity: 'laptop',
@@ -209,7 +168,7 @@ export const createLaptop = async (data) => {
 };
 
 export const createLaptopsBulk = async (data, quantity) => {
-  const res = await rpc('app_bulk_create_laptops', { p_data: data, p_quantity: quantity });
+  const res = await req('/api/laptops', { method: 'POST', body: { ...data, quantity } });
   emitAudit({
     action: 'created',
     entity: 'laptop',
@@ -221,7 +180,7 @@ export const createLaptopsBulk = async (data, quantity) => {
 };
 
 export const updateLaptop = async (id, data) => {
-  const res = await rpc('app_update_laptop', { p_id: id, p_data: data });
+  const res = await req(`/api/laptops/${id}`, { method: 'PUT', body: data });
   emitAudit({
     action: 'edited',
     entity: 'laptop',
@@ -234,7 +193,7 @@ export const updateLaptop = async (id, data) => {
 };
 
 export const deleteLaptop = async (id, password = '', remarks = '') => {
-  const res = await rpc('app_delete_laptop', { p_id: id, p_password: password, p_remarks: remarks });
+  const res = await req(`/api/laptops/${id}`, { method: 'DELETE', body: { password, remarks } });
   emitAudit({
     action: 'deleted',
     entity: 'laptop',
@@ -247,14 +206,9 @@ export const deleteLaptop = async (id, password = '', remarks = '') => {
 };
 
 export const sellLaptop = async (id, salePrice, customerId = null, paymentMethod = null, paymentDetail = null) => {
-  const res = await rpc('app_sell_laptop', {
-    p_laptop_id: id,
-    p_sale_price: salePrice,
-    p_sold_by: await currentUsername(),
-    p_customer_id: customerId,
-    p_purchaser_aadhar_hash: null,
-    p_payment_method: paymentMethod,
-    p_payment_detail: paymentDetail
+  const res = await req(`/api/laptops/${id}/sell`, {
+    method: 'POST',
+    body: { salePrice, customerId, paymentMethod, paymentDetail }
   });
   emitAudit({
     action: 'sold',
@@ -268,30 +222,19 @@ export const sellLaptop = async (id, salePrice, customerId = null, paymentMethod
 
 // Super admin only (enforced server-side).
 export const deleteSale = (saleId, password = '', remarks = '') =>
-  rpc('app_delete_sale', { p_sale_id: saleId, p_password: password, p_remarks: remarks });
-
-// Current user's username, used as the "sold_by" audit value.
-async function currentUsername() {
-  try {
-    const me = await getMe();
-    return me.user?.username || '';
-  } catch {
-    return '';
-  }
-}
+  req(`/api/sales/${saleId}`, { method: 'DELETE', body: { password, remarks } });
 
 // ----------------------------------- Brands --------------------------------
-export const getBrands = () => table('brands');
+export const getBrands = () => req('/api/brands');
 export const addBrand = async (data) => {
-  const res = await rpc('app_add_brand', { p_name: data.name, p_serial_prefix: data.serial_prefix || '' });
+  const res = await req('/api/brands', { method: 'POST', body: { name: data.name, serial_prefix: data.serial_prefix || '' } });
   emitAudit({ action: 'created', entity: 'brand', entityId: res?.id || '', entityLabel: data.name, username: await currentUsername() });
   return res;
 };
 export const updateBrand = async (id, data) => {
-  const res = await rpc('app_update_brand', {
-    p_id: id,
-    p_name: data.name,
-    p_serial_prefix: data.serial_prefix || ''
+  const res = await req(`/api/brands/${id}`, {
+    method: 'PUT',
+    body: { name: data.name, serial_prefix: data.serial_prefix || '' }
   });
   emitAudit({
     action: 'edited',
@@ -304,20 +247,23 @@ export const updateBrand = async (id, data) => {
   return res;
 };
 export const deleteBrand = async (id, password = '', remarks = '') => {
-  const res = await rpc('app_delete_brand', { p_id: id, p_password: password, p_remarks: remarks });
+  const res = await req(`/api/brands/${id}`, { method: 'DELETE', body: { password, remarks } });
   emitAudit({ action: 'deleted', entity: 'brand', entityId: id, entityLabel: res?.entity_label || '', remarks, username: await currentUsername() });
   return res;
 };
 
 // ---------------------------------- Vendors --------------------------------
-export const getVendors = () => table('vendors');
+export const getVendors = () => req('/api/vendors');
 export const addVendor = async (data) => {
-  const res = await rpc('app_add_vendor', { p_name: data.name, p_contact: data.contact || '', p_address: data.address || '' });
+  const res = await req('/api/vendors', { method: 'POST', body: { name: data.name, contact: data.contact || '', address: data.address || '' } });
   emitAudit({ action: 'created', entity: 'vendor', entityId: res?.id || '', entityLabel: data.name, username: await currentUsername() });
   return res;
 };
 export const updateVendor = async (id, data) => {
-  const res = await rpc('app_update_vendor', { p_id: id, p_name: data.name, p_contact: data.contact || '', p_address: data.address || '' });
+  const res = await req(`/api/vendors/${id}`, {
+    method: 'PUT',
+    body: { name: data.name, contact: data.contact || '', address: data.address || '' }
+  });
   emitAudit({
     action: 'edited',
     entity: 'vendor',
@@ -329,43 +275,42 @@ export const updateVendor = async (id, data) => {
   return res;
 };
 export const deleteVendor = async (id, password = '', remarks = '') => {
-  const res = await rpc('app_delete_vendor', { p_id: id, p_password: password, p_remarks: remarks });
+  const res = await req(`/api/vendors/${id}`, { method: 'DELETE', body: { password, remarks } });
   emitAudit({ action: 'deleted', entity: 'vendor', entityId: id, entityLabel: res?.entity_label || '', remarks, username: await currentUsername() });
   return res;
 };
 export const bulkDeleteVendors = async (ids, password = '', remarks = '') => {
-  const res = await rpc('app_bulk_delete_vendors', { p_ids: ids, p_password: password, p_remarks: remarks });
+  const res = await req('/api/vendors/bulk-delete', { method: 'POST', body: { ids, password, remarks } });
   emitAudit({ action: 'deleted', entity: 'vendor', entityId: ids[0] || '', entityLabel: `${res?.deleted || ids.length} vendor(s)`, remarks, username: await currentUsername() });
   return res;
 };
 
 // ----------------------------------- Sales ---------------------------------
-export const getSales = () =>
-  rpc('app_get_sales');
-export const getSalesSummary = () =>
-  rpc('app_sales_summary');
+export const getSales = () => req('/api/sales');
+export const getSalesSummary = () => req('/api/sales/summary');
 
 // ---------------------------- Daily reports --------------------------------
-export const getDailyReport = (date) => rpc('app_daily_report', { p_date: date });
-export const getDailyStoreSales = (date) => rpc('app_daily_store_sales', { p_date: date });
+export const getDailyReport = (date) => req(`/api/reports/daily${qs({ date })}`);
+export const getDailyStoreSales = (date) => req(`/api/reports/daily-store-sales${qs({ date })}`);
 
 // --------------------------------- Repairs ---------------------------------
-export const getRepairs = () =>
-  rpc('app_get_repairs');
-export const getRepairsSummary = () =>
-  rpc('app_repairs_summary');
-export const getRepairsByStore = () => rpc('app_repairs_by_store');
+export const getRepairs = () => req('/api/repairs');
+export const getRepairsSummary = () => req('/api/repairs/summary');
+export const getRepairsByStore = () => req('/api/repairs/by-store');
 export const createRepair = async (data) => {
-  const res = await rpc('app_create_repair', {
-    p_laptop_id: data.laptop_id ? Number(data.laptop_id) : null,
-    p_serial_number: data.serial_number || '',
-    p_brand_model: data.brand_model || '',
-    p_issue: data.issue || '',
-    p_vendor: data.vendor || '',
-    p_cost: data.cost === '' || data.cost == null ? 0 : Number(data.cost),
-    p_charge: data.charge === '' || data.charge == null ? 0 : Number(data.charge),
-    p_store_id: data.store_id === '' || data.store_id == null ? null : Number(data.store_id),
-    p_notes: data.notes || ''
+  const res = await req('/api/repairs', {
+    method: 'POST',
+    body: {
+      laptop_id: data.laptop_id ? Number(data.laptop_id) : null,
+      serial_number: data.serial_number || '',
+      brand_model: data.brand_model || '',
+      issue: data.issue || '',
+      vendor: data.vendor || '',
+      cost: data.cost === '' || data.cost == null ? 0 : Number(data.cost),
+      charge: data.charge === '' || data.charge == null ? 0 : Number(data.charge),
+      store_id: data.store_id === '' || data.store_id == null ? null : Number(data.store_id),
+      notes: data.notes || ''
+    }
   });
   emitAudit({
     action: 'created',
@@ -377,18 +322,20 @@ export const createRepair = async (data) => {
   return res;
 };
 export const updateRepair = async (id, data) => {
-  const res = await rpc('app_update_repair', {
-    p_id: id,
-    p_laptop_id: data.laptop_id === undefined || data.laptop_id === null || data.laptop_id === '' ? null : Number(data.laptop_id),
-    p_serial_number: data.serial_number ?? null,
-    p_brand_model: data.brand_model ?? null,
-    p_issue: data.issue ?? null,
-    p_vendor: data.vendor ?? null,
-    p_cost: data.cost === undefined || data.cost === null || data.cost === '' ? null : Number(data.cost),
-    p_charge: data.charge === undefined || data.charge === null || data.charge === '' ? null : Number(data.charge),
-    p_store_id: data.store_id === undefined || data.store_id === null || data.store_id === '' ? null : Number(data.store_id),
-    p_status: data.status ?? null,
-    p_notes: data.notes ?? null
+  const res = await req(`/api/repairs/${id}`, {
+    method: 'PUT',
+    body: {
+      ...(data.laptop_id !== undefined ? { laptop_id: data.laptop_id === null || data.laptop_id === '' ? null : Number(data.laptop_id) } : {}),
+      ...(data.serial_number !== undefined ? { serial_number: data.serial_number } : {}),
+      ...(data.brand_model !== undefined ? { brand_model: data.brand_model } : {}),
+      ...(data.issue !== undefined ? { issue: data.issue } : {}),
+      ...(data.vendor !== undefined ? { vendor: data.vendor } : {}),
+      ...(data.cost !== undefined ? { cost: data.cost === null || data.cost === '' ? null : Number(data.cost) } : {}),
+      ...(data.charge !== undefined ? { charge: data.charge === null || data.charge === '' ? null : Number(data.charge) } : {}),
+      ...(data.store_id !== undefined ? { store_id: data.store_id === null || data.store_id === '' ? null : Number(data.store_id) } : {}),
+      ...(data.status !== undefined ? { status: data.status } : {}),
+      ...(data.notes !== undefined ? { notes: data.notes } : {})
+    }
   });
   emitAudit({
     action: 'edited',
@@ -401,7 +348,7 @@ export const updateRepair = async (id, data) => {
   return res;
 };
 export const deleteRepair = async (id, password = '', remarks = '') => {
-  const res = await rpc('app_delete_repair', { p_id: id, p_password: password, p_remarks: remarks });
+  const res = await req(`/api/repairs/${id}`, { method: 'DELETE', body: { password, remarks } });
   emitAudit({
     action: 'deleted',
     entity: 'repair',
@@ -414,23 +361,24 @@ export const deleteRepair = async (id, password = '', remarks = '') => {
 };
 
 // -------------------------------- Purchases (ledger) --------------------------------
-export const getPurchases = () =>
-  rpc('app_get_purchases');
-export const getPurchasesSummary = () =>
-  rpc('app_purchases_summary');
+// Purchases are real inventory units: create/update/delete map to laptops.
+export const getPurchases = () => req('/api/purchases');
+export const getPurchasesSummary = () => req('/api/purchases/summary');
 export const createPurchase = async (data) => {
-  const res = await rpc('app_create_purchase', { p_data: data });
+  const quantity = data.quantity != null ? Number(data.quantity) : 1;
+  const res = await req('/api/purchases', { method: 'POST', body: { ...data, quantity } });
+  const one = Array.isArray(res) ? res[0] : res?.laptops?.[0] || res;
   emitAudit({
     action: 'created',
     entity: 'purchase',
-    entityId: res?.id || '',
+    entityId: one?.id || '',
     entityLabel: `${data.brand_model || ''} ${data.serial_number || ''}`.trim(),
     username: await currentUsername()
   });
-  return res;
+  return one;
 };
 export const updatePurchase = async (id, data) => {
-  const res = await rpc('app_update_purchase', { p_id: id, p_data: data });
+  const res = await req(`/api/purchases/${id}`, { method: 'PUT', body: data });
   emitAudit({
     action: 'edited',
     entity: 'purchase',
@@ -442,7 +390,7 @@ export const updatePurchase = async (id, data) => {
   return res;
 };
 export const deletePurchase = async (id, password = '', remarks = '') => {
-  const res = await rpc('app_delete_purchase', { p_id: id, p_password: password, p_remarks: remarks });
+  const res = await req(`/api/purchases/${id}`, { method: 'DELETE', body: { password, remarks } });
   emitAudit({
     action: 'deleted',
     entity: 'purchase',
@@ -455,27 +403,19 @@ export const deletePurchase = async (id, password = '', remarks = '') => {
 };
 
 // --------------------------------- Customers -------------------------------
-export const getCustomers = () =>
-  rpc('app_get_customers');
+export const getCustomers = () => req('/api/customers');
 export const addCustomer = async (data) => {
-  const res = await rpc('app_add_customer', {
-    p_name: data.name,
-    p_phone: data.phone || '',
-    p_email: data.email || '',
-    p_address: data.address || '',
-    p_notes: data.notes || ''
+  const res = await req('/api/customers', {
+    method: 'POST',
+    body: { name: data.name, phone: data.phone || '', email: data.email || '', address: data.address || '', notes: data.notes || '' }
   });
   emitAudit({ action: 'created', entity: 'customer', entityId: res?.id || '', entityLabel: data.name, username: await currentUsername() });
   return res;
 };
 export const updateCustomer = async (id, data) => {
-  const res = await rpc('app_update_customer', {
-    p_id: id,
-    p_name: data.name,
-    p_phone: data.phone || '',
-    p_email: data.email || '',
-    p_address: data.address || '',
-    p_notes: data.notes || ''
+  const res = await req(`/api/customers/${id}`, {
+    method: 'PUT',
+    body: { name: data.name, phone: data.phone || '', email: data.email || '', address: data.address || '', notes: data.notes || '' }
   });
   emitAudit({
     action: 'edited',
@@ -488,20 +428,20 @@ export const updateCustomer = async (id, data) => {
   return res;
 };
 export const deleteCustomer = async (id, password = '', remarks = '') => {
-  const res = await rpc('app_delete_customer', { p_id: id, p_password: password, p_remarks: remarks });
+  const res = await req(`/api/customers/${id}`, { method: 'DELETE', body: { password, remarks } });
   emitAudit({ action: 'deleted', entity: 'customer', entityId: id, entityLabel: res?.entity_label || '', remarks, username: await currentUsername() });
   return res;
 };
 export const bulkDeleteCustomers = async (ids, password = '', remarks = '') => {
-  const res = await rpc('app_bulk_delete_customers', { p_ids: ids, p_password: password, p_remarks: remarks });
+  const res = await req('/api/customers/bulk-delete', { method: 'POST', body: { ids, password, remarks } });
   emitAudit({ action: 'deleted', entity: 'customer', entityId: ids[0] || '', entityLabel: `${res?.deleted || ids.length} customer(s)`, remarks, username: await currentUsername() });
   return res;
 };
 
 // --------------------------------- Settings --------------------------------
-export const getSettings = () => rpc('app_get_settings');
+export const getSettings = () => req('/api/settings');
 export const saveSettings = async (patch) => {
-  const res = await rpc('app_set_settings', { p_patch: patch });
+  const res = await req('/api/settings', { method: 'PUT', body: patch });
   emitAudit({
     action: 'settings',
     entity: 'settings',
@@ -515,10 +455,7 @@ export const saveSettings = async (patch) => {
 
 // --------------------------------- Stats ----------------------------------
 export const getInventoryStats = (params = {}) =>
-  rpc('app_inventory_stats', {
-    p_store_id: params.storeId ? Number(params.storeId) : null,
-    p_status: params.status || null
-  });
+  req(`/api/inventory/stats${qs({ storeId: params.storeId || undefined })}`);
 
 // --------------------------- Role permissions ------------------------------
 export const getPermissions = async () => {
@@ -542,31 +479,24 @@ export const getPermissions = async () => {
 };
 
 export const savePermissions = (perms) =>
-  rpc('app_set_settings', { p_patch: { role_permissions: JSON.stringify(perms) } });
+  req('/api/permissions', { method: 'PUT', body: perms });
 
 // ------------------------------- Store mgmt --------------------------------
 export const addStore = async (name) => {
-  const res = await rpc('app_add_store', { p_store_name: name });
+  const res = await req('/api/stores', { method: 'POST', body: { store_name: name } });
   emitAudit({ action: 'created', entity: 'store', entityId: res?.id || '', entityLabel: name, username: await currentUsername() });
   return res;
 };
 export const renameStore = async (id, name) => {
-  const res = await rpc('app_rename_store', { p_store_id: id, p_store_name: name });
+  const res = await req(`/api/stores/${id}`, { method: 'PUT', body: { store_name: name } });
   emitAudit({ action: 'edited', entity: 'store', entityId: id, entityLabel: name, changes: [{ field: 'store_name', oldValue: null, newValue: name }], username: await currentUsername() });
   return res;
 };
 export const deleteStore = async (id, password = '', remarks = '') => {
-  const res = await rpc('app_delete_store', { p_store_id: id, p_password: password, p_remarks: remarks });
+  const res = await req(`/api/stores/${id}`, { method: 'DELETE', body: { password, remarks } });
   emitAudit({ action: 'deleted', entity: 'store', entityId: id, entityLabel: res?.entity_label || '', remarks, username: await currentUsername() });
   return res;
 };
 
 // ---- Delete logs (audit trail) -------------------------------------------
-export const getDeleteLogs = async () => {
-  const { data, error } = await supabase
-    .from('delete_logs')
-    .select('*')
-    .order('created_at', { ascending: false });
-  if (error) throw error;
-  return data || [];
-};
+export const getDeleteLogs = () => req('/api/delete-logs');

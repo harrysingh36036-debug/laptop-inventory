@@ -21,81 +21,72 @@ laptop-inventory/
 ├── frontend/
 │   ├── src/
 │   │   ├── App.jsx            # data layer, filters, realtime listeners, auth
-│   │   ├── api.js             # Supabase RPC client wrapper
-│   │   ├── socket.js          # Supabase Realtime bridge (emits legacy events)
-│   │   ├── supabaseClient.js  # Supabase client
+│   │   ├── api.js             # REST client for the Node backend (same signatures)
+│   │   ├── socket.js          # socket.io live connection (emits legacy events)
+│   │   ├── presence.js        # online-users presence over socket.io
 │   │   └── components/        # StoreFilter, Toolbar, LaptopTable, HistoryLog,
 │   │                          # InventoryModal, Login, tabs, modals, Toast
 │   ├── vite.config.js
 │   └── index.html
-├── supabase-*.sql             # schema/migration scripts (apply in the SQL editor)
+├── backend/
+│   ├── server.js              # Express REST + socket.io + web push
+│   ├── db.js                  # SQLite schema + data layer (auto-migrates)
+│   ├── push.js                # free self-hosted web push (VAPID)
+│   └── import-csv.js          # one-time CSV migration helper
 └── .github/workflows/
-    ├── deploy-pages.yml       # builds frontend → publishes GitHub Pages
-    └── sync-to-sheets.yml     # optional Supabase → Google Sheets sync
+    └── archive-to-sheets.yml  # optional Sheets archive
 ```
 
-## Deploying
+## Deploying (VPS)
 
-Push to `main`. The `deploy-pages.yml` workflow builds `frontend/` (injecting the
-`VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` secrets) and publishes the bundle
-to GitHub Pages.
+Push to `main`, then on the VPS:
+
+```bash
+cd /var/www/laptop-inventory && git pull
+cd backend && npm install
+cd ../frontend && npm install && npm run build
+pm2 restart laptop
+```
+
+Nginx serves `frontend/dist` and proxies `/api` + `/socket.io` to Node.
+
+### First boot accounts
+
+Set `ADMIN_PASSWORD` in `backend/.env` before the first start for known
+credentials (both `superadmin` and `admin` get it, change on first login).
+Otherwise random passwords are printed once to the server log
+(`pm2 logs laptop`).
 
 ### Local development
 
 ```bash
-cd frontend
-npm install
-npm run dev   # http://localhost:5173
+cd backend && npm install && npm start   # http://localhost:4000
+cd frontend && npm install && npm run dev # http://localhost:5173 (proxies /api)
 ```
 
-Create `frontend/.env` with:
+No `frontend/.env` keys needed — the API is same-origin. Optional:
 
 ```
-VITE_SUPABASE_URL=https://<project>.supabase.co
-VITE_SUPABASE_ANON_KEY=<anon-key>
+VITE_VAPID_PUBLIC_KEY=   # web-push public key (else fetched from /api/push/vapid-public-key)
 ```
 
-## MongoDB overflow (when the free tier runs out)
+## Migrating old data (CSV)
 
-Supabase free tier is capped at 500 MB. When usage crosses **90%**, the
-[automation repo](https://github.com/harrysingh36036-debug/automation)
-workflow moves the **oldest history** — sold laptops, transfer logs, sales,
-purchases and repairs — into a free MongoDB Atlas cluster (verify → delete,
-so nothing is lost).
+In the old app: Reports tab → download inventory / sales / transfers CSVs.
+Then:
 
-The app keeps showing that migrated history. After migrating, Supabase reads
-return empty, and `frontend/src/mongoApi.js` falls back to the automation
-repo's read-only API and merges the transferred records back into the UI.
-
-Optional env vars (set only once the read API is deployed):
-
-```
-VITE_MONGO_READ_API_URL=https://<service>.onrender.com
-VITE_MONGO_READ_API_KEY=<your READ_API_KEY>
+```bash
+cd backend
+node import-csv.js --replace inventory.csv sales.csv transfers.csv
 ```
 
-Active "In Stock" / "In Transit" inventory stays in Supabase, so live editing
-and Realtime are unaffected. See the automation repo's README for secrets,
-table mapping and the free read-API deployment.
+`--merge` (default) keeps existing rows and skips duplicates.
 
 ## Database
 
-The schema is defined by the `supabase-*.sql` migration files at the repo root.
-Apply them in the Supabase SQL Editor in dependency order:
-
-1. `supabase-migration.sql` — base tables, RLS, realtime, RPC foundation
-2. `supabase-update.sql` — vendors, customers, inventory stats, user management
-3. `supabase-v3-master.sql` — repairs charge, delete logs, password-verified deletes
-4. `supabase-hardening.sql` — auth gate on read RPCs, tightened RLS
-5. `supabase-laptops-spec-columns.sql` — spec columns + laptop CRUD helpers
-6. `supabase-ui-features-batch.sql` — `app_get_laptops` full payload, create-user fix
-7. `supabase-fix-pgcrypto.sql` — pgcrypto in public schema (update-user fix)
-8. `supabase-purchase-ledger.sql` — standalone purchases money ledger
-9. `supabase-sell-aadhar.sql` — aadhar capture at checkout
-10. `supabase-manager-store-report.sql` — manager-scoped daily report
-11. `supabase-repair-charge-store.sql` — repairs store + charge, store-wise report
-12. `supabase-transferred-by.sql` — `transferlogs.transferred_by` column
-13. `supabase-delete-user.sql` — user list + delete admin/manager/staff accounts
+SQLite (`backend/inventory.db`, override with `DATA_DIR`). Schema lives in
+`backend/db.js` and auto-migrates with `ALTER TABLE` guards — no manual
+migrations. `backend/clear-business-data.sql` is a legacy Supabase helper.
 
 ## Logging in
 

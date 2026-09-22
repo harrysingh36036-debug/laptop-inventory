@@ -54,14 +54,38 @@ const {
   getSales,
   getSalesSummary,
   sellLaptop,
+  deleteSale,
   getRepairs,
   getRepair,
   createRepair,
   updateRepair,
   deleteRepair,
   getRepairsSummary,
+  getRepairsByStore,
   getPurchases,
   getPurchasesSummary,
+  getVendors,
+  addVendor,
+  updateVendor,
+  deleteVendor,
+  bulkDeleteVendors,
+  getCustomers,
+  addCustomer,
+  updateCustomer,
+  deleteCustomer,
+  bulkDeleteCustomers,
+  getPendingTransfers,
+  initiateTransfer,
+  acceptTransfer,
+  rejectTransfer,
+  cancelTransfer,
+  recordDeleteLog,
+  getDeleteLogs,
+  getDailyReport,
+  getDailyStoreSales,
+  getInventoryStats,
+  publicUserFull,
+  getLoginUsernames,
   addStore,
   renameStore,
   deleteStore,
@@ -247,14 +271,35 @@ app.post('/api/auth/login', loginLimiter, async (req, res) => {
   if (!user || !verifyPassword(user, req.body?.password)) {
     return res.status(401).json({ error: 'Invalid username or password' });
   }
+  const full = publicUserFull(user);
+  // Enforce "which locations this account may sign in from".
+  const allowed = full.allowed_store_ids;
+  const store = req.body?.storeId != null && req.body?.storeId !== '' ? Number(req.body.storeId) : null;
+  if (allowed && (!store || !allowed.includes(store))) {
+    return res.status(403).json({ error: 'This account is not allowed to sign in from this store.' });
+  }
   await recordLogin(user.id, user.username, req.ip, req.headers['user-agent']);
-  const safe = { id: user.id, username: user.username, display_name: user.display_name, role: user.role, force_password_change: !!user.force_password_change, created_at: user.created_at };
-  res.json({ token: signToken(user), user: safe, force_password_change: !!user.force_password_change });
+  res.json({ token: signToken(user), user: full, force_password_change: !!user.force_password_change });
 });
 
 app.get('/api/auth/me', authenticate, (req, res) => {
-  res.json({ user: { id: req.user.id, username: req.user.username, display_name: req.user.display_name, role: req.user.role, force_password_change: !!req.user.force_password_change, created_at: req.user.created_at } });
+  res.json({ user: publicUserFull(req.user) });
 });
+
+// Public (pre-login) helpers for the login screen.
+app.get('/api/public/stores', async (_req, res) => {
+  res.json(await getStores());
+});
+
+app.get('/api/public/usernames', async (_req, res) => {
+  res.json(await getLoginUsernames());
+});
+
+// Confirm the requester's own password for destructive actions.
+function needPassword(user, password) {
+  if (!password || !verifyPassword(user, password)) return 'Password confirmation failed';
+  return null;
+}
 
 // ------------------------------ Account management -------------------------
 // Super admins manage everyone. Admins manage admin/manager/staff but never
@@ -273,7 +318,7 @@ app.get('/api/users/:id', authenticate, isAdminOrManager, async (req, res) => {
       (req.user.role === 'admin' && user.role === 'superadmin')) {
     return res.status(403).json({ error: 'Insufficient permissions to view this account' });
   }
-  res.json({ user: { id: user.id, username: user.username, display_name: user.display_name, role: user.role, created_at: user.created_at } });
+  res.json({ user: publicUserFull(user) });
 });
 
 // Creates a staff, manager or admin account. Only a superadmin can create a
@@ -315,14 +360,15 @@ app.put('/api/users/:id', authenticate, isAdminOrManager, async (req, res) => {
   if (result.error) return res.status(400).json({ error: result.error });
   if (req.user.id === id) {
     const refreshed = await getUserById(id);
-    const safe = { id: refreshed.id, username: refreshed.username, display_name: refreshed.display_name, role: refreshed.role, created_at: refreshed.created_at };
-    return res.json({ user: safe, token: signToken(refreshed) });
+    return res.json({ user: publicUserFull(refreshed), token: signToken(refreshed) });
   }
   res.json(result.user);
 });
 
 app.delete('/api/users/:id', authenticate, isAdmin, async (req, res) => {
   if (Number(req.params.id) === req.user.id) return res.status(400).json({ error: 'You cannot delete your own account' });
+  const pwErr = needPassword(req.user, req.body?.password);
+  if (pwErr) return res.status(403).json({ error: pwErr });
   const target = await getUserById(Number(req.params.id));
   if (req.user.role === 'admin' && target?.role === 'superadmin') {
     return res.status(403).json({ error: 'Admin cannot delete the super admin account' });
@@ -360,6 +406,8 @@ app.get('/api/laptops/:id', authenticate, async (req, res) => {
 });
 
 // POST /api/laptops/:id/transfer  body: { toStoreId: 5 }
+// Legacy direct transfer (kept for compatibility). The app UI uses the
+// request → accept workflow below.
 app.post('/api/laptops/:id/transfer', authenticate, async (req, res) => {
   if (!(await hasPerm(req.user, 'transferLaptops'))) {
     return res.status(403).json({ error: 'Insufficient permissions' });
@@ -371,7 +419,7 @@ app.post('/api/laptops/:id/transfer', authenticate, async (req, res) => {
     return res.status(400).json({ error: 'toStoreId is required' });
   }
 
-  const result = await transferLaptop(laptopId, toStoreId);
+  const result = await transferLaptop(laptopId, toStoreId, req.user.username);
   if (result.error) return res.status(404).json({ error: result.error });
 
   // Broadcast to every connected client (all stores + all devices).
@@ -383,6 +431,58 @@ app.post('/api/laptops/:id/transfer', authenticate, async (req, res) => {
     tag: 'transfer'
   }).catch(() => {});
   return res.json(result);
+});
+
+// --------------------- Transfer approval workflow ------------------------
+// Request → (accept | reject | cancel). Every step broadcasts so all devices
+// update instantly with no refresh.
+app.get('/api/transfers/pending', authenticate, async (_req, res) => {
+  res.json(await getPendingTransfers());
+});
+
+app.post('/api/transfers/initiate', authenticate, async (req, res) => {
+  if (!(await hasPerm(req.user, 'transferLaptops'))) {
+    return res.status(403).json({ error: 'Insufficient permissions' });
+  }
+  const result = await initiateTransfer(req.body?.laptopId, req.body?.toStoreId, req.user.username);
+  if (result.error) return res.status(400).json({ error: result.error });
+  broadcast('pending_transfers:updated');
+  broadcast('laptop:updated', result.transfer && (await getLaptop(result.transfer.laptop_id)));
+  push.sendPush({ title: 'New transfer request', body: `${result.transfer?.brand_model || 'A laptop'} → ${result.transfer?.to_store_name || ''}`.trim(), tag: 'transfer' }).catch(() => {});
+  res.status(201).json(result.transfer);
+});
+
+app.post('/api/transfers/:id/accept', authenticate, async (req, res) => {
+  if (!(await hasPerm(req.user, 'transferLaptops'))) {
+    return res.status(403).json({ error: 'Insufficient permissions' });
+  }
+  const result = await acceptTransfer(req.params.id);
+  if (result.error) return res.status(400).json({ error: result.error });
+  broadcast('pending_transfers:updated');
+  broadcast('laptop:transferred', result);
+  broadcast('log:new', result.laptop);
+  push.sendPush({ title: 'Transfer accepted', body: `${result.laptop?.brand_model || 'A laptop'} moved to ${result.to?.store_name || ''}`.trim(), tag: 'transfer' }).catch(() => {});
+  res.json({ ok: true });
+});
+
+app.post('/api/transfers/:id/reject', authenticate, async (req, res) => {
+  if (!(await hasPerm(req.user, 'transferLaptops'))) {
+    return res.status(403).json({ error: 'Insufficient permissions' });
+  }
+  const result = await rejectTransfer(req.params.id);
+  if (result.error) return res.status(400).json({ error: result.error });
+  broadcast('pending_transfers:updated');
+  res.json({ ok: true });
+});
+
+app.post('/api/transfers/:id/cancel', authenticate, async (req, res) => {
+  if (!(await hasPerm(req.user, 'transferLaptops'))) {
+    return res.status(403).json({ error: 'Insufficient permissions' });
+  }
+  const result = await cancelTransfer(req.params.id);
+  if (result.error) return res.status(400).json({ error: result.error });
+  broadcast('pending_transfers:updated');
+  res.json({ ok: true });
 });
 
 app.get('/api/logs', authenticate, async (_req, res) => {
@@ -542,8 +642,12 @@ app.put('/api/brands/:id', authenticate, isAdminOrManager, async (req, res) => {
 });
 
 app.delete('/api/brands/:id', authenticate, isAdminOrManager, async (req, res) => {
+  const pwErr = needPassword(req.user, req.body?.password);
+  if (pwErr) return res.status(403).json({ error: pwErr });
+  const doomed = await getBrand(Number(req.params.id));
   const result = await deleteBrand(Number(req.params.id));
   if (result.error) return res.status(400).json({ error: result.error });
+  recordDeleteLog({ entity_type: 'brand', entity_id: req.params.id, entity_label: doomed?.name, remarks: req.body?.remarks, deleted_by: req.user.username });
   broadcast('brands:updated');
   res.json(result);
 });
@@ -557,12 +661,16 @@ app.get('/api/sales/summary', authenticate, async (_req, res) => {
   res.json(await getSalesSummary());
 });
 
-// POST /api/laptops/:id/sell  body: { salePrice }
+// POST /api/laptops/:id/sell  body: { salePrice, customerId?, paymentMethod?, paymentDetail? }
 app.post('/api/laptops/:id/sell', authenticate, async (req, res) => {
   if (!(await hasPerm(req.user, 'editInventory'))) {
     return res.status(403).json({ error: 'Insufficient permissions' });
   }
-  const result = await sellLaptop(Number(req.params.id), req.body?.salePrice, req.user.username);
+  const result = await sellLaptop(Number(req.params.id), req.body?.salePrice, req.user.username, {
+    customerId: req.body?.customerId,
+    paymentMethod: req.body?.paymentMethod,
+    paymentDetail: req.body?.paymentDetail
+  });
   if (result.error) return res.status(400).json({ error: result.error });
   broadcast('sale:new', result.sale);
   push.sendPush({
@@ -571,6 +679,17 @@ app.post('/api/laptops/:id/sell', authenticate, async (req, res) => {
     tag: 'sale'
   }).catch(() => {});
   res.status(201).json(result.sale);
+});
+
+// DELETE /api/sales/:id  body: { password?, remarks? } — refund/exchange.
+app.delete('/api/sales/:id', authenticate, isAdmin, async (req, res) => {
+  const pwErr = needPassword(req.user, req.body?.password);
+  if (pwErr) return res.status(403).json({ error: pwErr });
+  const result = await deleteSale(Number(req.params.id));
+  if (result.error) return res.status(404).json({ error: result.error });
+  recordDeleteLog({ entity_type: 'sale', entity_id: req.params.id, entity_label: result.entity_label, remarks: req.body?.remarks, deleted_by: req.user.username });
+  broadcast('data:reloaded', { at: Date.now() });
+  res.json(result);
 });
 
 // POST /api/laptops  body: { brand, brand_model, ..., quantity?, serial_prefix? }
@@ -603,13 +722,17 @@ app.put('/api/laptops/:id', authenticate, async (req, res) => {
   res.json(result.laptop);
 });
 
-// DELETE /api/laptops/:id
+// DELETE /api/laptops/:id  body: { password?, remarks? }
 app.delete('/api/laptops/:id', authenticate, async (req, res) => {
   if (!(await hasPerm(req.user, 'editInventory'))) {
     return res.status(403).json({ error: 'Insufficient permissions' });
   }
+  const pwErr = needPassword(req.user, req.body?.password);
+  if (pwErr) return res.status(403).json({ error: pwErr });
+  const doomed = await getLaptop(Number(req.params.id));
   const result = await deleteLaptop(Number(req.params.id));
   if (result.error) return res.status(404).json({ error: result.error });
+  recordDeleteLog({ entity_type: 'laptop', entity_id: req.params.id, entity_label: `${doomed?.brand_model || ''} ${doomed?.serial_number || ''}`.trim(), remarks: req.body?.remarks, deleted_by: req.user.username });
   broadcast('laptop:deleted', { id: result.id });
   res.json(result);
 });
@@ -622,6 +745,143 @@ app.get('/api/purchases', authenticate, async (_req, res) => {
 
 app.get('/api/purchases/summary', authenticate, async (_req, res) => {
   res.json(await getPurchasesSummary());
+});
+
+// Purchases create real inventory units (single or bulk via quantity).
+app.post('/api/purchases', authenticate, async (req, res) => {
+  if (!(await hasPerm(req.user, 'editInventory'))) {
+    return res.status(403).json({ error: 'Insufficient permissions' });
+  }
+  const body = req.body || {};
+  if (body.quantity != null && Number(body.quantity) > 1) {
+    const result = await createLaptopsBulk(body, body.quantity);
+    if (result.error) return res.status(400).json({ error: result.error });
+    broadcast('laptop:bulk', result.laptops);
+    return res.status(201).json(result.laptops);
+  }
+  const result = await createLaptop(body);
+  if (result.error) return res.status(400).json({ error: result.error });
+  broadcast('laptop:created', result.laptop);
+  res.status(201).json(result.laptop);
+});
+
+app.put('/api/purchases/:id', authenticate, async (req, res) => {
+  if (!(await hasPerm(req.user, 'editInventory'))) {
+    return res.status(403).json({ error: 'Insufficient permissions' });
+  }
+  const result = await updateLaptop(Number(req.params.id), req.body || {});
+  if (result.error) return res.status(400).json({ error: result.error });
+  broadcast('laptop:updated', result.laptop);
+  res.json(result.laptop);
+});
+
+app.delete('/api/purchases/:id', authenticate, async (req, res) => {
+  if (!(await hasPerm(req.user, 'editInventory'))) {
+    return res.status(403).json({ error: 'Insufficient permissions' });
+  }
+  const pwErr = needPassword(req.user, req.body?.password);
+  if (pwErr) return res.status(403).json({ error: pwErr });
+  const doomed = await getLaptop(Number(req.params.id));
+  const result = await deleteLaptop(Number(req.params.id));
+  if (result.error) return res.status(404).json({ error: result.error });
+  recordDeleteLog({ entity_type: 'laptop', entity_id: req.params.id, entity_label: `${doomed?.brand_model || ''} ${doomed?.serial_number || ''}`.trim(), remarks: req.body?.remarks, deleted_by: req.user.username });
+  broadcast('laptop:deleted', { id: result.id });
+  res.json(result);
+});
+
+// ----------------------------- Vendors -------------------------------------
+app.get('/api/vendors', authenticate, async (_req, res) => {
+  res.json(await getVendors());
+});
+
+app.post('/api/vendors', authenticate, isAdminOrManager, async (req, res) => {
+  const result = await addVendor(req.body || {});
+  if (result.error) return res.status(400).json({ error: result.error });
+  res.status(201).json(result.vendor);
+});
+
+app.put('/api/vendors/:id', authenticate, isAdminOrManager, async (req, res) => {
+  const result = await updateVendor(Number(req.params.id), req.body || {});
+  if (result.error) return res.status(400).json({ error: result.error });
+  res.json(result.vendor);
+});
+
+app.delete('/api/vendors/:id', authenticate, isAdminOrManager, async (req, res) => {
+  const pwErr = needPassword(req.user, req.body?.password);
+  if (pwErr) return res.status(403).json({ error: pwErr });
+  const result = await deleteVendor(Number(req.params.id));
+  if (result.error) return res.status(404).json({ error: result.error });
+  recordDeleteLog({ entity_type: 'vendor', entity_id: req.params.id, entity_label: result.entity_label, remarks: req.body?.remarks, deleted_by: req.user.username });
+  res.json(result);
+});
+
+app.post('/api/vendors/bulk-delete', authenticate, isAdminOrManager, async (req, res) => {
+  const pwErr = needPassword(req.user, req.body?.password);
+  if (pwErr) return res.status(403).json({ error: pwErr });
+  const result = await bulkDeleteVendors(req.body?.ids);
+  if (result.error) return res.status(400).json({ error: result.error });
+  recordDeleteLog({ entity_type: 'vendor', entity_id: (req.body?.ids || [])[0], entity_label: `${result.deleted} vendor(s)`, remarks: req.body?.remarks, deleted_by: req.user.username });
+  res.json(result);
+});
+
+// ---------------------------- Customers ------------------------------------
+app.get('/api/customers', authenticate, async (_req, res) => {
+  res.json(await getCustomers());
+});
+
+app.post('/api/customers', authenticate, async (req, res) => {
+  const result = await addCustomer(req.body || {});
+  if (result.error) return res.status(400).json({ error: result.error });
+  res.status(201).json(result);
+});
+
+app.put('/api/customers/:id', authenticate, async (req, res) => {
+  const result = await updateCustomer(Number(req.params.id), req.body || {});
+  if (result.error) return res.status(400).json({ error: result.error });
+  res.json(result);
+});
+
+app.delete('/api/customers/:id', authenticate, async (req, res) => {
+  const pwErr = needPassword(req.user, req.body?.password);
+  if (pwErr) return res.status(403).json({ error: pwErr });
+  const result = await deleteCustomer(Number(req.params.id));
+  if (result.error) return res.status(404).json({ error: result.error });
+  recordDeleteLog({ entity_type: 'customer', entity_id: req.params.id, entity_label: result.entity_label, remarks: req.body?.remarks, deleted_by: req.user.username });
+  res.json(result);
+});
+
+app.post('/api/customers/bulk-delete', authenticate, async (req, res) => {
+  const pwErr = needPassword(req.user, req.body?.password);
+  if (pwErr) return res.status(403).json({ error: pwErr });
+  const result = await bulkDeleteCustomers(req.body?.ids);
+  if (result.error) return res.status(400).json({ error: result.error });
+  recordDeleteLog({ entity_type: 'customer', entity_id: (req.body?.ids || [])[0], entity_label: `${result.deleted} customer(s)`, remarks: req.body?.remarks, deleted_by: req.user.username });
+  res.json(result);
+});
+
+// --------------------- Reports / stats / audit -----------------------------
+app.get('/api/reports/daily', authenticate, async (req, res) => {
+  const result = await getDailyReport(req.query?.date);
+  if (result.error) return res.status(400).json({ error: result.error });
+  res.json(result);
+});
+
+app.get('/api/reports/daily-store-sales', authenticate, async (req, res) => {
+  const result = await getDailyStoreSales(req.query?.date);
+  if (result.error) return res.status(400).json({ error: result.error });
+  res.json(result);
+});
+
+app.get('/api/repairs/by-store', authenticate, async (_req, res) => {
+  res.json(await getRepairsByStore());
+});
+
+app.get('/api/inventory/stats', authenticate, async (req, res) => {
+  res.json(await getInventoryStats({ storeId: req.query?.storeId }));
+});
+
+app.get('/api/delete-logs', authenticate, isAdmin, async (_req, res) => {
+  res.json(await getDeleteLogs());
 });
 
 // ----------------------------- Repairs -------------------------------------
@@ -642,6 +902,7 @@ app.post('/api/repairs', authenticate, async (req, res) => {
   const result = await createRepair({ ...(req.body || {}), created_by: req.user.username });
   if (result.error) return res.status(400).json({ error: result.error });
   broadcast('repair:created', result.repair);
+  broadcast('repairs:updated');
   push.sendPush({
     title: 'Repair logged',
     body: `Repair #${result.repair?.id || ''} recorded`.trim(),
@@ -657,6 +918,7 @@ app.put('/api/repairs/:id', authenticate, async (req, res) => {
   const result = await updateRepair(Number(req.params.id), req.body || {});
   if (result.error) return res.status(400).json({ error: result.error });
   broadcast('repair:updated', result.repair);
+  broadcast('repairs:updated');
   res.json(result.repair);
 });
 
@@ -664,9 +926,14 @@ app.delete('/api/repairs/:id', authenticate, async (req, res) => {
   if (!(await hasPerm(req.user, 'editInventory'))) {
     return res.status(403).json({ error: 'Insufficient permissions' });
   }
+  const pwErr = needPassword(req.user, req.body?.password);
+  if (pwErr) return res.status(403).json({ error: pwErr });
+  const doomed = await getRepair(Number(req.params.id));
   const result = await deleteRepair(Number(req.params.id));
   if (result.error) return res.status(404).json({ error: result.error });
+  recordDeleteLog({ entity_type: 'repair', entity_id: req.params.id, entity_label: `${doomed?.brand_model || ''} ${doomed?.serial_number || ''}`.trim(), remarks: req.body?.remarks, deleted_by: req.user.username });
   broadcast('repair:deleted', { id: result.id });
+  broadcast('repairs:updated');
   res.json(result);
 });
 
@@ -699,15 +966,43 @@ io.use(async (socket, next) => {
     const payload = jwt.verify(token, JWT_SECRET);
     const user = await getUserById(payload.sub);
     if (!user) return next(new Error('Account no longer exists'));
-    socket.user = { id: user.id, username: user.username, role: user.role };
+    socket.user = { id: user.id, username: user.username, role: user.role, display_name: user.display_name, home_store_id: user.home_store_id ?? null };
     next();
   } catch {
     next(new Error('Invalid or expired token'));
   }
 });
 
+// Live presence: who is online right now. Same shape the Accounts tab expects:
+// { [userId]: [{ user_id, username, display_name, role, home_store_id, online_at }] }
+const onlineUsers = new Map(); // socketId -> user payload
+function presenceState() {
+  const state = {};
+  for (const u of onlineUsers.values()) {
+    const key = String(u.id);
+    state[key] = state[key] || [];
+    if (!state[key].some((e) => e.socketId === u.socketId)) state[key].push(u);
+  }
+  return state;
+}
+function broadcastPresence() {
+  io.emit('presence:update', presenceState());
+}
+
 io.on('connection', (socket) => {
   console.log(`Client connected: ${socket.id} (${socket.user.username})`);
+  onlineUsers.set(socket.id, {
+    socketId: socket.id,
+    user_id: String(socket.user.id),
+    id: String(socket.user.id),
+    username: socket.user.username,
+    display_name: socket.user.display_name || socket.user.username,
+    role: socket.user.role,
+    home_store_id: socket.user.home_store_id ?? null,
+    online_at: new Date().toISOString()
+  });
+  broadcastPresence();
+  socket.emit('presence:update', presenceState());
 
   socket.on('laptop:transfer', async (data, ack) => {
     if (!(await hasPerm(socket.user, 'transferLaptops'))) return typeof ack === 'function' && ack({ error: 'Insufficient permissions' });
@@ -775,7 +1070,16 @@ io.on('connection', (socket) => {
     if (typeof ack === 'function') ack(result);
   });
 
-  socket.on('disconnect', () => console.log(`Client disconnected: ${socket.id}`));
+  // Pull the current snapshot (clients joining late ask for it).
+  socket.on('presence:get', (ack) => {
+    if (typeof ack === 'function') ack(presenceState());
+  });
+
+  socket.on('disconnect', () => {
+    console.log(`Client disconnected: ${socket.id}`);
+    onlineUsers.delete(socket.id);
+    broadcastPresence();
+  });
 });
 
 // Boot the storage driver (Sheets/Postgres load async; SQLite is ready), then

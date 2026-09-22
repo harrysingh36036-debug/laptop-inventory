@@ -8,8 +8,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          react: ['react', 'react-dom', 'react-dom/client'],
-          supabase: ['@supabase/supabase-js']
+          react: ['react', 'react-dom', 'react-dom/client']
         }
       }
     }

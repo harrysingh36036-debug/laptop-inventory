@@ -149,6 +149,49 @@ CREATE TABLE IF NOT EXISTS Repairs (
   updated_at    TEXT NOT NULL DEFAULT (datetime('now')),
   FOREIGN KEY (laptop_id) REFERENCES Laptops(id)
 );
+
+CREATE TABLE IF NOT EXISTS Vendors (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  name       TEXT NOT NULL UNIQUE,
+  contact    TEXT,
+  address    TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS Customers (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  name       TEXT NOT NULL,
+  phone      TEXT,
+  email      TEXT,
+  address    TEXT,
+  notes      TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS PendingTransfers (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  laptop_id     INTEGER NOT NULL,
+  from_store_id INTEGER,
+  to_store_id   INTEGER NOT NULL,
+  initiated_by  TEXT,
+  status        TEXT NOT NULL DEFAULT 'pending'
+                CHECK (status IN ('pending','accepted','rejected','cancelled')),
+  created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+  decided_at    TEXT,
+  FOREIGN KEY (laptop_id)     REFERENCES Laptops(id),
+  FOREIGN KEY (from_store_id) REFERENCES Stores(id),
+  FOREIGN KEY (to_store_id)   REFERENCES Stores(id)
+);
+
+CREATE TABLE IF NOT EXISTS DeleteLogs (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  entity_type  TEXT NOT NULL,
+  entity_id    TEXT,
+  entity_label TEXT,
+  remarks      TEXT,
+  deleted_by   TEXT,
+  created_at   TEXT NOT NULL DEFAULT (datetime('now'))
+);
 `);
 
 // ---------------------------------------------------------------------------
@@ -158,6 +201,28 @@ CREATE TABLE IF NOT EXISTS Repairs (
 // ---------------------------------------------------------------------------
 try { db.prepare("ALTER TABLE Laptops ADD COLUMN condition TEXT DEFAULT 'Good'").run(); } catch (_) {}
 try { db.prepare("ALTER TABLE Users ADD COLUMN force_password_change INTEGER NOT NULL DEFAULT 0").run(); } catch (_) {}
+// Column migrations for the Supabase-free app (existing DBs pick these up).
+try { db.prepare('ALTER TABLE Laptops ADD COLUMN product_line TEXT').run(); } catch (_) {}
+try { db.prepare('ALTER TABLE Laptops ADD COLUMN ram TEXT').run(); } catch (_) {}
+try { db.prepare('ALTER TABLE Laptops ADD COLUMN storage_size TEXT').run(); } catch (_) {}
+try { db.prepare('ALTER TABLE Laptops ADD COLUMN charger TEXT').run(); } catch (_) {}
+try { db.prepare('ALTER TABLE Laptops ADD COLUMN purchase_comment TEXT').run(); } catch (_) {}
+try { db.prepare('ALTER TABLE Laptops ADD COLUMN purchaser_name TEXT').run(); } catch (_) {}
+try { db.prepare('ALTER TABLE Laptops ADD COLUMN purchaser_phone TEXT').run(); } catch (_) {}
+try { db.prepare('ALTER TABLE Laptops ADD COLUMN purchaser_aadhar TEXT').run(); } catch (_) {}
+try { db.prepare('ALTER TABLE Laptops ADD COLUMN purchaser_aadhar_hash TEXT').run(); } catch (_) {}
+try { db.prepare('ALTER TABLE Laptops ADD COLUMN source_type TEXT').run(); } catch (_) {}
+try { db.prepare('ALTER TABLE Laptops ADD COLUMN source_id INTEGER').run(); } catch (_) {}
+try { db.prepare('ALTER TABLE Users ADD COLUMN home_store_id INTEGER').run(); } catch (_) {}
+try { db.prepare('ALTER TABLE Users ADD COLUMN allowed_store_ids TEXT').run(); } catch (_) {}
+try { db.prepare('ALTER TABLE Repairs ADD COLUMN charge REAL NOT NULL DEFAULT 0').run(); } catch (_) {}
+try { db.prepare('ALTER TABLE Repairs ADD COLUMN store_id INTEGER').run(); } catch (_) {}
+try { db.prepare('ALTER TABLE Sales ADD COLUMN customer_id INTEGER').run(); } catch (_) {}
+try { db.prepare('ALTER TABLE Sales ADD COLUMN customer_name TEXT').run(); } catch (_) {}
+try { db.prepare('ALTER TABLE Sales ADD COLUMN customer_phone TEXT').run(); } catch (_) {}
+try { db.prepare('ALTER TABLE Sales ADD COLUMN payment_method TEXT').run(); } catch (_) {}
+try { db.prepare('ALTER TABLE Sales ADD COLUMN payment_detail TEXT').run(); } catch (_) {}
+try { db.prepare('ALTER TABLE TransferLogs ADD COLUMN transferred_by TEXT').run(); } catch (_) {}
 
 // ---------------------------------------------------------------------------
 const seedStores = () => {
@@ -344,10 +409,13 @@ function laptopRow(l) {
   return {
     id: l.id,
     brand: l.brand,
+    product_line: l.product_line || null,
     brand_model: l.brand_model,
     processor_type: l.processor_type,
+    ram: l.ram || null,
     generation: l.generation,
     storage_type: l.storage_type,
+    storage_size: l.storage_size || null,
     purchased_from: l.purchased_from,
     graphics: l.graphics,
     graphics_type: l.graphics_type,
@@ -355,17 +423,38 @@ function laptopRow(l) {
     purchase_rate: l.purchase_rate,
     extra_charges: l.extra_charges,
     serial_number: l.serial_number,
+    condition: l.condition || 'Good',
+    charger: l.charger || null,
+    purchase_comment: l.purchase_comment || null,
+    purchaser_name: l.purchaser_name || null,
+    purchaser_phone: l.purchaser_phone || null,
+    purchaser_aadhar: l.purchaser_aadhar || null,
+    purchaser_aadhar_hash: l.purchaser_aadhar_hash || null,
+    source_type: l.source_type || null,
+    source_id: l.source_id ?? null,
     current_store_id: l.current_store_id,
     status: l.status,
     created_at: l.created_at,
     updated_at: l.updated_at,
-    current_store_name: storeName(l.current_store_id)
+    current_store_name: l.current_store_name || storeName(l.current_store_id),
+    store_name: l.current_store_name || storeName(l.current_store_id),
+    sold_at: l.sold_at || null,
+    sold_by: l.sold_by || null,
+    sale_price: l.sale_price ?? null,
+    sale_customer_name: l.sale_customer_name || null
   };
 }
 
+// Latest sale per laptop, so sold rows carry their sale info inline.
 const LAPTOP_SELECT = `
-  SELECT l.*, s.store_name AS current_store_name
-  FROM Laptops l LEFT JOIN Stores s ON s.id = l.current_store_id`;
+  SELECT l.*, s.store_name AS current_store_name,
+         sl.sold_at AS sold_at, sl.sold_by AS sold_by,
+         sl.sale_price AS sale_price, sl.customer_name AS sale_customer_name
+  FROM Laptops l
+  LEFT JOIN Stores s ON s.id = l.current_store_id
+  LEFT JOIN Sales sl ON sl.id = (
+    SELECT id FROM Sales WHERE laptop_id = l.id ORDER BY sold_at DESC, id DESC LIMIT 1
+  )`;
 
 function getLaptops(filters = {}) {
   const clauses = [];
@@ -389,19 +478,32 @@ function getLaptop(id) {
 // Normalize incoming spec fields into a full laptop object.
 function normalizeLaptop(data, partial = {}) {
   const brand = (data.brand != null ? String(data.brand).trim() : partial.brand);
+  const str = (v, fb) => (v != null ? String(v).trim() || null : (fb ?? null));
+  const numOrNull = (v, fb) => (v != null && v !== '' ? Number(v) : (fb ?? null));
   return {
     brand: brand || '',
+    product_line: str(data.product_line, partial.product_line),
     brand_model: (data.brand_model != null ? String(data.brand_model).trim() : partial.brand_model) || (brand || '') + (data.model || ''),
-    processor_type: data.processor_type != null ? String(data.processor_type).trim() : partial.processor_type,
-    generation: data.generation != null ? String(data.generation).trim() : partial.generation,
-    storage_type: data.storage_type != null ? String(data.storage_type).trim() : partial.storage_type,
-    purchased_from: data.purchased_from != null ? String(data.purchased_from).trim() : partial.purchased_from,
-    graphics: data.graphics != null ? String(data.graphics).trim() : partial.graphics,
-    graphics_type: data.graphics_type != null ? String(data.graphics_type).trim() : partial.graphics_type,
-    graphics_model: data.graphics_model != null ? String(data.graphics_model).trim() : partial.graphics_model,
-    purchase_rate: data.purchase_rate != null && data.purchase_rate !== '' ? Number(data.purchase_rate) : (partial.purchase_rate ?? null),
-    extra_charges: data.extra_charges != null && data.extra_charges !== '' ? Number(data.extra_charges) : (partial.extra_charges ?? null),
-    condition: data.condition != null ? String(data.condition).trim() : (partial.condition || 'Good'),
+    processor_type: str(data.processor_type, partial.processor_type),
+    ram: str(data.ram, partial.ram),
+    generation: str(data.generation, partial.generation),
+    storage_type: str(data.storage_type, partial.storage_type),
+    storage_size: str(data.storage_size, partial.storage_size),
+    purchased_from: str(data.purchased_from, partial.purchased_from),
+    graphics: str(data.graphics, partial.graphics),
+    graphics_type: str(data.graphics_type, partial.graphics_type),
+    graphics_model: str(data.graphics_model, partial.graphics_model),
+    purchase_rate: numOrNull(data.purchase_rate, partial.purchase_rate),
+    extra_charges: numOrNull(data.extra_charges, partial.extra_charges),
+    condition: (data.condition != null ? String(data.condition).trim() : null) || partial.condition || 'Good',
+    charger: str(data.charger, partial.charger),
+    purchase_comment: str(data.comment ?? data.purchase_comment, partial.purchase_comment),
+    purchaser_name: str(data.purchaser_name, partial.purchaser_name),
+    purchaser_phone: str(data.purchaser_phone, partial.purchaser_phone),
+    purchaser_aadhar: str(data.purchaser_aadhar, partial.purchaser_aadhar),
+    purchaser_aadhar_hash: str(data.purchaser_aadhar_hash, partial.purchaser_aadhar_hash),
+    source_type: str(data.source_type, partial.source_type),
+    source_id: data.source_id != null && data.source_id !== '' ? Number(data.source_id) : (partial.source_id ?? null),
     status: data.status || partial.status || 'In Stock',
     current_store_id: data.current_store_id != null && data.current_store_id !== '' ? Number(data.current_store_id) : (partial.current_store_id ?? null)
   };
@@ -417,16 +519,22 @@ function validateLaptop(l) {
 }
 
 function createLaptop(data, { silent = false } = {}) {
-  const serial = (data.serial_number || '').trim();
+  let serial = (data.serial_number || '').trim();
   const l = normalizeLaptop(data);
   const err = validateLaptop(l);
   if (err) return err;
-  if (!serial) return { error: 'serial_number is required' };
+  if (!serial) {
+    // Single-add auto-generates from the brand prefix (mirrors bulk mode).
+    const brandRow = getBrands().find((b) => b.name.toLowerCase() === String(l.brand || '').trim().toLowerCase());
+    const prefix = ((data.serial_prefix || (brandRow && brandRow.serial_prefix)) || '').trim();
+    if (!prefix) return { error: 'Serial Number is required (or use a brand with a serial prefix).' };
+    serial = generateSerial(prefix);
+  }
   const exists = db.prepare('SELECT id FROM Laptops WHERE serial_number = ?').get(serial);
   if (exists) return { error: `Serial ${serial} already exists` };
   const info = db.prepare(
-    `INSERT INTO Laptops (brand, brand_model, processor_type, generation, storage_type, purchased_from, graphics, graphics_type, graphics_model, purchase_rate, extra_charges, serial_number, condition, current_store_id, status, updated_at)
-     VALUES ($brand, $brand_model, $processor_type, $generation, $storage_type, $purchased_from, $graphics, $graphics_type, $graphics_model, $purchase_rate, $extra_charges, $serial_number, $condition, $current_store_id, $status, datetime('now'))`
+    `INSERT INTO Laptops (brand, product_line, brand_model, processor_type, ram, generation, storage_type, storage_size, purchased_from, graphics, graphics_type, graphics_model, purchase_rate, extra_charges, serial_number, condition, charger, purchase_comment, purchaser_name, purchaser_phone, purchaser_aadhar, purchaser_aadhar_hash, source_type, source_id, current_store_id, status, updated_at)
+     VALUES ($brand, $product_line, $brand_model, $processor_type, $ram, $generation, $storage_type, $storage_size, $purchased_from, $graphics, $graphics_type, $graphics_model, $purchase_rate, $extra_charges, $serial_number, $condition, $charger, $purchase_comment, $purchaser_name, $purchaser_phone, $purchaser_aadhar, $purchaser_aadhar_hash, $source_type, $source_id, $current_store_id, $status, datetime('now'))`
   ).run({ ...l, serial_number: serial });
   return { laptop: getLaptop(info.lastInsertRowid) };
 }
@@ -465,10 +573,13 @@ function updateLaptop(laptopId, data) {
   const err = validateLaptop(l);
   if (err) return err;
   db.prepare(
-    `UPDATE Laptops SET brand=$brand, brand_model=$brand_model, processor_type=$processor_type,
-       generation=$generation, storage_type=$storage_type, purchased_from=$purchased_from,
+    `UPDATE Laptops SET brand=$brand, product_line=$product_line, brand_model=$brand_model, processor_type=$processor_type,
+       ram=$ram, generation=$generation, storage_type=$storage_type, storage_size=$storage_size, purchased_from=$purchased_from,
        graphics=$graphics, graphics_type=$graphics_type, graphics_model=$graphics_model,
-       purchase_rate=$purchase_rate, extra_charges=$extra_charges, condition=$condition,
+       purchase_rate=$purchase_rate, extra_charges=$extra_charges, condition=$condition, charger=$charger,
+       purchase_comment=$purchase_comment, purchaser_name=$purchaser_name, purchaser_phone=$purchaser_phone,
+       purchaser_aadhar=$purchaser_aadhar, purchaser_aadhar_hash=$purchaser_aadhar_hash,
+       source_type=$source_type, source_id=$source_id,
        current_store_id=$current_store_id, status=$status, updated_at=datetime('now') WHERE id=$id`
   ).run({ ...l, id: laptopId });
   return { laptop: getLaptop(laptopId) };
@@ -486,7 +597,7 @@ function deleteLaptop(laptopId) {
   return { ok: true, id: laptopId };
 }
 
-function transferLaptop(laptopId, toStoreId) {
+function transferLaptop(laptopId, toStoreId, transferredBy = null) {
   const laptop = db.prepare('SELECT * FROM Laptops WHERE id = ?').get(laptopId);
   if (!laptop) return { error: 'Laptop not found' };
   const toStore = getStore(toStoreId);
@@ -494,8 +605,8 @@ function transferLaptop(laptopId, toStoreId) {
   const fromStore = getStore(laptop.current_store_id);
   const fromStoreId = laptop.current_store_id ?? null;
   const tx = transaction(() => {
-    db.prepare("UPDATE Laptops SET current_store_id = ?, updated_at = datetime('now') WHERE id = ?").run(toStoreId, laptopId);
-    db.prepare('INSERT INTO TransferLogs (laptop_id, from_store_id, to_store_id) VALUES (?, ?, ?)').run(laptopId, fromStoreId, toStoreId);
+    db.prepare("UPDATE Laptops SET current_store_id = ?, status = 'In Stock', updated_at = datetime('now') WHERE id = ?").run(toStoreId, laptopId);
+    db.prepare('INSERT INTO TransferLogs (laptop_id, from_store_id, to_store_id, transferred_by) VALUES (?, ?, ?, ?)').run(laptopId, fromStoreId, toStoreId, transferredBy);
   });
   tx();
   return { ok: true, laptop: getLaptop(laptopId), from: fromStore, to: toStore };
@@ -503,7 +614,7 @@ function transferLaptop(laptopId, toStoreId) {
 
 function getTransferLogs(limit = 100) {
   return db.prepare(
-    `SELECT tl.id, tl.laptop_id, tl.from_store_id, tl.to_store_id, tl.changed_at,
+    `SELECT tl.id, tl.laptop_id, tl.from_store_id, tl.to_store_id, tl.changed_at, tl.transferred_by,
             l.brand_model, l.serial_number,
             fs.store_name AS from_store_name,
             ts.store_name AS to_store_name
@@ -520,6 +631,7 @@ function getTransferLogs(limit = 100) {
 // ---------------------------------------------------------------------------
 function saleRow(s) {
   if (!s) return undefined;
+  const phone = s.customer_phone || null;
   return {
     id: s.id,
     laptop_id: s.laptop_id,
@@ -527,6 +639,12 @@ function saleRow(s) {
     brand_model: s.brand_model,
     store_id: s.store_id,
     store_name: storeName(s.store_id),
+    customer_id: s.customer_id ?? null,
+    customer_name: s.customer_name || null,
+    customer_phone: phone,
+    customer_phone_last4: phone ? String(phone).slice(-4) : null,
+    payment_method: s.payment_method || null,
+    payment_detail: s.payment_detail || null,
     sale_price: s.sale_price,
     cost_price: s.cost_price,
     profit: s.profit,
@@ -536,7 +654,7 @@ function saleRow(s) {
 }
 
 // Sell a laptop: mark it Sold, record the sale. Profit = sale - (rate + extra).
-function sellLaptop(laptopId, salePrice, soldBy) {
+function sellLaptop(laptopId, salePrice, soldBy, opts = {}) {
   const laptop = getLaptop(laptopId);
   if (!laptop) return { error: 'Laptop not found' };
   if (laptop.status === 'Sold') return { error: 'Laptop is already sold' };
@@ -544,14 +662,41 @@ function sellLaptop(laptopId, salePrice, soldBy) {
   if (!Number.isFinite(price)) return { error: 'sale_price is required' };
   const cost = (laptop.purchase_rate || 0) + (laptop.extra_charges || 0);
   const profit = price - cost;
+  let customer = null;
+  if (opts.customerId != null && opts.customerId !== '') {
+    customer = db.prepare('SELECT * FROM Customers WHERE id = ?').get(Number(opts.customerId));
+    if (!customer) return { error: 'Customer not found' };
+  }
 
   const info = db.prepare(
-    `INSERT INTO Sales (laptop_id, serial_number, brand_model, store_id, sale_price, cost_price, profit, sold_at, sold_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), ?)`
-  ).run(laptopId, laptop.serial_number, laptop.brand_model, laptop.current_store_id, price, cost, profit, soldBy || null);
+    `INSERT INTO Sales (laptop_id, serial_number, brand_model, store_id, sale_price, cost_price, profit, sold_at, sold_by,
+                        customer_id, customer_name, customer_phone, payment_method, payment_detail)
+     VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'), ?, ?, ?, ?, ?, ?)`
+  ).run(
+    laptopId, laptop.serial_number, laptop.brand_model, laptop.current_store_id, price, cost, profit, soldBy || null,
+    customer ? customer.id : null,
+    customer ? customer.name : null,
+    customer ? customer.phone : null,
+    opts.paymentMethod || null,
+    opts.paymentDetail || null
+  );
 
   updateLaptop(laptopId, { status: 'Sold' });
   return { sale: saleRow(db.prepare('SELECT * FROM Sales WHERE id = ?').get(info.lastInsertRowid)) };
+}
+
+// Reverse a sale (refund/exchange): remove the sale row, laptop back to stock.
+function deleteSale(saleId) {
+  const sale = db.prepare('SELECT * FROM Sales WHERE id = ?').get(saleId);
+  if (!sale) return { error: 'Sale not found' };
+  const tx = transaction(() => {
+    db.prepare('DELETE FROM Sales WHERE id = ?').run(saleId);
+    if (sale.laptop_id) {
+      db.prepare("UPDATE Laptops SET status = 'In Stock', updated_at = datetime('now') WHERE id = ?").run(sale.laptop_id);
+    }
+  });
+  tx();
+  return { ok: true, id: saleId, entity_label: `${sale.brand_model || ''} ${sale.serial_number || ''}`.trim() };
 }
 
 function getSales() {
@@ -578,6 +723,9 @@ function repairRow(r) {
     issue: r.issue,
     vendor: r.vendor,
     cost: r.cost,
+    charge: r.charge ?? 0,
+    store_id: r.store_id ?? null,
+    store_name: r.store_id != null ? storeName(r.store_id) : null,
     status: r.status,
     notes: r.notes,
     created_by: r.created_by,
@@ -598,8 +746,8 @@ function createRepair(data) {
   const issue = (data.issue || '').trim();
   if (!issue) return { error: 'issue is required' };
   const info = db.prepare(
-    `INSERT INTO Repairs (laptop_id, serial_number, brand_model, issue, vendor, cost, notes, created_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    `INSERT INTO Repairs (laptop_id, serial_number, brand_model, issue, vendor, cost, charge, store_id, notes, created_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).run(
     data.laptop_id != null && data.laptop_id !== '' ? Number(data.laptop_id) : null,
     (data.serial_number || '').trim() || null,
@@ -607,6 +755,8 @@ function createRepair(data) {
     issue,
     (data.vendor || '').trim() || null,
     data.cost != null && data.cost !== '' ? Number(data.cost) : 0,
+    data.charge != null && data.charge !== '' ? Number(data.charge) : 0,
+    data.store_id != null && data.store_id !== '' ? Number(data.store_id) : null,
     (data.notes || '').trim() || null,
     (data.created_by || '').trim() || null
   );
@@ -621,7 +771,7 @@ function updateRepair(id, data) {
   const status = data.status != null ? String(data.status).trim() : repair.status;
   if (!REPAIR_STATUSES.includes(status)) return { error: 'Invalid repair status' };
   db.prepare(
-    `UPDATE Repairs SET laptop_id=?, serial_number=?, brand_model=?, issue=?, vendor=?, cost=?, status=?, notes=?, updated_at=datetime('now') WHERE id=?`
+    `UPDATE Repairs SET laptop_id=?, serial_number=?, brand_model=?, issue=?, vendor=?, cost=?, charge=?, store_id=?, status=?, notes=?, updated_at=datetime('now') WHERE id=?`
   ).run(
     data.laptop_id !== undefined && data.laptop_id !== null && data.laptop_id !== '' ? Number(data.laptop_id) : repair.laptop_id,
     data.serial_number !== undefined ? (String(data.serial_number).trim() || null) : repair.serial_number,
@@ -629,6 +779,8 @@ function updateRepair(id, data) {
     issue,
     data.vendor !== undefined ? (String(data.vendor).trim() || null) : repair.vendor,
     data.cost !== undefined && data.cost !== null && data.cost !== '' ? Number(data.cost) : repair.cost,
+    data.charge !== undefined && data.charge !== null && data.charge !== '' ? Number(data.charge) : (repair.charge ?? 0),
+    data.store_id !== undefined && data.store_id !== null && data.store_id !== '' ? Number(data.store_id) : repair.store_id,
     status,
     data.notes !== undefined ? (String(data.notes).trim() || null) : repair.notes,
     id
@@ -708,8 +860,10 @@ function generatePassword(len = 20) {
 const seedUsers = () => {
   const count = db.prepare('SELECT COUNT(*) AS n FROM Users').get().n;
   if (count > 0) return;
-  const superadminPw = generatePassword();
-  const adminPw = generatePassword();
+  // Set ADMIN_PASSWORD in backend/.env on first boot for known credentials.
+  const fixed = (process.env.ADMIN_PASSWORD || '').trim();
+  const superadminPw = fixed || generatePassword();
+  const adminPw = fixed || generatePassword();
   const tx = transaction(() => {
     db.prepare("INSERT INTO Users (username, password_hash, display_name, role, force_password_change) VALUES (?, ?, ?, ?, ?)")
       .run('superadmin', bcrypt.hashSync(superadminPw, 10), 'Super Administrator', 'superadmin', 1);
@@ -724,7 +878,13 @@ const seedUsers = () => {
   console.log('------------------------------------------------------------');
 };
 
-function createUser({ username, password, display_name, role = 'staff' }) {
+function parseStoreId(v) {
+  if (v === null || v === undefined || v === '') return null;
+  const n = Number(v);
+  return Number.isInteger(n) ? n : null;
+}
+
+function createUser({ username, password, display_name, role = 'staff', home_store_id, allowed_store_ids } = {}) {
   const name = (username || '').trim().toLowerCase();
   const display = (display_name || '').trim();
   if (!name) return { error: 'username is required' };
@@ -733,9 +893,12 @@ function createUser({ username, password, display_name, role = 'staff' }) {
   if (!ROLES.includes(role)) return { error: 'Invalid role' };
   const exists = db.prepare('SELECT id FROM Users WHERE username = ?').get(name);
   if (exists) return { error: 'Username already taken' };
+  const home = parseStoreId(home_store_id);
+  if (home != null && !getStore(home)) return { error: 'Home store not found' };
+  const allowed = Array.isArray(allowed_store_ids) && allowed_store_ids.length ? JSON.stringify(allowed_store_ids.map(Number)) : null;
   const hash = bcrypt.hashSync(String(password), 10);
-  const info = db.prepare('INSERT INTO Users (username, password_hash, display_name, role) VALUES (?, ?, ?, ?)').run(name, hash, display || name, role);
-  return { user: publicUser(getUserById(info.lastInsertRowid)) };
+  const info = db.prepare('INSERT INTO Users (username, password_hash, display_name, role, home_store_id, allowed_store_ids) VALUES (?, ?, ?, ?, ?, ?)').run(name, hash, display || name, role, home, allowed);
+  return { user: publicUserFull(getUserById(info.lastInsertRowid)) };
 }
 
 function getUserById(id) {
@@ -759,10 +922,10 @@ function getLoginLogs(limit = 200) {
 }
 
 function getUsers() {
-  return db.prepare('SELECT id, username, display_name, role, created_at FROM Users ORDER BY id').all();
+  return db.prepare('SELECT * FROM Users ORDER BY id').all().map(publicUserFull);
 }
 
-function updateUser(userId, { username, password, display_name, role } = {}) {
+function updateUser(userId, { username, password, display_name, role, home_store_id, allowed_store_ids } = {}) {
   const user = db.prepare('SELECT * FROM Users WHERE id = ?').get(userId);
   if (!user) return { error: 'User not found' };
   const name = username != null ? String(username).trim().toLowerCase() : user.username;
@@ -775,8 +938,13 @@ function updateUser(userId, { username, password, display_name, role } = {}) {
   const finalRole = role != null ? role : user.role;
   const hash = password && String(password) !== '' ? bcrypt.hashSync(String(password), 10) : user.password_hash;
   const clearForce = password && String(password) !== '' ? 0 : user.force_password_change;
-  db.prepare('UPDATE Users SET username = ?, password_hash = ?, display_name = ?, role = ?, force_password_change = ? WHERE id = ?').run(name, hash, display || name, finalRole, clearForce, userId);
-  return { user: publicUser(getUserById(userId)) };
+  const home = home_store_id !== undefined ? parseStoreId(home_store_id) : user.home_store_id;
+  if (home != null && !getStore(home)) return { error: 'Home store not found' };
+  const allowed = allowed_store_ids !== undefined
+    ? (Array.isArray(allowed_store_ids) && allowed_store_ids.length ? JSON.stringify(allowed_store_ids.map(Number)) : null)
+    : user.allowed_store_ids;
+  db.prepare('UPDATE Users SET username = ?, password_hash = ?, display_name = ?, role = ?, force_password_change = ?, home_store_id = ?, allowed_store_ids = ? WHERE id = ?').run(name, hash, display || name, finalRole, clearForce, home, allowed, userId);
+  return { user: publicUserFull(getUserById(userId)) };
 }
 
 function deleteUser(userId) {
@@ -843,6 +1011,309 @@ function setSettings(patch = {}) {
   return getSettings();
 }
 
+// ---------------------------------------------------------------------------
+// Vendors
+// ---------------------------------------------------------------------------
+function vendorRow(v) {
+  if (!v) return undefined;
+  return { id: v.id, name: v.name, contact: v.contact || null, address: v.address || null, created_at: v.created_at };
+}
+
+function getVendors() {
+  return db.prepare('SELECT * FROM Vendors ORDER BY name').all().map(vendorRow);
+}
+
+function addVendor({ name, contact, address }) {
+  const n = (name || '').trim();
+  if (!n) return { error: 'name is required' };
+  if (db.prepare('SELECT id FROM Vendors WHERE name = ?').get(n)) return { error: 'A vendor with that name already exists' };
+  const info = db.prepare('INSERT INTO Vendors (name, contact, address) VALUES (?, ?, ?)').run(
+    n, (contact || '').trim() || null, (address || '').trim() || null
+  );
+  return { vendor: vendorRow(db.prepare('SELECT * FROM Vendors WHERE id = ?').get(info.lastInsertRowid)) };
+}
+
+function updateVendor(id, { name, contact, address }) {
+  const v = db.prepare('SELECT * FROM Vendors WHERE id = ?').get(id);
+  if (!v) return { error: 'Vendor not found' };
+  const n = name != null ? String(name).trim() : v.name;
+  if (!n) return { error: 'name cannot be empty' };
+  if (db.prepare('SELECT id FROM Vendors WHERE name = ? AND id != ?').get(n, id)) return { error: 'A vendor with that name already exists' };
+  db.prepare('UPDATE Vendors SET name = ?, contact = ?, address = ? WHERE id = ?').run(
+    n,
+    contact !== undefined ? (String(contact).trim() || null) : v.contact,
+    address !== undefined ? (String(address).trim() || null) : v.address,
+    id
+  );
+  return { vendor: vendorRow(db.prepare('SELECT * FROM Vendors WHERE id = ?').get(id)) };
+}
+
+function deleteVendor(id) {
+  const v = db.prepare('SELECT * FROM Vendors WHERE id = ?').get(id);
+  if (!v) return { error: 'Vendor not found' };
+  db.prepare('DELETE FROM Vendors WHERE id = ?').run(id);
+  return { ok: true, id, entity_label: v.name };
+}
+
+function bulkDeleteVendors(ids) {
+  const list = (Array.isArray(ids) ? ids : []).map(Number).filter(Number.isInteger);
+  if (!list.length) return { error: 'No vendors selected' };
+  const tx = transaction(() => list.forEach((vid) => db.prepare('DELETE FROM Vendors WHERE id = ?').run(vid)));
+  tx();
+  return { ok: true, deleted: list.length };
+}
+
+// ---------------------------------------------------------------------------
+// Customers
+// ---------------------------------------------------------------------------
+function customerRow(c) {
+  if (!c) return undefined;
+  return { id: c.id, name: c.name, phone: c.phone || null, email: c.email || null, address: c.address || null, notes: c.notes || null, created_at: c.created_at };
+}
+
+function getCustomers() {
+  return db.prepare('SELECT * FROM Customers ORDER BY name').all().map(customerRow);
+}
+
+function addCustomer({ name, phone, email, address, notes }) {
+  const n = (name || '').trim();
+  if (!n) return { error: 'name is required' };
+  const info = db.prepare('INSERT INTO Customers (name, phone, email, address, notes) VALUES (?, ?, ?, ?, ?)').run(
+    n,
+    (phone || '').trim() || null,
+    (email || '').trim() || null,
+    (address || '').trim() || null,
+    (notes || '').trim() || null
+  );
+  return customerRow(db.prepare('SELECT * FROM Customers WHERE id = ?').get(info.lastInsertRowid));
+}
+
+function updateCustomer(id, { name, phone, email, address, notes }) {
+  const c = db.prepare('SELECT * FROM Customers WHERE id = ?').get(id);
+  if (!c) return { error: 'Customer not found' };
+  const n = name != null ? String(name).trim() : c.name;
+  if (!n) return { error: 'name cannot be empty' };
+  db.prepare('UPDATE Customers SET name = ?, phone = ?, email = ?, address = ?, notes = ? WHERE id = ?').run(
+    n,
+    phone !== undefined ? (String(phone).trim() || null) : c.phone,
+    email !== undefined ? (String(email).trim() || null) : c.email,
+    address !== undefined ? (String(address).trim() || null) : c.address,
+    notes !== undefined ? (String(notes).trim() || null) : c.notes,
+    id
+  );
+  return customerRow(db.prepare('SELECT * FROM Customers WHERE id = ?').get(id));
+}
+
+function deleteCustomer(id) {
+  const c = db.prepare('SELECT * FROM Customers WHERE id = ?').get(id);
+  if (!c) return { error: 'Customer not found' };
+  db.prepare('DELETE FROM Customers WHERE id = ?').run(id);
+  return { ok: true, id, entity_label: c.name };
+}
+
+function bulkDeleteCustomers(ids) {
+  const list = (Array.isArray(ids) ? ids : []).map(Number).filter(Number.isInteger);
+  if (!list.length) return { error: 'No customers selected' };
+  const tx = transaction(() => list.forEach((cid) => db.prepare('DELETE FROM Customers WHERE id = ?').run(cid)));
+  tx();
+  return { ok: true, deleted: list.length };
+}
+
+// ---------------------------------------------------------------------------
+// Pending transfers (request → accept / reject / cancel)
+// ---------------------------------------------------------------------------
+const PENDING_SELECT = `
+  SELECT pt.*, l.brand, l.product_line, l.brand_model, l.processor_type, l.ram,
+         l.generation, l.storage_size, l.storage_type, l.serial_number,
+         fs.store_name AS from_store_name, ts.store_name AS to_store_name
+  FROM PendingTransfers pt
+  JOIN Laptops l ON l.id = pt.laptop_id
+  LEFT JOIN Stores fs ON fs.id = pt.from_store_id
+  LEFT JOIN Stores ts ON ts.id = pt.to_store_id`;
+
+function getPendingTransfers() {
+  return db.prepare(`${PENDING_SELECT} WHERE pt.status = 'pending' ORDER BY pt.created_at DESC, pt.id DESC`).all();
+}
+
+function initiateTransfer(laptopId, toStoreId, initiatedBy = null) {
+  const laptop = db.prepare('SELECT * FROM Laptops WHERE id = ?').get(Number(laptopId));
+  if (!laptop) return { error: 'Laptop not found' };
+  if (laptop.status === 'Sold') return { error: 'Sold laptops cannot be transferred' };
+  const toStore = getStore(Number(toStoreId));
+  if (!toStore) return { error: 'Destination store not found' };
+  if (Number(laptop.current_store_id) === Number(toStoreId)) return { error: 'Laptop is already in that store' };
+  const dup = db.prepare("SELECT id FROM PendingTransfers WHERE laptop_id = ? AND status = 'pending'").get(laptop.id);
+  if (dup) return { error: 'A transfer request is already pending for this laptop' };
+  const info = db.prepare(
+    'INSERT INTO PendingTransfers (laptop_id, from_store_id, to_store_id, initiated_by) VALUES (?, ?, ?, ?)'
+  ).run(laptop.id, laptop.current_store_id, Number(toStoreId), initiatedBy);
+  db.prepare("UPDATE Laptops SET status = 'In Transit', updated_at = datetime('now') WHERE id = ?").run(laptop.id);
+  return { ok: true, transfer: db.prepare(`${PENDING_SELECT} WHERE pt.id = ?`).get(info.lastInsertRowid) };
+}
+
+function acceptTransfer(transferId) {
+  const pt = db.prepare('SELECT * FROM PendingTransfers WHERE id = ?').get(Number(transferId));
+  if (!pt || pt.status !== 'pending') return { error: 'Transfer request not found' };
+  const moved = transferLaptop(pt.laptop_id, pt.to_store_id, pt.initiated_by);
+  if (moved.error) return moved;
+  db.prepare("UPDATE PendingTransfers SET status = 'accepted', decided_at = datetime('now') WHERE id = ?").run(pt.id);
+  return { ok: true, laptop: moved.laptop, from: moved.from, to: moved.to };
+}
+
+function settlePendingTransfer(transferId, status) {
+  const pt = db.prepare('SELECT * FROM PendingTransfers WHERE id = ?').get(Number(transferId));
+  if (!pt || pt.status !== 'pending') return { error: 'Transfer request not found' };
+  const tx = transaction(() => {
+    db.prepare('UPDATE PendingTransfers SET status = ?, decided_at = datetime(\'now\') WHERE id = ?').run(status, pt.id);
+    db.prepare("UPDATE Laptops SET status = 'In Stock', updated_at = datetime('now') WHERE id = ?").run(pt.laptop_id);
+  });
+  tx();
+  return { ok: true, id: pt.id };
+}
+
+const rejectTransfer = (transferId) => settlePendingTransfer(transferId, 'rejected');
+const cancelTransfer = (transferId) => settlePendingTransfer(transferId, 'cancelled');
+
+// ---------------------------------------------------------------------------
+// Delete logs (audit trail for password-confirmed deletions)
+// ---------------------------------------------------------------------------
+function recordDeleteLog({ entity_type, entity_id, entity_label, remarks, deleted_by }) {
+  db.prepare(
+    'INSERT INTO DeleteLogs (entity_type, entity_id, entity_label, remarks, deleted_by) VALUES (?, ?, ?, ?, ?)'
+  ).run(entity_type, entity_id != null ? String(entity_id) : null, entity_label || null, remarks || null, deleted_by || null);
+}
+
+function getDeleteLogs(limit = 500) {
+  return db.prepare('SELECT * FROM DeleteLogs ORDER BY created_at DESC, id DESC LIMIT ?').all(limit);
+}
+
+// ---------------------------------------------------------------------------
+// Daily reports / store breakdowns
+// ---------------------------------------------------------------------------
+function getDailyReport(date) {
+  const d = String(date || '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return { error: 'Invalid date (YYYY-MM-DD)' };
+  const stores = getStores();
+  return {
+    date: d,
+    stores: stores.map((s) => {
+      const inRow = db.prepare("SELECT COUNT(*) AS n FROM Laptops WHERE current_store_id = ? AND status = 'In Stock'").get(s.id);
+      const sold = db.prepare('SELECT COUNT(*) AS n FROM Sales WHERE store_id = ? AND date(sold_at) = date(?)').get(s.id, d);
+      const outT = db.prepare('SELECT COUNT(*) AS n FROM TransferLogs WHERE from_store_id = ? AND date(changed_at) = date(?)').get(s.id, d);
+      const inT = db.prepare('SELECT COUNT(*) AS n FROM TransferLogs WHERE to_store_id = ? AND date(changed_at) = date(?)').get(s.id, d);
+      const soldN = sold.n || 0, outN = outT.n || 0;
+      return {
+        store_id: s.id,
+        store_name: s.store_name,
+        in_store: inRow.n || 0,
+        sold_on: soldN,
+        transferred_out_on: outN,
+        transferred_in_on: inT.n || 0,
+        out_total: soldN + outN
+      };
+    })
+  };
+}
+
+function getDailyStoreSales(date) {
+  const d = String(date || '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return { error: 'Invalid date (YYYY-MM-DD)' };
+  const stores = getStores();
+  return {
+    date: d,
+    stores: stores.map((s) => {
+      const r = db.prepare(
+        'SELECT COUNT(*) AS units, COALESCE(SUM(sale_price),0) AS amount, COALESCE(SUM(profit),0) AS profit FROM Sales WHERE store_id = ? AND date(sold_at) = date(?)'
+      ).get(s.id, d);
+      return { store_id: s.id, store_name: s.store_name, units: r.units || 0, amount: r.amount || 0, profit: r.profit || 0 };
+    })
+  };
+}
+
+function getRepairsByStore() {
+  const stores = getStores();
+  const rows = stores.map((s) => {
+    const r = db.prepare(
+      'SELECT COUNT(*) AS count, COALESCE(SUM(cost),0) AS total_cost, COALESCE(SUM(charge),0) AS total_charge FROM Repairs WHERE store_id = ?'
+    ).get(s.id);
+    return {
+      store_id: s.id,
+      store_name: s.store_name,
+      count: r.count || 0,
+      total_cost: r.total_cost || 0,
+      total_charge: r.total_charge || 0,
+      profit: (r.total_charge || 0) - (r.total_cost || 0)
+    };
+  });
+  const r0 = db.prepare(
+    'SELECT COUNT(*) AS count, COALESCE(SUM(cost),0) AS total_cost, COALESCE(SUM(charge),0) AS total_charge FROM Repairs WHERE store_id IS NULL'
+  ).get();
+  if (r0.count > 0) {
+    rows.push({
+      store_id: null, store_name: 'Unassigned', count: r0.count || 0,
+      total_cost: r0.total_cost || 0, total_charge: r0.total_charge || 0,
+      profit: (r0.total_charge || 0) - (r0.total_cost || 0)
+    });
+  }
+  const t = rows.reduce((a, r) => ({ total_charge: a.total_charge + r.total_charge }), { total_charge: 0 });
+  return { stores: rows, totals: t };
+}
+
+function getInventoryStats({ storeId } = {}) {
+  const sid = storeId != null && storeId !== '' ? Number(storeId) : null;
+  const scope = sid != null ? 'WHERE current_store_id = ?' : '';
+  const args = sid != null ? [sid] : [];
+  const t = db.prepare(
+    `SELECT COUNT(*) AS total,
+            SUM(CASE WHEN status = 'In Stock' THEN 1 ELSE 0 END) AS in_stock,
+            SUM(CASE WHEN status = 'In Transit' THEN 1 ELSE 0 END) AS in_transit,
+            SUM(CASE WHEN status = 'Sold' THEN 1 ELSE 0 END) AS sold
+     FROM Laptops ${scope}`
+  ).get(...args);
+  const byBrand = db.prepare(
+    `SELECT brand, COUNT(*) AS total,
+            SUM(CASE WHEN status = 'In Stock' THEN 1 ELSE 0 END) AS in_stock,
+            SUM(CASE WHEN status = 'In Transit' THEN 1 ELSE 0 END) AS in_transit,
+            SUM(CASE WHEN status = 'Sold' THEN 1 ELSE 0 END) AS sold
+     FROM Laptops ${scope} GROUP BY brand ORDER BY total DESC`
+  ).all(...args);
+  const byGeneration = db.prepare(
+    `SELECT COALESCE(generation, 'Unknown') AS generation, COUNT(*) AS total FROM Laptops ${scope} GROUP BY generation ORDER BY total DESC`
+  ).all(...args);
+  const byConfig = db.prepare(
+    `SELECT TRIM(COALESCE(processor_type,'') || ' ' || COALESCE(ram,'') || ' ' || COALESCE(storage_size,'')) AS config, COUNT(*) AS total
+     FROM Laptops ${scope} GROUP BY config ORDER BY total DESC`
+  ).all(...args).map((r) => ({ config: r.config.trim() || 'Unknown', total: r.total }));
+  return {
+    totals: { total: t.total || 0, in_stock: t.in_stock || 0, in_transit: t.in_transit || 0, sold: t.sold || 0 },
+    by_brand: byBrand,
+    by_generation: byGeneration,
+    by_config: byConfig
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Users: store scoping
+// ---------------------------------------------------------------------------
+function publicUserFull(u) {
+  if (!u) return null;
+  const base = publicUser(u);
+  let allowed = null;
+  try {
+    const raw = u.allowed_store_ids;
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length) allowed = parsed.map(Number);
+    }
+  } catch { /* ignore */ }
+  const homeId = u.home_store_id ?? null;
+  return { ...base, home_store_id: homeId, home_store_name: homeId != null ? storeName(homeId) : null, allowed_store_ids: allowed };
+}
+
+function getLoginUsernames() {
+  return db.prepare('SELECT username, display_name FROM Users ORDER BY username').all();
+}
+
 seedUsers();
 seedSettings();
 
@@ -889,5 +1360,29 @@ module.exports = {
   getLoginLogs,
   getUsers,
   updateUser,
-  deleteUser
+  deleteUser,
+  publicUserFull,
+  getLoginUsernames,
+  deleteSale,
+  getVendors,
+  addVendor,
+  updateVendor,
+  deleteVendor,
+  bulkDeleteVendors,
+  getCustomers,
+  addCustomer,
+  updateCustomer,
+  deleteCustomer,
+  bulkDeleteCustomers,
+  getPendingTransfers,
+  initiateTransfer,
+  acceptTransfer,
+  rejectTransfer,
+  cancelTransfer,
+  recordDeleteLog,
+  getDeleteLogs,
+  getDailyReport,
+  getDailyStoreSales,
+  getRepairsByStore,
+  getInventoryStats
 };
