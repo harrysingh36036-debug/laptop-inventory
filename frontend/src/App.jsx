@@ -70,8 +70,32 @@ function getAudioCtx() {
   return _audioCtx;
 }
 
+let _transferAudio = null;
+function initTransferSound() {
+  try {
+    _transferAudio = new Audio('/transfer-sound.mp3');
+    _transferAudio.load();
+    _transferAudio.oncanplaythrough = () => {
+      // Sound ready to play
+    };
+    _transferAudio.onerror = () => {
+      _transferAudio = null; // Fall back to Web Audio API
+    };
+  } catch {
+    _transferAudio = null;
+  }
+}
+initTransferSound();
+
 function playTransferSound() {
   try {
+    // Use the MP3 file if loaded, otherwise fall back to Web Audio API
+    if (_transferAudio) {
+      _transferAudio.currentTime = 0;
+      _transferAudio.play().catch(() => {});
+      return;
+    }
+    // Fallback to Web Audio API
     const ctx = getAudioCtx();
     if (ctx.state !== 'running') {
       ctx.resume().then(() => _playBeep(ctx)).catch(() => {});
@@ -80,32 +104,6 @@ function playTransferSound() {
     }
   } catch { /* audio not available */ }
 }
-
-function _playBeep(ctx) {
-  const t = ctx.currentTime;
-  [0, 0.15, 0.3].forEach((offset, i) => {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = 'sine';
-    osc.frequency.value = i === 1 ? 1200 : 880;
-    gain.gain.setValueAtTime(0.4, t + offset);
-    gain.gain.exponentialRampToValueAtTime(0.01, t + offset + 0.12);
-    osc.start(t + offset);
-    osc.stop(t + offset + 0.12);
-  });
-  if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-    new Notification('Transfer Request', { body: 'A laptop transfer has been requested to your store!', icon: '/icon.svg' });
-  }
-}
-
-function requestNotificationPermission() {
-  if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
-    Notification.requestPermission();
-  }
-}
-requestNotificationPermission();
 
 const MENU_ICONS = {
   dashboard: (
@@ -372,7 +370,9 @@ export default function App() {
     manager: { editInventory: true, transferLaptops: true, createStaff: true, renameStores: true, editLabels: false, manageVendors: false, manageCustomers: false, viewPII: false },
     staff: { editInventory: false, transferLaptops: false, createStaff: false, renameStores: false, editLabels: false, manageVendors: false, manageCustomers: false, viewPII: false }
   };
-  const myPerms = rolePerms?.[user?.role] || defaultPerms[user?.role] || {};
+  // Merge saved permissions over the defaults so keys added later (e.g.
+  // transferLaptops) still resolve for roles saved before they existed.
+  const myPerms = { ...(defaultPerms[user?.role] || {}), ...(rolePerms?.[user?.role] || {}) };
   const can = (perm) => (isAdmin ? true : !!myPerms[perm]);
   const canEditInventory = can('editInventory');
   const canTransfer = can('transferLaptops');
