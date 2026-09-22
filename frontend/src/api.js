@@ -527,7 +527,7 @@ export const getPermissions = async () => {
   const fallback = {
     admin: { editInventory: true, transferLaptops: true, createStaff: true, renameStores: true, editLabels: true, manageVendors: false, manageCustomers: false, viewPII: true },
     manager: { editInventory: true, transferLaptops: true, createStaff: true, renameStores: true, editLabels: false, manageVendors: false, manageCustomers: false, viewPII: false },
-    staff: { editInventory: false, transferLaptops: false, createStaff: false, renameStores: false, editLabels: false, manageVendors: false, manageCustomers: false, viewPII: false }
+    staff: { editInventory: false, transferLaptops: true, createStaff: false, renameStores: false, editLabels: false, manageVendors: false, manageCustomers: false, viewPII: false }
   };
   try {
     const parsed = JSON.parse(raw || '{}');

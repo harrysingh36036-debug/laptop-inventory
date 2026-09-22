@@ -14,6 +14,7 @@ export default function InventoryView({
   canEdit,
   canTransfer,
   canSell,
+  transferStoreId = null,
   sellStoreId = null,
   canManageCustomers = false,
   showSensitive = false,
@@ -350,6 +351,7 @@ export default function InventoryView({
               stores={stores}
               canEdit={canEdit}
               canTransfer={canTransfer}
+              transferStoreId={transferStoreId}
               canSell={canSell}
               sellStoreId={sellStoreId}
               canManageCustomers={canManageCustomers}
@@ -438,14 +440,17 @@ export default function InventoryView({
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
               >
                 <option value="">Select a laptop...</option>
-                {(brandRows || []).filter(l => l.status !== 'Sold').map((l) => (
+                {(brandRows || [])
+                  .filter((l) => l.status !== 'Sold')
+                  .filter((l) => transferStoreId == null || String(l.current_store_id) === String(transferStoreId))
+                  .map((l) => (
                   <option key={l.id} value={l.id}>
                     {l.brand} {l.brand_model || ''} — {l.serial_number}
                   </option>
-                ))}
-              </select>
-            </div>
-            {transferModal.laptopId && (() => {
+                  ))}
+                </select>
+              </div>
+              {transferModal.laptopId && (() => {
               const sel = (brandRows || []).find(l => String(l.id) === String(transferModal.laptopId));
               if (!sel) return null;
               return (

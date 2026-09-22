@@ -368,7 +368,7 @@ export default function App() {
   })();
   const defaultPerms = {
     manager: { editInventory: true, transferLaptops: true, createStaff: true, renameStores: true, editLabels: false, manageVendors: false, manageCustomers: false, viewPII: false },
-    staff: { editInventory: false, transferLaptops: false, createStaff: false, renameStores: false, editLabels: false, manageVendors: false, manageCustomers: false, viewPII: false }
+    staff: { editInventory: false, transferLaptops: true, createStaff: false, renameStores: false, editLabels: false, manageVendors: false, manageCustomers: false, viewPII: false }
   };
   // Merge saved permissions over the defaults so keys added later (e.g.
   // transferLaptops) still resolve for roles saved before they existed.
@@ -377,6 +377,9 @@ export default function App() {
   const canEditInventory = can('editInventory');
   const canTransfer = can('transferLaptops');
   const canRenameStores = can('renameStores');
+  // Staff may only move laptops OUT of their own (home) store; managers and
+  // admins can transfer between any stores. Mirrors the sellStoreId pattern.
+  const transferStoreId = !isAdmin && user?.role === 'staff' ? (user?.home_store_id ?? null) : null;
   // PII (purchaser name / phone / Aadhar) is admin-aligned: admins always see
   // it; managers and staff only when the admin grants the "View PII" permission.
   const canViewPII = isAdmin || can('viewPII');
@@ -697,7 +700,16 @@ export default function App() {
   };
 
   // ---- Transfer action -----------------------------------------------------
+  // Staff may only initiate transfers for laptops currently sitting in their
+  // own (home) store. This is the single funnel used by every transfer UI.
   const handleTransfer = async (laptopId, toStoreId) => {
+    if (transferStoreId != null) {
+      const laptop = (laptops || []).find((l) => String(l.id) === String(laptopId));
+      if (!laptop || String(laptop.current_store_id) !== String(transferStoreId)) {
+        notify('You can only transfer laptops from your own store', 'error');
+        return;
+      }
+    }
     try {
       await initiateTransfer(laptopId, toStoreId);
       notify('Transfer request sent — awaiting acceptance from destination store', 'success');
@@ -1038,6 +1050,7 @@ export default function App() {
               stores={stores}
               onTransfer={handleTransfer}
               canTransfer={canTransfer}
+              transferStoreId={transferStoreId}
             />
         ) : tab === 'inventory' ? (
           <InventoryView
@@ -1052,6 +1065,7 @@ export default function App() {
             setSearch={setSearch}
             canEdit={canEditInventory}
             canTransfer={canTransfer}
+            transferStoreId={transferStoreId}
             canSell={canEditInventory}
             sellStoreId={!isAdmin && user?.role === 'manager' ? (user?.home_store_id ?? null) : null}
             canManageCustomers={canManageCustomers}

@@ -96,7 +96,7 @@ const DEFAULT_PERMISSIONS = {
   },
   staff: {
     editInventory: false,
-    transferLaptops: false,
+    transferLaptops: true,
     createStaff: false,
     renameStores: false,
     editLabels: false,

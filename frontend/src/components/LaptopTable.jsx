@@ -6,7 +6,7 @@ import useStickyShadow, { stickyCol } from '../useStickyShadow';
 
 export default function LaptopTable({
   laptops, stores, onTransfer, onEdit, onDelete, onSell,
-  canEdit = true, canTransfer = true, canSell = false, canManageCustomers = false, rowId, showSensitive = false, onDetail, sellStoreId = null
+  canEdit = true, canTransfer = true, canSell = false, canManageCustomers = false, rowId, showSensitive = false, onDetail, transferStoreId = null, sellStoreId = null
 }) {
   const [detailLaptopId, setDetailLaptopId] = useState(null);
   const [adminDetailId, setAdminDetailId] = useState(null);
@@ -120,7 +120,8 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                           <select
                             value={sel}
                             onChange={(e) => setPending({ ...pending, [l.id]: e.target.value })}
-                            className="w-[130px] rounded-lg border border-gray-200 bg-gray-50 px-1.5 py-1 text-[11px] text-gray-600 focus:border-blue-200 focus:outline-none"
+                            disabled={transferStoreId != null && String(l.current_store_id) !== String(transferStoreId)}
+                            className="w-[130px] rounded-lg border border-gray-200 bg-gray-50 px-1.5 py-1 text-[11px] text-gray-600 focus:border-blue-200 focus:outline-none disabled:cursor-not-allowed disabled:opacity-40"
                           >
                            <option value="">{t.selectStore}</option>
                            {stores
@@ -133,7 +134,7 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                          </select>
                          <button
                            onClick={() => handleConfirm(l)}
-                           disabled={!sel}
+                           disabled={!sel || (transferStoreId != null && String(l.current_store_id) !== String(transferStoreId))}
                            className="rounded-lg border border-gray-200 bg-gray-50 px-2 py-1 text-[10px] font-medium text-gray-600 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
                          >
                            {t.transferButton}
@@ -356,7 +357,8 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                     <select
                       value={sel}
                       onChange={(e) => setPending({ ...pending, [l.id]: e.target.value })}
-                      className="min-w-[130px] flex-1 rounded-lg border border-gray-200 bg-gray-50 px-2 py-1.5 font-mono text-xs text-gray-600 focus:border-blue-200 focus:outline-none"
+                      disabled={transferStoreId != null && String(l.current_store_id) !== String(transferStoreId)}
+                      className="min-w-[130px] flex-1 rounded-lg border border-gray-200 bg-gray-50 px-2 py-1.5 font-mono text-xs text-gray-600 focus:border-blue-200 focus:outline-none disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       <option value="">{t.selectStore}</option>
                       {stores
@@ -369,7 +371,7 @@ const spec = [l.processor_type, l.generation, l.ram, l.storage_size ? `${l.stora
                     </select>
                     <button
                       onClick={() => handleConfirm(l)}
-                      disabled={!sel}
+                      disabled={!sel || (transferStoreId != null && String(l.current_store_id) !== String(transferStoreId))}
                       className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
                     >
                       {t.transferButton}

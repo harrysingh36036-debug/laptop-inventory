@@ -80,7 +80,7 @@ const CARDS = [
 
 import { useLabels } from '../labels.jsx';
 
-export default function DashboardTab({ laptops = [], logs = [], customers = [], purchases = [], repairs = [], onNavigate, onFocusLaptop, user, stores = [], onTransfer, canTransfer = false }) {
+export default function DashboardTab({ laptops = [], logs = [], customers = [], purchases = [], repairs = [], onNavigate, onFocusLaptop, user, stores = [], onTransfer, canTransfer = false, transferStoreId = null }) {
   const t = useLabels();
   const [soldCount, setSoldCount] = useState(0);
   const [transferModal, setTransferModal] = useState(null); // { laptop, toStoreId }
@@ -535,7 +535,7 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
                   }) : ''}
                 </p>
                 <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
-                  {canTransfer && (
+                  {canTransfer && laptop.status !== 'Sold' && (transferStoreId == null || String(laptop.current_store_id) === String(transferStoreId)) && (
                     <button
                       onClick={() => setTransferModal({ laptop, toStoreId: '' })}
                       className="rounded-lg p-1.5 text-gray-400 hover:bg-teal-50 hover:text-teal-600"
@@ -600,9 +600,12 @@ export default function DashboardTab({ laptops = [], logs = [], customers = [], 
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
               >
                 <option value="">Select destination store</option>
-                {stores.filter((s) => s.id !== transferModal.laptop.current_store_id).map((s) => (
-                  <option key={s.id} value={s.id}>{s.store_name}</option>
-                ))}
+                {stores
+                  .filter((s) => s.id !== transferModal.laptop.current_store_id)
+                  .filter((s) => transferStoreId == null || String(transferModal.laptop.current_store_id) === String(transferStoreId))
+                  .map((s) => (
+                    <option key={s.id} value={s.id}>{s.store_name}</option>
+                  ))}
               </select>
             </div>
             <div className="flex justify-end gap-3">
