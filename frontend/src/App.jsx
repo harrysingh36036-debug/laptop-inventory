@@ -37,6 +37,7 @@ import {
 } from './api';
 import { socket, setSocketAuth, setLocalRole, setLocalPII } from './socket';
 import { joinPresence, leavePresence } from './presence';
+import { pushSupported, getPushState, enablePush, disablePush, notifyHiddenTab } from './push';
 import { LabelsProvider, DEFAULT_LABELS } from './labels.jsx';
 import Login from './components/Login';
 import StoreFilter from './components/StoreFilter';
@@ -305,6 +306,36 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [connected, setConnected] = useState(false);
 
+  // Free self-hosted Web Push state (bell toggle in the menu).
+  const [pushState, setPushState] = useState({ supported: pushSupported(), permission: 'default', subscribed: false, busy: false });
+  const refreshPushState = useCallback(async () => {
+    try {
+      const s = await getPushState();
+      setPushState((prev) => ({ ...prev, ...s, busy: false }));
+    } catch {
+      setPushState((prev) => ({ ...prev, busy: false }));
+    }
+  }, []);
+  useEffect(() => {
+    if (user) refreshPushState();
+  }, [user, refreshPushState]);
+  const handleTogglePush = useCallback(async () => {
+    setPushState((prev) => ({ ...prev, busy: true }));
+    try {
+      if (pushState.subscribed) {
+        await disablePush();
+        notify('Push notifications turned off on this device', 'info');
+      } else {
+        await enablePush();
+        notify('Push notifications on — you will hear a sound even when the app is closed', 'success');
+      }
+    } catch (e) {
+      notify(e.message, 'error');
+    } finally {
+      refreshPushState();
+    }
+  }, [pushState.subscribed, refreshPushState]);
+
   // Modals: null = closed
   const [invModal, setInvModal] = useState(null);
   const [purchaseModal, setPurchaseModal] = useState(null); // null | {} | { purchase }
@@ -552,6 +583,10 @@ export default function App() {
         `In real time: ${payload.laptop.brand_model} moved to ${payload.to?.store_name}`,
         'success'
       );
+      notifyHiddenTab(
+        'Laptop transferred',
+        `${payload.laptop.brand_model} moved to ${payload.to?.store_name}`
+      );
     };
 
     socket.on('laptop:transferred', onTransfer);
@@ -594,6 +629,10 @@ export default function App() {
 
     const onSale = (sale) => {
       notify(`In real time: ${sale?.brand_model} sold for ₹${Number(sale?.sale_price || 0).toLocaleString('en-IN')}`, 'success');
+      notifyHiddenTab(
+        'Laptop sold',
+        `${sale?.brand_model} sold for ₹${Number(sale?.sale_price || 0).toLocaleString('en-IN')}`
+      );
     };
     socket.on('sale:new', onSale);
 
@@ -1353,6 +1392,8 @@ export default function App() {
         perms={rolePerms}
         userRole={user?.role}
         user={user}
+        pushState={pushState}
+        onTogglePush={handleTogglePush}
       />
       </div>
     </LabelsProvider>

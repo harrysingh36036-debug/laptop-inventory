@@ -21,6 +21,22 @@ require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 
 const storage = require('./storage');
 
+// Free self-hosted Web Push. Loads lazily so the API still boots when the
+// optional `web-push` dependency or VAPID keys are missing.
+let push = null;
+try {
+  push = require('./push');
+} catch (err) {
+  console.warn('[push] module unavailable — push routes disabled:', err.message);
+  push = {
+    getStatus: () => ({ enabled: false, subscriptions: 0 }),
+    getPublicKey: () => null,
+    saveSubscription: () => ({ error: 'Push unavailable' }),
+    removeSubscription: () => ({ error: 'Push unavailable' }),
+    sendPush: async () => ({ sent: 0, skipped: 'push-unavailable' })
+  };
+}
+
 const {
   getStores,
   getLaptops,
@@ -361,11 +377,48 @@ app.post('/api/laptops/:id/transfer', authenticate, async (req, res) => {
   // Broadcast to every connected client (all stores + all devices).
   broadcast('laptop:transferred', result);
   broadcast('log:new', result.laptop);
+  push.sendPush({
+    title: 'Laptop transferred',
+    body: `${result.laptop?.brand_model || 'A laptop'} moved to ${result.to?.store_name || 'another store'}`,
+    tag: 'transfer'
+  }).catch(() => {});
   return res.json(result);
 });
 
 app.get('/api/logs', authenticate, async (_req, res) => {
   res.json(await getTransferLogs());
+});
+
+// ------------------------------ Web Push --------------------------------
+// Free self-hosted push (VAPID). Devices subscribe from the PWA; the server
+// fans out transfer/sale/repair alerts. Works even when the app is closed.
+app.get('/api/push/vapid-public-key', (_req, res) => {
+  res.json({ publicKey: push.getPublicKey() });
+});
+
+app.get('/api/push/status', authenticate, (_req, res) => {
+  res.json(push.getStatus());
+});
+
+app.post('/api/push/subscribe', authenticate, (req, res) => {
+  const result = push.saveSubscription(req.body?.subscription);
+  if (result.error) return res.status(400).json({ error: result.error });
+  res.json({ ok: true });
+});
+
+app.post('/api/push/unsubscribe', authenticate, (req, res) => {
+  const result = push.removeSubscription(req.body?.endpoint);
+  if (result.error) return res.status(400).json({ error: result.error });
+  res.json({ ok: true });
+});
+
+app.post('/api/push/test', authenticate, isAdmin, async (req, res) => {
+  const result = await push.sendPush({
+    title: req.body?.title || 'Universal CRM',
+    body: req.body?.body || 'Push notifications are working — you will hear a sound even when the app is closed.',
+    tag: 'push-test'
+  });
+  res.json({ ok: true, ...result });
 });
 
 // -------------------------------- Settings --------------------------------
@@ -475,6 +528,11 @@ app.post('/api/laptops/:id/sell', authenticate, async (req, res) => {
   const result = await sellLaptop(Number(req.params.id), req.body?.salePrice, req.user.username);
   if (result.error) return res.status(400).json({ error: result.error });
   broadcast('sale:new', result.sale);
+  push.sendPush({
+    title: 'Laptop sold',
+    body: `${result.sale?.brand_model || 'A laptop'} sold for ₹${Number(result.sale?.sale_price || 0).toLocaleString('en-IN')}`,
+    tag: 'sale'
+  }).catch(() => {});
   res.status(201).json(result.sale);
 });
 
@@ -547,6 +605,11 @@ app.post('/api/repairs', authenticate, async (req, res) => {
   const result = await createRepair({ ...(req.body || {}), created_by: req.user.username });
   if (result.error) return res.status(400).json({ error: result.error });
   broadcast('repair:created', result.repair);
+  push.sendPush({
+    title: 'Repair logged',
+    body: `Repair #${result.repair?.id || ''} recorded`.trim(),
+    tag: 'repair'
+  }).catch(() => {});
   res.status(201).json(result.repair);
 });
 

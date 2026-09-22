@@ -50,7 +50,7 @@ const ROLE_COLORS = {
   staff: 'bg-gray-600'
 };
 
-export default function QuickBall({ currentTab, onNavigate, canManage = false, isAdmin = false, onOpenData, onLogout, onOpenSettings, perms, userRole, user }) {
+export default function QuickBall({ currentTab, onNavigate, canManage = false, isAdmin = false, onOpenData, onLogout, onOpenSettings, perms, userRole, user, pushState, onTogglePush }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -134,6 +134,25 @@ export default function QuickBall({ currentTab, onNavigate, canManage = false, i
                 </svg>
               </span>
               Settings
+            </button>
+          )}
+          {pushState?.supported !== false && (
+            <button
+              onClick={() => { onTogglePush?.(); }}
+              disabled={!!pushState?.busy}
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+            >
+              <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${pushState?.subscribed ? 'bg-emerald-600' : 'bg-amber-500'}`}>
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" className="h-4 w-4 text-white">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+              </span>
+              <span className="flex-1 text-left">
+                Notifications
+                <span className="ml-2 text-[11px] text-gray-400">
+                  {pushState?.busy ? '…' : pushState?.subscribed ? 'On' : 'Off'}
+                </span>
+              </span>
             </button>
           )}
           <button
