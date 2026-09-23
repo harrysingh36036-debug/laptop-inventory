@@ -72,23 +72,3 @@ export async function disablePush() {
   }
   return true;
 }
-
-// Foreground helper: when the tab is hidden but the app is open, mirror the
-// socket event as a system notification (with sound) via the service worker.
-export async function notifyHiddenTab(title, body) {
-  try {
-    if (document.visibilityState === 'visible') return;
-    if (!pushSupported() || Notification.permission !== 'granted') return;
-    const reg = await navigator.serviceWorker.ready;
-    await reg.showNotification(title, {
-      body,
-      tag: 'laptop-inventory-live',
-      renotify: true,
-      silent: false,
-      icon: './icon.svg',
-      badge: './icon.svg',
-      vibrate: [200, 100, 200],
-      data: { url: '/' }
-    });
-  } catch { /* never break the app for a notification */ }
-}

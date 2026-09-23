@@ -29,7 +29,6 @@ try {
 } catch (err) {
   console.warn('[push] module unavailable — push routes disabled:', err.message);
   push = {
-    getStatus: () => ({ enabled: false, subscriptions: 0 }),
     getPublicKey: () => null,
     saveSubscription: () => ({ error: 'Push unavailable' }),
     removeSubscription: () => ({ error: 'Push unavailable' }),
@@ -41,7 +40,6 @@ const {
   getStores,
   getLaptops,
   getLaptop,
-  transferLaptop,
   getTransferLogs,
   createLaptop,
   createLaptopsBulk,
@@ -96,7 +94,6 @@ const {
   getUserByUsername,
   verifyPassword,
   recordLogin,
-  getLoginLogs,
   getUsers,
   updateUser,
   deleteUser
@@ -378,11 +375,6 @@ app.delete('/api/users/:id', authenticate, isAdmin, async (req, res) => {
   res.json(result);
 });
 
-// Login activity (admin only).
-app.get('/api/auth/logins', authenticate, isAdmin, async (_req, res) => {
-  res.json(await getLoginLogs());
-});
-
 // Protect the inventory API. Viewing is allowed for all roles; writes are
 // limited to managers and above.
 app.get('/api/stores', authenticate, async (_req, res) => {
@@ -397,40 +389,6 @@ app.get('/api/laptops', authenticate, async (req, res) => {
     search: req.query.search || undefined
   };
   res.json(await getLaptops(filters));
-});
-
-app.get('/api/laptops/:id', authenticate, async (req, res) => {
-  const laptop = await getLaptop(Number(req.params.id));
-  if (!laptop) return res.status(404).json({ error: 'Laptop not found' });
-  res.json(laptop);
-});
-
-// POST /api/laptops/:id/transfer  body: { toStoreId: 5 }
-// Legacy direct transfer (kept for compatibility). The app UI uses the
-// request → accept workflow below.
-app.post('/api/laptops/:id/transfer', authenticate, async (req, res) => {
-  if (!(await hasPerm(req.user, 'transferLaptops'))) {
-    return res.status(403).json({ error: 'Insufficient permissions' });
-  }
-  const laptopId = Number(req.params.id);
-  const toStoreId = Number(req.body.toStoreId);
-
-  if (!Number.isInteger(toStoreId)) {
-    return res.status(400).json({ error: 'toStoreId is required' });
-  }
-
-  const result = await transferLaptop(laptopId, toStoreId, req.user.username);
-  if (result.error) return res.status(404).json({ error: result.error });
-
-  // Broadcast to every connected client (all stores + all devices).
-  broadcast('laptop:transferred', result);
-  broadcast('log:new', result.laptop);
-  push.sendPush({
-    title: 'Laptop transferred',
-    body: `${result.laptop?.brand_model || 'A laptop'} moved to ${result.to?.store_name || 'another store'}`,
-    tag: 'transfer'
-  }).catch(() => {});
-  return res.json(result);
 });
 
 // --------------------- Transfer approval workflow ------------------------
@@ -460,7 +418,6 @@ app.post('/api/transfers/:id/accept', authenticate, async (req, res) => {
   if (result.error) return res.status(400).json({ error: result.error });
   broadcast('pending_transfers:updated');
   broadcast('laptop:transferred', result);
-  broadcast('log:new', result.laptop);
   push.sendPush({ title: 'Transfer accepted', body: `${result.laptop?.brand_model || 'A laptop'} moved to ${result.to?.store_name || ''}`.trim(), tag: 'transfer' }).catch(() => {});
   res.json({ ok: true });
 });
@@ -496,10 +453,6 @@ app.get('/api/push/vapid-public-key', (_req, res) => {
   res.json({ publicKey: push.getPublicKey() });
 });
 
-app.get('/api/push/status', authenticate, (_req, res) => {
-  res.json(push.getStatus());
-});
-
 app.post('/api/push/subscribe', authenticate, (req, res) => {
   const result = push.saveSubscription(req.body?.subscription);
   if (result.error) return res.status(400).json({ error: result.error });
@@ -518,43 +471,6 @@ app.post('/api/push/test', authenticate, isAdmin, async (req, res) => {
     body: req.body?.body || 'Push notifications are working — you will hear a sound even when the app is closed.',
     tag: 'push-test'
   });
-  res.json({ ok: true, ...result });
-});
-
-// Supabase Database Webhook → push fan-out. Supabase calls this when rows
-// change, so phones get notified even with the app fully closed. Guarded by a
-// shared secret (NOT the login JWT) — set PUSH_WEBHOOK_SECRET in backend/.env
-// and paste the same value into each Supabase webhook's HTTP header.
-app.post('/api/push/hook', async (req, res) => {
-  const secret = process.env.PUSH_WEBHOOK_SECRET || '';
-  const got = req.headers['x-webhook-secret'] || req.body?.secret;
-  if (!secret || got !== secret) return res.status(401).json({ error: 'Bad webhook secret' });
-  const b = req.body || {};
-  // Supabase sends { type:'INSERT', table, record }; also accept { table, event, row }.
-  const table = String(b.table || '').toLowerCase();
-  const event = String(b.type || b.event || 'INSERT').toUpperCase();
-  const row = b.record || b.row || b.new || {};
-  if (event !== 'INSERT' && event !== 'UPDATE') return res.json({ ok: true, skipped: 'not-insert-update' });
-  let payload = null;
-  if (table === 'transferlogs' || table === 'pending_transfers') {
-    payload = {
-      title: table === 'pending_transfers' ? 'New transfer request' : 'Laptop transferred',
-      body: `Serial ${row.serial_number || row.laptop_id || ''} needs attention`.trim(),
-      tag: 'transfer'
-    };
-  } else if (table === 'sales') {
-    payload = {
-      title: 'Laptop sold',
-      body: `${row.brand_model || 'A laptop'} sold for ₹${Number(row.sale_price || 0).toLocaleString('en-IN')}`,
-      tag: 'sale'
-    };
-  } else if (table === 'repairs') {
-    payload = { title: 'Repair update', body: `Repair #${row.id || ''} updated`.trim(), tag: 'repair' };
-  } else if (table === 'laptops') {
-    payload = { title: 'Inventory update', body: `${row.brand_model || row.serial_number || 'A laptop'} changed`, tag: 'inventory' };
-  }
-  if (!payload) return res.json({ ok: true, skipped: 'unknown-table' });
-  const result = await push.sendPush(payload).catch(() => ({ sent: 0 }));
   res.json({ ok: true, ...result });
 });
 
@@ -1003,72 +919,6 @@ io.on('connection', (socket) => {
   });
   broadcastPresence();
   socket.emit('presence:update', presenceState());
-
-  socket.on('laptop:transfer', async (data, ack) => {
-    if (!(await hasPerm(socket.user, 'transferLaptops'))) return typeof ack === 'function' && ack({ error: 'Insufficient permissions' });
-    const result = await transferLaptop(Number(data?.laptopId), Number(data?.toStoreId));
-    if (result.error && typeof ack === 'function') return ack({ error: result.error });
-    // Reflect the change back to all clients (including the requesting one).
-    broadcast('laptop:transferred', result);
-    if (typeof ack === 'function') ack(result);
-  });
-
-  socket.on('laptop:create', async (data, ack) => {
-    if (!(await hasPerm(socket.user, 'editInventory'))) return typeof ack === 'function' && ack({ error: 'Insufficient permissions' });
-    const result = await createLaptop(data || {});
-    if (result.error && typeof ack === 'function') return ack({ error: result.error });
-    broadcast('laptop:created', result.laptop);
-    if (typeof ack === 'function') ack(result);
-  });
-
-  socket.on('laptop:update', async (data, ack) => {
-    if (!(await hasPerm(socket.user, 'editInventory'))) return typeof ack === 'function' && ack({ error: 'Insufficient permissions' });
-    const result = await updateLaptop(Number(data?.id), data?.fields || {});
-    if (result.error && typeof ack === 'function') return ack({ error: result.error });
-    broadcast('laptop:updated', result.laptop);
-    if (typeof ack === 'function') ack(result);
-  });
-
-  socket.on('laptop:delete', async (data, ack) => {
-    if (!(await hasPerm(socket.user, 'editInventory'))) return typeof ack === 'function' && ack({ error: 'Insufficient permissions' });
-    const result = await deleteLaptop(Number(data?.id));
-    if (result.error && typeof ack === 'function') return ack({ error: result.error });
-    broadcast('laptop:deleted', { id: result.id });
-    if (typeof ack === 'function') ack(result);
-  });
-
-  const isAdminUser = socket.user && socket.user.role === 'admin';
-
-  socket.on('settings:save', async (data, ack) => {
-    if (!isAdminUser) return typeof ack === 'function' && ack({ error: 'Insufficient permissions' });
-    const settings = await setSettings(data || {});
-    broadcast('settings:updated', settings);
-    if (typeof ack === 'function') ack({ ok: true, settings });
-  });
-
-  socket.on('store:add', async (data, ack) => {
-    if (!isAdminUser) return typeof ack === 'function' && ack({ error: 'Insufficient permissions' });
-    const result = await addStore(data?.store_name);
-    if (result.error && typeof ack === 'function') return ack({ error: result.error });
-    broadcast('store:added', result.store);
-    if (typeof ack === 'function') ack(result);
-  });
-
-  socket.on('store:rename', async (data, ack) => {
-    if (!(await hasPerm(socket.user, 'renameStores'))) return typeof ack === 'function' && ack({ error: 'Insufficient permissions' });
-    const result = await renameStore(Number(data?.id), data?.store_name);
-    if (result.error && typeof ack === 'function') return ack({ error: result.error });
-    broadcast('store:renamed', result.store);
-    if (typeof ack === 'function') ack(result);
-  });
-
-  socket.on('store:delete', async (data, ack) => {
-    if (!isAdminUser) return typeof ack === 'function' && ack({ error: 'Insufficient permissions' });
-    const result = await deleteStore(Number(data?.id));
-    if (result.error && typeof ack === 'function') return ack({ error: result.error });
-    broadcast('store:deleted', { id: result.id });
-    if (typeof ack === 'function') ack(result);
-  });
 
   // Pull the current snapshot (clients joining late ask for it).
   socket.on('presence:get', (ack) => {

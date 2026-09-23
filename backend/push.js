@@ -52,14 +52,6 @@ if (webpush && PUBLIC_KEY && PRIVATE_KEY) {
   console.warn('[push] VAPID keys missing — push disabled until VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY are set');
 }
 
-function getStatus() {
-  let count = 0;
-  try {
-    count = db.prepare('SELECT COUNT(*) AS n FROM PushSubscriptions').get().n;
-  } catch { /* table missing */ }
-  return { enabled: vapidReady, subscriptions: count };
-}
-
 function getPublicKey() {
   return PUBLIC_KEY || null;
 }
@@ -115,4 +107,4 @@ async function sendPush(payload) {
   return { sent };
 }
 
-module.exports = { getStatus, getPublicKey, saveSubscription, removeSubscription, sendPush };
+module.exports = { getPublicKey, saveSubscription, removeSubscription, sendPush };

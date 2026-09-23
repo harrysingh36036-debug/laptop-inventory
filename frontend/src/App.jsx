@@ -37,7 +37,7 @@ import {
 } from './api';
 import { socket, setSocketAuth, setLocalRole, setLocalPII } from './socket';
 import { joinPresence, leavePresence } from './presence';
-import { pushSupported, getPushState, enablePush, disablePush, notifyHiddenTab } from './push';
+import { pushSupported, getPushState, enablePush, disablePush } from './push';
 import { LabelsProvider, DEFAULT_LABELS } from './labels.jsx';
 import Login from './components/Login';
 import StoreFilter from './components/StoreFilter';
@@ -583,10 +583,6 @@ export default function App() {
         `In real time: ${payload.laptop.brand_model} moved to ${payload.to?.store_name}`,
         'success'
       );
-      notifyHiddenTab(
-        'Laptop transferred',
-        `${payload.laptop.brand_model} moved to ${payload.to?.store_name}`
-      );
     };
 
     socket.on('laptop:transferred', onTransfer);
@@ -629,10 +625,6 @@ export default function App() {
 
     const onSale = (sale) => {
       notify(`In real time: ${sale?.brand_model} sold for ₹${Number(sale?.sale_price || 0).toLocaleString('en-IN')}`, 'success');
-      notifyHiddenTab(
-        'Laptop sold',
-        `${sale?.brand_model} sold for ₹${Number(sale?.sale_price || 0).toLocaleString('en-IN')}`
-      );
     };
     socket.on('sale:new', onSale);
 
